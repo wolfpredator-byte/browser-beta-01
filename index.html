@@ -1,1 +1,39 @@
-<!doctype html><html lang="it"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"/><title>Personal Browser Beta</title><link rel="stylesheet" href="style.css"/></head><body><header><div class="top"><span class="brand">◈ <b>Personal Browser</b><small> BETA 0.1</small></span><div id="tabs"></div><button id="new" title="Nuova scheda">＋</button></div><div class="toolbar"><button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button><form id="nav"><input id="address" placeholder="Cerca o inserisci un URL..." autocomplete="off" /></form><button id="bookmark" title="Salva preferito">☆</button></div></header><div id="loadError" role="status" hidden></div><main id="dashboard"><aside><h3>WORKSPACES</h3><div id="workspaces"></div><button id="addWorkspace" class="sideButton">＋ Nuovo spazio</button><hr><button id="showBookmarks" class="sideButton">☆ Preferiti</button><button id="showHistory" class="sideButton">◷ Cronologia</button></aside><section class="content"><p class="eyebrow">IL TUO AMBIENTE</p><h1 id="title">Personale</h1><p class="muted">Schede e riferimenti collegati al contesto in cui stai lavorando.</p><div class="actions"><button id="chooseFolder">Collega cartella progetto</button><button id="openFolder">Apri in Esplora file</button><button id="addResource">＋ Risorsa web</button></div><p id="folder" class="muted"></p><div class="columns"><article><h2>Risorse del workspace</h2><div id="resources"></div></article><article><h2 id="secondaryTitle">Preferiti</h2><div id="secondary"></div></article></div><p class="hint">Prototipo locale: permessi web limitati, niente estensioni, login sensibili o uso quotidiano per ora.</p></section></main><script src="renderer.js"></script></body></html>
+<!doctype html>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.2</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="toolbar">
+  <div class="brand" title="Personal Browser">◈</div>
+  <button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button>
+  <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca sul web o inserisci un indirizzo..." autocomplete="off"></form>
+  <button id="bookmark" title="Aggiungi ai preferiti">☆</button>
+  <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
+</header>
+<div id="loadError" role="status" hidden></div>
+<main id="dashboard">
+ <aside class="sidebar">
+  <div class="sidebar-top"><span class="sidebar-logo">◈</span><span class="sidebar-label">WORKSPACES</span><button id="toggleSidebar" title="Espandi/riduci barra laterale">☰</button></div>
+  <div id="workspaces"></div>
+  <button id="addWorkspace" class="sideButton">＋ <span class="sidebar-label">Nuovo spazio</span></button>
+  <div class="side-sep"></div>
+  <button id="showBookmarks" class="sideButton">☆ <span class="sidebar-label">Preferiti</span></button>
+  <button id="showHistory" class="sideButton">◷ <span class="sidebar-label">Cronologia</span></button>
+ </aside>
+ <section class="home-content">
+  <div class="home-center">
+   <div class="orb-stage"><div id="jarvisOrb" class="orb idle" role="img" aria-label="JARVIS in standby"><div class="orb-body"></div><div class="thinking-rings"><i></i><i></i><i></i></div></div></div>
+   <p class="eyebrow">JARVIS · LOCAL WORKSPACE</p>
+   <h1>Che cosa vuoi esplorare?</h1>
+   <form id="homeSearch" class="home-search"><span class="search-symbol">⌕</span><input id="homeQuery" placeholder="Cerca sul web..." autocomplete="off"><button type="submit">↗</button></form>
+   <p class="offline">Interfaccia JARVIS dimostrativa · assistente non connesso</p>
+   <div class="orb-controls" aria-label="Anteprima animazione sfera"><button data-orb="idle" class="chosen">Idle</button><button data-orb="thinking">Thinking</button><button data-orb="speaking">Speaking</button></div>
+  </div>
+  <section class="workspace-panel glass">
+    <div class="workspace-head"><div><span class="eyebrow">CONTESTO ATTIVO</span><h2 id="title">Personale</h2></div><span class="status-dot">● Locale</span></div>
+    <p id="folder" class="muted">Nessuna cartella locale associata</p>
+    <div class="actions"><button id="chooseFolder">Collega cartella</button><button id="openFolder">Apri cartella</button><button id="addResource">＋ Risorsa web</button></div>
+    <div class="columns"><article><h3>Risorse salvate</h3><div id="resources"></div></article><article><h3 id="secondaryTitle">Preferiti</h3><div id="secondary"></div></article></div>
+  </section>
+ </section>
+</main>
+<footer class="tabbar"><span class="tabbar-label">SCHEDE</span><div id="tabs"></div><button id="new" title="Nuova scheda">＋</button></footer>
+<script src="renderer.js"></script></body></html>
