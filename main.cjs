@@ -2,14 +2,16 @@ const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog}=require('
 const path=require('node:path');
 const fs=require('node:fs');
 app.enableSandbox();
-let win, activeId=null, tabs=[], data, nextId=1;
+let win, activeId=null, tabs=[], data, nextId=1, downloads=[];
 const HEADER=64, FOOTER=43;
 const defaultData=()=>({activeWorkspace:'Personale',workspaces:[{name:'Personale',tabs:[]},{name:'Destiny Builder',tabs:[],projectPath:'',resources:['https://www.bungie.net/7/en/Destiny','https://github.com/']},{name:'Gaming',tabs:[],projectPath:'',resources:[]}],bookmarks:[],history:[]});
-let restorePending=false;
+
 function persistTabs(){
  if(!data)return;
- data.sessionTabs=tabs.filter(t=>isWebUrl(t.url)).map(t=>({url:t.url,workspace:t.workspace,title:t.title})).slice(0,40);
+ data.sessionTabs=tabs.filter(t=>isWebUrl(t.url)).map(t=>({url:t.url,workspace:t.workspace,title:t.title,pinned:!!t.pinned,group:t.group||null})).slice(0,40);
  data.lastActiveUrl=visible()?.url||null;
+ data.workspaceLastActive=data.workspaceLastActive||{};
+ if(visible())data.workspaceLastActive[data.activeWorkspace]=visible().url;
  save();
 }
 const storage=()=>path.join(app.getPath('userData'),'browser-data.json');
@@ -33,11 +35,11 @@ function safeUrl(s){
 }
 function isWebUrl(raw){try{return ['https:','http:'].includes(new URL(raw).protocol);}catch{return false;}}
 const visible=()=>tabs.find(t=>t.id===activeId);
-function snapshot(){return {activeWorkspace:data.activeWorkspace,workspaces:data.workspaces.map(x=>({name:x.name,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,active:t.id===activeId})),activeTab:activeId,bookmarks:data.bookmarks,history:data.history.slice(0,40),loadError:visible()?.loadError||null};}
+function snapshot(){return {activeWorkspace:data.activeWorkspace,workspaces:data.workspaces.map(x=>({name:x.name,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),loadError:visible()?.loadError||null};}
 function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot());}
 function bounds(){if(!win||win.isDestroyed())return;const [w,h]=win.getContentSize();for(const t of tabs){t.view.setBounds({x:0,y:HEADER,width:Math.max(1,w),height:Math.max(1,h-HEADER-FOOTER)});}}
-function show(id){const t=tabs.find(x=>x.id===id);if(!t)return;activeId=id;for(const tab of tabs)win.contentView.removeChildView(tab.view);if(t.workspace===data.activeWorkspace)win.contentView.addChildView(t.view);bounds();emit();}
-function newTab(raw='https://www.google.com/',ws=data.activeWorkspace){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,loadError:null};tabs.push(t);view.webContents.setWindowOpenHandler(({url})=>{if(isWebUrl(url))newTab(url,ws);return {action:'deny'};});view.webContents.on('will-navigate',(event,url)=>{if(!isWebUrl(url))event.preventDefault();});view.webContents.on('did-navigate',(_,url)=>{if(isWebUrl(url)){t.url=url;data.history.unshift({url,title:t.title,time:Date.now()});data.history=data.history.slice(0,200);persistTabs();emit();}});view.webContents.on('did-navigate-in-page',(_,url)=>{if(isWebUrl(url)){t.url=url;persistTabs();emit();}});view.webContents.on('page-title-updated',(_,title)=>{t.title=title.slice(0,120);persistTabs();emit();});view.webContents.on('did-start-loading',()=>{t.loadError=null;emit();});
+function show(id){const t=tabs.find(x=>x.id===id);if(!t)return;activeId=id;for(const tab of tabs)win.contentView.removeChildView(tab.view);if(t.workspace===data.activeWorkspace)win.contentView.addChildView(t.view);bounds();persistTabs();emit();}
+function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,loadError:null,pinned:!!settings.pinned,group:typeof settings.group==='string'?settings.group.slice(0,35):null};tabs.push(t);view.webContents.setWindowOpenHandler(({url})=>{if(isWebUrl(url))newTab(url,ws);return {action:'deny'};});view.webContents.on('will-navigate',(event,url)=>{if(!isWebUrl(url))event.preventDefault();});view.webContents.on('did-navigate',(_,url)=>{if(isWebUrl(url)){t.url=url;data.history.unshift({url,title:t.title,time:Date.now()});data.history=data.history.slice(0,200);persistTabs();emit();}});view.webContents.on('did-navigate-in-page',(_,url)=>{if(isWebUrl(url)){t.url=url;persistTabs();emit();}});view.webContents.on('page-title-updated',(_,title)=>{t.title=title.slice(0,120);persistTabs();emit();});view.webContents.on('did-start-loading',()=>{t.loadError=null;emit();});
 view.webContents.on('did-fail-load',(_,code,desc,validatedURL,isMainFrame)=>{
   if(code===-3||!isMainFrame)return;
   t.loadError=`Impossibile aprire ${validatedURL || t.url} — ${desc} (${code})`;
@@ -48,7 +50,9 @@ view.webContents.on('render-process-gone',(_event,details)=>{
   emit();
 });view.webContents.loadURL(url).catch(console.warn);if(ws===data.activeWorkspace)show(t.id);else emit();persistTabs();return t.id;}
 function closeTab(id){const i=tabs.findIndex(x=>x.id===id);if(i<0)return;const [t]=tabs.splice(i,1);win.contentView.removeChildView(t.view);t.view.webContents.close();if(activeId===id){activeId=null;const candidate=tabs.find(x=>x.workspace===data.activeWorkspace);if(candidate)show(candidate.id);else emit();}else emit();persistTabs();}
-function switchWorkspace(name){if(!data.workspaces.find(x=>x.name===name))return;data.activeWorkspace=name;save();const t=tabs.find(x=>x.workspace===name);if(t)show(t.id);else{activeId=null;for(const t of tabs)win.contentView.removeChildView(t.view);emit();}}
+function switchWorkspace(name){if(!data.workspaces.find(x=>x.name===name))return;data.activeWorkspace=name;save();const preferred=data.workspaceLastActive?.[name];
+ const t=tabs.find(x=>x.workspace===name&&x.url===preferred)||tabs.find(x=>x.workspace===name);
+ if(t)show(t.id);else{activeId=null;for(const t of tabs)win.contentView.removeChildView(t.view);emit();}}
 function verify(event){return win&&!win.isDestroyed()&&event.sender===win.webContents;}
 app.whenReady().then(()=>{
  load();const ses=session.fromPartition('persist:local-browser');ses.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
@@ -58,7 +62,7 @@ app.whenReady().then(()=>{
  const restored=Array.isArray(data.sessionTabs)?data.sessionTabs.slice(0,30):[];
  for(const saved of restored){
    if(saved&&isWebUrl(saved.url)&&data.workspaces.some(w=>w.name===saved.workspace)){
-     newTab(saved.url,saved.workspace);
+     newTab(saved.url,saved.workspace,{pinned:saved.pinned,group:saved.group});
    }
  }
  if(data.lastActiveUrl){
@@ -66,6 +70,23 @@ app.whenReady().then(()=>{
    if(match)show(match.id);
  }
 win.on('resize',bounds);
+ ses.on('will-download',(_event,item)=>{
+   const id=Date.now()+'-'+Math.random().toString(36).slice(2,8);
+   const filename=path.basename(item.getFilename()).replace(/[\\/]/g,'_');
+   const target=path.join(app.getPath('downloads'),filename);
+   // Electron handles duplicates through its standard download dialog/behavior;
+   // do not silently overwrite an existing file.
+   if(fs.existsSync(target)){
+     const ext=path.extname(filename),stem=path.basename(filename,ext);
+     let n=1;while(fs.existsSync(path.join(app.getPath('downloads'),stem+' ('+n+')'+ext)))n++;
+     item.setSavePath(path.join(app.getPath('downloads'),stem+' ('+n+')'+ext));
+   }else item.setSavePath(target);
+   const record={id,name:filename,state:'progressing',received:0,total:item.getTotalBytes(),path:item.getSavePath()};
+   downloads.unshift(record);downloads=downloads.slice(0,40);emit();
+   item.on('updated',(_e,state)=>{record.state=state;record.received=item.getReceivedBytes();record.total=item.getTotalBytes();emit();});
+   item.once('done',(_e,state)=>{record.state=state;record.received=item.getReceivedBytes();emit();});
+ });
+
  win.on('closed',()=>{for(const t of tabs)t.view.webContents.close();tabs=[];win=null;});
  ipcMain.handle('action',async(event,action,args={})=>{
  if(!verify(event)||typeof action!=='string'||!args||typeof args!=='object')return;
@@ -74,6 +95,14 @@ win.on('resize',bounds);
  case 'newTab':return newTab(args.url||'https://www.google.com/');
  case 'activateTab':if(Number.isInteger(args.id)&&tabs.some(t=>t.id===args.id&&t.workspace===data.activeWorkspace))show(args.id);break;
  case 'closeTab':if(Number.isInteger(args.id))closeTab(args.id);break;
+ case 'duplicateTab':{const source=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);if(source)newTab(source.url,source.workspace,{group:source.group,pinned:source.pinned});break;}
+ case 'pinTab':{const target=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);if(target){target.pinned=!target.pinned;persistTabs();emit();}break;}
+ case 'groupTab':{const target=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);
+ if(target){const group=typeof args.group==='string'?args.group.trim().slice(0,35):'';target.group=group||null;persistTabs();emit();}break;}
+ case 'reorderTab':{const src=tabs.findIndex(x=>x.id===args.id&&x.workspace===data.activeWorkspace);
+ const dest=tabs.findIndex(x=>x.id===args.beforeId&&x.workspace===data.activeWorkspace);
+ if(src>=0&&dest>=0&&src!==dest){const [item]=tabs.splice(src,1);const idx=tabs.findIndex(x=>x.id===args.beforeId);tabs.splice(idx,0,item);persistTabs();emit();}break;}
+ case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
  case 'navigate':if(t){const url=safeUrl(args.url);if(url){
  t.loadError=null;t.url=url;emit();
  t.view.webContents.loadURL(url).catch(e=>{t.loadError=String(e.message||e);emit();});
