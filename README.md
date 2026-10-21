@@ -33,3 +33,5 @@ Questa e' una **base sperimentale**, non una beta pronta per l'utilizzo quotidia
 
 Separare sempre l'interfaccia browser (`renderer.js`) dai siti esterni (`WebContentsView`).
 \n## Aggiornamento 0.1.1\n- Ricerca testuale con Google, URL espliciti caricati direttamente.\n- Nuova scheda: Google invece di Wikipedia.\n- Errori di caricamento principali mostrati nell'interfaccia per diagnosi.\n- Google/YouTube: la compatibilità non è garantita; se vedi ancora una pagina bianca, copia il messaggio di errore o l'output del terminale.\n- Attenzione: questa resta una base sperimentale, non un browser sicuro per account sensibili.\n# browser-beta-01
+
+by WolfPredator
