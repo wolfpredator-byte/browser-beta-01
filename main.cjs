@@ -1,6 +1,9 @@
 const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog,Menu,nativeImage,clipboard}=require('electron');
 const path=require('node:path');
 const fs=require('node:fs');
+// Separiamo le regole sulle schede dalle API Electron: così possiamo testarle
+// con Node.js senza avviare una finestra o navigare su Internet.
+const {shouldCloseWindow,discardHomeAfterNavigation}=require('./tab-lifecycle.cjs');
 app.enableSandbox();
 let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false, sidePanelOpen=null;
 // These pixel values reserve space for the top address bar and bottom tabs.
@@ -110,24 +113,68 @@ view.webContents.on('render-process-gone',(_event,details)=>{
   t.loadError=`La pagina si è interrotta: ${details.reason}`;
   emit();
 });view.webContents.loadURL(url).catch(console.warn);if(ws===data.activeWorkspace)show(t.id);else emit();persistTabs();return t.id;}
-// Chiudere l'ultima scheda dell'intero browser chiude la finestra, come richiesto.
+/**
+ * Chiude una scheda del workspace attivo.
+ *
+ * @param {number} id - L'identificatore univoco della scheda da rimuovere.
+ *
+ * Comportamento richiesto: quando si chiude l'ULTIMA scheda del workspace
+ * visibile, chiudiamo la finestra anche se in altri workspace ci sono schede.
+ * Quelle schede restano salvate e saranno ripristinate al prossimo avvio.
+ */
 function closeTab(id){
- const index=tabs.findIndex(t=>t.id===id&&t.workspace===data.activeWorkspace);
- if(index<0)return;
- const [tab]=tabs.splice(index,1);
- if(tab.view){win.contentView.removeChildView(tab.view);tab.view.webContents.close();}
- if(tabs.length===0){
-   activeId=null;
-   persistTabs(); // Nessuna sessione da ripristinare all'avvio successivo.
-   win.close();
-   return;
+ const index=tabs.findIndex(tab=>tab.id===id&&tab.workspace===data.activeWorkspace);
+ if(index===-1)return; // Non permette a un evento UI di chiudere schede di altri workspace.
+
+ const [closed]=tabs.splice(index,1);
+ // Solo le pagine remote hanno una WebContentsView. Home non ne possiede una.
+ if(closed.view){
+  win.contentView.removeChildView(closed.view);
+  closed.view.webContents.close();
  }
- if(activeId===id){
-  activeId=null;
-  const next=tabs.find(t=>t.workspace===data.activeWorkspace);
+
+ // Prima rimuoviamo l'ID attivo: evita di salvare come attiva una scheda chiusa.
+ if(activeId===id)activeId=null;
+
+ if(shouldCloseWindow(tabs,data.activeWorkspace)){
+  persistTabs(); // Salva le schede degli ALTRI workspace prima di chiudere Windows.
+  win.close();
+  return;
+ }
+
+ // Se rimangono schede nel workspace, apriamo una di esse anziché creare Home.
+ if(activeId===null){
+  const next=tabs.find(tab=>tab.workspace===data.activeWorkspace);
   if(next)show(next.id);
-  else newHomeTab(data.activeWorkspace); // Altri workspace esistono: niente schermo vuoto.
- } else {persistTabs();emit();}
+ }else{
+  persistTabs();
+  emit();
+ }
+}
+
+/**
+ * Quando si effettua una ricerca dalla Home, deve essere usata la stessa
+ * posizione della scheda, non lasciata una Home aperta sul lato sinistro.
+ *
+ * @param {string} raw - Testo della ricerca oppure URL inserito.
+ * @returns {boolean} false se il testo non è valido o non siamo sulla Home.
+ */
+function navigateFromHome(raw){
+ const home=visible();
+ if(!home?.isHome)return false;
+ const url=safeUrl(raw); // Converte parole in una ricerca Google; mantiene gli URL.
+ if(!url)return false;
+
+ // newTab() apre la pagina subito DOPO Home e la rende attiva.
+ const newId=newTab(url,home.workspace);
+ if(!newId)return false;
+
+ // Rimuoviamo esclusivamente Home: la nuova pagina ne occupa il posto.
+ if(discardHomeAfterNavigation(tabs,home.id,newId,home.workspace)){
+  persistTabs(); // Evita che Home torni al riavvio.
+  emit();        // Aggiorna subito barra delle schede e indicatore della Home.
+ }
+ return true;
 }
 
 function switchWorkspace(name){if(!data.workspaces.find(x=>x.name===name))return;data.activeWorkspace=name;save();const preferred=data.workspaceLastActive?.[name];
@@ -274,10 +321,22 @@ win.on('resize',bounds);
   ]).popup({window:win});
   break;
  }
- case 'navigate':if(t&&!t.isHome){const url=safeUrl(args.url);if(url){
- t.loadError=null;t.url=url;emit();
- t.view.webContents.loadURL(url).catch(e=>{t.loadError=String(e.message||e);emit();});
- }}else newTab(args.url);break;
+ // Ricerca da Home: convertiamo la scheda Home in una scheda web.
+ // Ricerca da sito: navighiamo normalmente nella scheda corrente.
+ case 'navigate':{
+  if(typeof args.url!=='string'||!args.url.trim())break;
+  if(t?.isHome){navigateFromHome(args.url);break;}
+  if(t?.view){
+   const url=safeUrl(args.url);
+   if(url){
+    t.loadError=null;t.url=url;emit();
+    t.view.webContents.loadURL(url).catch(e=>{
+     t.loadError=String(e.message||e);emit();
+    });
+   }
+  }else newTab(args.url);
+  break;
+ }
  case 'back':if(t?.view.webContents.canGoBack())t.view.webContents.goBack();break;
  case 'forward':if(t?.view.webContents.canGoForward())t.view.webContents.goForward();break;
  case 'reload':if(t?.view){t.loadError=null;t.view.webContents.reload();}break;
@@ -285,7 +344,15 @@ win.on('resize',bounds);
  case 'workspace':if(typeof args.name==='string')switchWorkspace(args.name);break;
  case 'addWorkspace':{const name=String(args.name||'').trim().slice(0,40);if(name&&!data.workspaces.some(w=>w.name===name)){data.workspaces.push({name,tabs:[],resources:[],projectPath:''});save();switchWorkspace(name);}break;}
  case 'bookmark':if(t&&!data.bookmarks.some(x=>x.url===t.url)){data.bookmarks.unshift({url:t.url,title:t.title});data.bookmarks=data.bookmarks.slice(0,100);save();emit();}break;
- case 'resource':if(typeof args.url==='string'){const u=safeUrl(args.url);if(u)newTab(u);}break;
+ // Un link cliccato dalla Home segue la stessa logica della sua barra di ricerca.
+ // Da un sito già aperto, invece, le risorse continuano ad aprirsi in nuova tab.
+ case 'resource':if(typeof args.url==='string'){
+  const u=safeUrl(args.url);
+  if(u){
+   if(t?.isHome)navigateFromHome(u);
+   else newTab(u);
+  }
+ }break;
  case 'addResource':{const u=safeUrl(args.url);if(u&&workspace()&&!workspace().resources.includes(u)){workspace().resources.push(u);save();emit();}break;}
  case 'projectFolder':{const result=await dialog.showOpenDialog(win,{properties:['openDirectory']});if(!result.canceled&&result.filePaths[0]&&workspace()){workspace().projectPath=result.filePaths[0];save();emit();}break;}
  case 'openFolder':{const p=workspace()?.projectPath;if(p&&fs.existsSync(p))shell.showItemInFolder(p);break;}
