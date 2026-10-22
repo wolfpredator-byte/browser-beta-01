@@ -84,11 +84,65 @@ function render(){
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
  $('footerWorkspaceName').textContent=state.activeWorkspace||'Personale';
- const tabs=$('tabs');tabs.replaceChildren();state.tabs.forEach(t=>{const d=document.createElement('div');d.className='tab'+(t.active?' active':'');d.draggable=true;d.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(t.id));e.dataTransfer.effectAllowed='move';};d.ondragover=e=>e.preventDefault();d.ondrop=e=>{e.preventDefault();const id=Number(e.dataTransfer.getData('text/plain'));if(Number.isInteger(id))act('reorderTab',{id,beforeId:t.id});};
-if(t.group){const g=document.createElement('small');g.className='tab-group';g.textContent=t.group;d.appendChild(g);}
-const title=document.createElement('span');title.textContent=t.isHome?'⌂ Home':(t.title||t.url);title.onclick=()=>act('activateTab',{id:t.id});d.appendChild(title);
-const menu=addButton(d,'⋯',()=>act('tabContextMenu',{id:t.id}),'tab-more');menu.title='Azioni scheda';if(t.pinned)d.classList.add('pinned');
-addButton(d,'×',()=>act('closeTab',{id:t.id}));tabs.appendChild(d);});// Ciascun workspace è un pulsante con icona 20px e nome separato.
+ $('reopenClosed').disabled=!state.canReopenClosed;
+ // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
+ // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
+ const tabs=$('tabs');tabs.replaceChildren();
+ for(const entry of state.tabStrip||[]){
+   if(entry.kind==='group'){
+     const group=document.createElement('div');
+     group.className='stack-heading'+(entry.collapsed?' collapsed':'')+(entry.active?' contains-active':'');
+     const toggle=document.createElement('button');
+     toggle.className='stack-toggle';
+     toggle.textContent=(entry.collapsed?'▸ ':'▾ ')+entry.group+' ('+entry.count+')';
+     toggle.title=entry.collapsed?'Espandi stack':'Comprimi stack';
+     toggle.setAttribute('aria-expanded',String(!entry.collapsed));
+     toggle.onclick=()=>act('toggleGroup',{group:entry.group});
+     group.appendChild(toggle);
+     const actions=addButton(group,'⋯',()=>act('tabContextMenu',{id:entry.tabIds[0]}),'stack-actions');
+     actions.title='Azioni stack';
+     // Trascinare un'altra scheda SOPRA lo stack la aggiunge al gruppo.
+     group.ondragover=event=>event.preventDefault();
+     group.ondrop=event=>{
+       event.preventDefault();
+       const fromId=Number(event.dataTransfer.getData('text/plain'));
+       if(Number.isInteger(fromId)&&fromId!==entry.tabIds[0])
+         act('stackTabs',{fromId,targetId:entry.tabIds[0]});
+     };
+     tabs.appendChild(group);
+     continue;
+   }
+   const t=entry.tab;
+   const tab=document.createElement('div');
+   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+
+     (entry.inGroup?' stacked':'');
+   tab.draggable=true;
+   tab.ondragstart=event=>{
+     event.dataTransfer.setData('text/plain',String(t.id));
+     event.dataTransfer.effectAllowed='move';
+   };
+   tab.ondragover=event=>event.preventDefault();
+   tab.ondrop=event=>{
+     event.preventDefault();
+     const fromId=Number(event.dataTransfer.getData('text/plain'));
+     if(!Number.isInteger(fromId)||fromId===t.id)return;
+     // Shift + trascina: crea/assegna uno stack. Senza Shift: riordina soltanto.
+     if(event.shiftKey)act('stackTabs',{fromId,targetId:t.id});
+     else act('reorderTab',{id:fromId,beforeId:t.id});
+   };
+   const title=document.createElement('span');
+   title.textContent=t.isHome?'⌂ Home':(t.title||t.url);
+   title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
+   title.onclick=()=>act('activateTab',{id:t.id});
+   tab.appendChild(title);
+   // Il menu contestuale è nativo Windows, anche con una pagina web aperta.
+   tab.oncontextmenu=event=>{event.preventDefault();act('tabContextMenu',{id:t.id});};
+   const menu=addButton(tab,'⋯',()=>act('tabContextMenu',{id:t.id}),'tab-more');
+   menu.title='Menu scheda';
+   addButton(tab,'×',()=>act('closeTab',{id:t.id}));
+   tabs.appendChild(tab);
+ }
+ // Ciascun workspace è un pulsante con icona 20px e nome separato.
  // Il click destro apre il selettore PNG/JPG/WebP di Windows (max 4MiB).
  const w=$('workspaces');w.replaceChildren();
  for(const workspace of state.workspaces){
@@ -115,6 +169,8 @@ if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?'
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
 }if(!list.length)el.textContent='Nessun elemento.';}
 $('workspaceSwitcher').onclick=()=>act('showWorkspaceMenu');
+// Questo pulsante è una scorciatoia visuale alla stessa funzione di Ctrl+Shift+T.
+$('reopenClosed').onclick=()=>act('reopenClosedTab');
 $('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>{const name=prompt('Nome del workspace:');if(name)act('addWorkspace',{name});};$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>{const url=prompt('URL risorsa da associare al workspace:');if(url)act('addResource',{url});};$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});window.browserAPI.onState(next=>{state=next;render();});
