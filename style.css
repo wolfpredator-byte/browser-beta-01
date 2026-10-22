@@ -15,3 +15,58 @@
 
 /* Hide the entire home view when an external tab is selected. No home beneath it. */
 #dashboard[hidden]{display:none!important}
+
+/* BETA 0.3.1 — STRUTTURA DELLA FINESTRA
+ * TITLE = 30px di area trascinabile, TOOLBAR = 64px, quindi HEADER = 94px.
+ * Cambiando questi valori, aggiorna HEADER in main.cjs per non coprire i siti.
+ */
+.window-titlebar{height:30px;display:flex;align-items:center;gap:9px;padding:0 155px 0 14px;
+ background:#0b0b0b;color:#ddd;font-size:10px;font-weight:600;letter-spacing:1px;
+ user-select:none;app-region:drag;white-space:nowrap}
+.window-titlebar span{color:#818181;font-size:9px}
+.toolbar{height:64px}
+#dashboard{top:94px;left:var(--side-width);right:0;width:auto;bottom:43px}
+#globalSidebar{position:absolute;top:94px;bottom:43px;left:0;z-index:4;
+ width:var(--side-width);overflow-y:auto;overflow-x:hidden;background:#0b0b0b;border-right:1px solid #ffffff1a}
+body{--side-width:62px}
+body[data-sidebar-mode="expanded"]{--side-width:198px}
+body[data-sidebar-mode="hidden"]{--side-width:0px}
+body[data-sidebar-mode="hidden"] #globalSidebar{display:none!important}
+#loadError{top:101px}
+.download-drawer{top:94px}
+#toggleSidebarVisibility{font-size:18px;padding:7px 10px;flex-shrink:0}
+#globalSidebar .sidebar-top{padding:0 3px 11px}
+#globalSidebar .sidebar-top #toggleSidebar{margin-left:auto;flex-shrink:0;padding:7px}
+#globalSidebar .sidebar-label{letter-spacing:.6px}
+#globalSidebar #workspaces{display:flex;flex-direction:column;gap:4px}
+#globalSidebar .workspace-button{display:flex;align-items:center;text-align:left;gap:11px;
+ height:42px;min-height:42px;min-width:0;width:100%;margin:0;
+ padding:6px 10px;font-size:12px;white-space:nowrap}
+#globalSidebar .workspace-icon{display:grid;place-items:center;flex:none;
+ width:22px;height:22px;font-size:20px;line-height:1;color:#ddd}
+#globalSidebar .workspace-icon img{width:20px;height:20px;object-fit:contain}
+#globalSidebar .workspace-name{flex:1;overflow:hidden;text-overflow:ellipsis}
+#globalSidebar .workspace-count{font-size:10px;color:#888}
+#globalSidebar .sideButton{display:flex;align-items:center;gap:11px;height:42px;
+ min-height:42px;margin:3px 0;padding:7px 10px;text-align:left}
+#globalSidebar .tool-icon{display:grid;place-items:center;width:22px;height:22px;
+ flex:none;font-size:20px;line-height:1;color:#ddd}
+#globalSidebar .tool-label{font-size:12px;white-space:nowrap}
+body[data-sidebar-mode="compact"] #globalSidebar .workspace-name,
+body[data-sidebar-mode="compact"] #globalSidebar .workspace-count,
+body[data-sidebar-mode="compact"] #globalSidebar .tool-label,
+body[data-sidebar-mode="compact"] #globalSidebar .sidebar-label,
+body[data-sidebar-mode="compact"] #globalSidebar .sidebar-logo{display:none}
+body[data-sidebar-mode="compact"] #globalSidebar .sidebar-top{justify-content:center}
+body[data-sidebar-mode="compact"] #globalSidebar .sidebar-top #toggleSidebar{margin:0;width:42px;text-align:center}
+body[data-sidebar-mode="compact"] #globalSidebar .workspace-button,
+body[data-sidebar-mode="compact"] #globalSidebar .sideButton{width:42px;margin-left:auto;margin-right:auto;
+ padding:8px 9px;justify-content:center}
+body[data-sidebar-mode="compact"] #globalSidebar .workspace-icon,
+body[data-sidebar-mode="compact"] #globalSidebar .tool-icon{width:22px;height:22px;font-size:20px}
+body[data-sidebar-mode="expanded"] #globalSidebar .sidebar-top{gap:5px}
+body[data-sidebar-mode="expanded"] #globalSidebar .sidebar-top .sidebar-label{font-size:10px}
+/* La striscia schede occupa solo lo spazio necessario; il + segue l'ultima scheda. */
+.tabbar #tabs{flex:0 1 auto;min-width:0;max-width:calc(100% - 95px)}
+.tabbar #new{margin:0 1px;flex:none;min-width:29px;padding:4px 7px;font-size:19px}
+.tabbar .tabbar-spacer{flex:1;min-width:0}
