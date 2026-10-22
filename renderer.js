@@ -62,6 +62,7 @@ function render(){
  document.body.dataset.sidebarMode=state.sidebarMode||'compact';
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
+ $('footerWorkspaceName').textContent=state.activeWorkspace||'Personale';
  const tabs=$('tabs');tabs.replaceChildren();state.tabs.forEach(t=>{const d=document.createElement('div');d.className='tab'+(t.active?' active':'');d.draggable=true;d.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(t.id));e.dataTransfer.effectAllowed='move';};d.ondragover=e=>e.preventDefault();d.ondrop=e=>{e.preventDefault();const id=Number(e.dataTransfer.getData('text/plain'));if(Number.isInteger(id))act('reorderTab',{id,beforeId:t.id});};
 if(t.group){const g=document.createElement('small');g.className='tab-group';g.textContent=t.group;d.appendChild(g);}
 const title=document.createElement('span');title.textContent=t.isHome?'⌂ Home':(t.title||t.url);title.onclick=()=>act('activateTab',{id:t.id});d.appendChild(title);
@@ -92,4 +93,5 @@ function renderPanel(){const list=panel==='history'?state.history:panel==='downl
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
 }if(!list.length)el.textContent='Nessun elemento.';}
+$('workspaceSwitcher').onclick=()=>act('showWorkspaceMenu');
 $('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>{const name=prompt('Nome del workspace:');if(name)act('addWorkspace',{name});};$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>{const url=prompt('URL risorsa da associare al workspace:');if(url)act('addResource',{url});};$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>{panel='history';renderPanel();};$('showBookmarks').onclick=()=>{panel='bookmarks';renderPanel();};window.browserAPI.onState(next=>{state=next;render();});
