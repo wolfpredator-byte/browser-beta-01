@@ -88,3 +88,18 @@ body[data-panel-open="true"]{--panel-width:300px}
 #sidePanelItems{display:flex;flex-direction:column;gap:3px;padding-top:12px}
 #sidePanelItems .panel-item{display:block;width:100%;text-align:left;font-size:12px;
  padding:11px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* BETA 0.4 — Le intestazioni stack sostituiscono le schede figlie compresse.
+ * 14px è la distanza massima del testo; non modifica le dimensioni dei siti. */
+.stack-heading{height:30px;display:flex;align-items:center;flex:none;gap:2px;
+ padding:1px 3px;border:1px solid #ffffff30;border-radius:9px;
+ background:#ffffff10;max-width:195px}
+.stack-heading.collapsed{background:#ffffff1c}
+.stack-heading.contains-active{border-color:#eee;background:#ffffff25}
+.stack-heading button{font-size:11px;padding:4px 5px}
+.stack-heading .stack-toggle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stack-heading .stack-actions{font-size:14px;flex:none}
+.tab.stacked{max-width:175px;border-color:#ffffff24}
+#reopenClosed{flex:none;padding:4px 7px;font-size:20px;min-width:28px}
+#reopenClosed:disabled{opacity:.32;cursor:default}
+.tabbar #tabs{max-width:calc(100% - 230px)}
