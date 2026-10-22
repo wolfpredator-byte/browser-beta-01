@@ -4,6 +4,8 @@ const fs=require('node:fs');
 // Separiamo le regole sulle schede dalle API Electron: così possiamo testarle
 // con Node.js senza avviare una finestra o navigare su Internet.
 const {shouldCloseWindow,discardHomeAfterNavigation}=require('./tab-lifecycle.cjs');
+// Le regole degli stack e dei workspace non dipendono dalle API Electron.
+const {tabStripItems,toggleCollapsed,moveTab,rememberClosed,groupName}=require('./tab-advanced.cjs');
 app.enableSandbox();
 let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false, sidePanelOpen=null;
 // These pixel values reserve space for the top address bar and bottom tabs.
@@ -28,7 +30,13 @@ function persistTabs(){
 }
 const storage=()=>path.join(app.getPath('userData'),'browser-data.json');
 function save(){try{fs.writeFileSync(storage(),JSON.stringify(data,null,2));}catch(e){console.error(e);}}
-function load(){try{data=JSON.parse(fs.readFileSync(storage(),'utf8'));if(!Array.isArray(data.workspaces))throw Error('bad data');}catch{data=defaultData();save();}if(!Object.hasOwn(SIDEBAR_WIDTHS,data.sidebarMode))data.sidebarMode='compact';}
+function load(){try{data=JSON.parse(fs.readFileSync(storage(),'utf8'));if(!Array.isArray(data.workspaces))throw Error('bad data');}catch{data=defaultData();save();}if(!Object.hasOwn(SIDEBAR_WIDTHS,data.sidebarMode))data.sidebarMode='compact';
+ // Migrazione sicura per chi apre la Beta 0.4 da una versione precedente:
+ // mantenere preferiti, sessioni e workspace anche se queste chiavi non esistono.
+ if(!data.collapsedStacks||typeof data.collapsedStacks!=='object'||Array.isArray(data.collapsedStacks))data.collapsedStacks={};
+ if(!Array.isArray(data.closedTabs))data.closedTabs=[];
+ data.closedTabs=data.closedTabs.slice(0,20);
+}
 function workspace(){return data.workspaces.find(x=>x.name===data.activeWorkspace);}
 function safeUrl(s){
   if(typeof s!=='string'||s.length>2048)return null;
@@ -47,7 +55,31 @@ function safeUrl(s){
 }
 function isWebUrl(raw){try{return ['https:','http:'].includes(new URL(raw).protocol);}catch{return false;}}
 const visible=()=>tabs.find(t=>t.id===activeId);
-function snapshot(){return {activeWorkspace:data.activeWorkspace,sidebarMode:data.sidebarMode,sidePanelOpen,workspaces:data.workspaces.map(x=>({name:x.name,iconData:x.iconData||null,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null};}
+/**
+ * Prepara soltanto informazioni serializzabili per la UI.
+ * NON inviare view/webContents: sono oggetti Electron del processo principale.
+ */
+function snapshot(){
+ const visibleTabs=tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({
+  id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,
+  active:t.id===activeId,pinned:!!t.pinned,group:groupName(t.group)
+ }));
+ return {
+  activeWorkspace:data.activeWorkspace,
+  sidebarMode:data.sidebarMode,sidePanelOpen,
+  workspaces:data.workspaces.map(x=>({name:x.name,iconData:x.iconData||null,
+    projectPath:x.projectPath||'',resources:x.resources||[],
+    count:tabs.filter(t=>t.workspace===x.name).length})),
+  tabs:visibleTabs,
+  // Il renderer riceve una barra già organizzata in stack, visibili o compressi.
+  tabStrip:tabStripItems(visibleTabs,data.activeWorkspace,data.collapsedStacks,activeId),
+  activeTab:activeId,canReopenClosed:data.closedTabs.length>0,
+  downloadsOpen,downloads:downloads.map(d=>({...d})),
+  bookmarks:data.bookmarks,history:data.history.slice(0,40),
+  homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null
+ };
+}
+
 function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot());}
 // Recalculate page dimensions whenever Windows resizes or the Download panel opens.
  // 340 is the width (in pixels) reserved for the downloads sidebar.
@@ -83,7 +115,10 @@ function newHomeTab(ws=data.activeWorkspace){
  if(ws===data.activeWorkspace)show(t.id);else persistTabs();
  return t.id;
 }
-function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,isHome:false,loadError:null,pinned:!!settings.pinned,group:typeof settings.group==='string'?settings.group.slice(0,35):null};placeTab(t);// Right-click on an image: offer native Save Image, no need to open a new tab.
+function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,isHome:false,
+ loadError:null,pinned:!!settings.pinned,group:groupName(settings.group)};
+ // Ascoltiamo la scorciatoia anche nei siti: il focus vive nella WebContentsView.
+ registerReopenShortcut(view.webContents);placeTab(t);// Right-click on an image: offer native Save Image, no need to open a new tab.
 view.webContents.on('context-menu',(_event,params)=>{
  const items=[];
  if(params.mediaType==='image'){
@@ -127,6 +162,8 @@ function closeTab(id){
  if(index===-1)return; // Non permette a un evento UI di chiudere schede di altri workspace.
 
  const [closed]=tabs.splice(index,1);
+ // Conserviamo la pagina PRIMA di chiuderla: la View verrà distrutta qui sotto.
+ rememberClosed(data.closedTabs,closed,20);
  // Solo le pagine remote hanno una WebContentsView. Home non ne possiede una.
  if(closed.view){
   win.contentView.removeChildView(closed.view);
@@ -180,6 +217,81 @@ function navigateFromHome(raw){
 function switchWorkspace(name){if(!data.workspaces.find(x=>x.name===name))return;data.activeWorkspace=name;save();const preferred=data.workspaceLastActive?.[name];
  const t=tabs.find(x=>x.workspace===name&&x.url===preferred)||tabs.find(x=>x.workspace===name);
  if(t)show(t.id);else newHomeTab(name);}
+/**
+ * Ctrl+Shift+T riapre la scheda chiusa più recente. Electron riceve l'evento
+ * dal renderer locale oppure dalla WebContentsView che ha il focus.
+ * Cambiare 't' cambia il tasto della scorciatoia; control/shift sono obbligatori.
+ */
+function registerReopenShortcut(contents){
+ contents.on('before-input-event',(event,input)=>{
+  if(input.type==='keyDown'&&input.control&&input.shift&&!input.alt&&
+    String(input.key||'').toLowerCase()==='t'){
+   event.preventDefault();
+   reopenClosedTab();
+  }
+ });
+}
+
+/**
+ * Recupera la scheda più recente e la riapre nel suo workspace originale.
+ * Non ricarichiamo cookie o lo scroll manualmente: Electron ricrea la pagina.
+ */
+function reopenClosedTab(){
+ if(!data.closedTabs.length)return false;
+ const entry=data.closedTabs[0];
+ const dest=data.workspaces.some(w=>w.name===entry.workspace)?entry.workspace:data.activeWorkspace;
+ if(!entry.home&&!isWebUrl(entry.url)){
+  data.closedTabs.shift();save();emit();return false;
+ }
+ data.closedTabs.shift();
+ // Cambiare workspace non chiude le altre schede e non perde la sessione.
+ data.activeWorkspace=dest;
+ const id=entry.home?newHomeTab(dest):newTab(entry.url,dest,{
+  pinned:entry.pinned,group:entry.group
+ });
+ if(!id){data.closedTabs.unshift(entry);save();return false;}
+ persistTabs();emit();
+ return true;
+}
+
+/**
+ * Trasferisce una WebContentsView ESISTENTE in un altro workspace.
+ * Se spostiamo l'ultima scheda visibile, nasce una Home (NON chiudiamo
+ * la finestra: spostare non equivale a chiudere).
+ */
+function moveTabToWorkspace(id,destination){
+ const target=tabs.find(t=>t.id===id&&t.workspace===data.activeWorkspace);
+ if(!target)return false;
+ const current=data.activeWorkspace;
+ if(!moveTab(tabs,id,destination,data.workspaces.map(w=>w.name)))return false;
+ // Dopo lo spostamento la pagina non deve più essere in primo piano qui.
+ if(activeId===id){
+  if(target.view)win.contentView.removeChildView(target.view);
+  activeId=null;
+  const fallback=tabs.find(t=>t.workspace===current);
+  if(fallback)show(fallback.id);else newHomeTab(current);
+ }else {persistTabs();emit();}
+ return true;
+}
+
+/** Crea uno stack con due schede trascinate mantenendo Shift premuto. */
+function stackTwoTabs(fromId,targetId){
+ const first=tabs.find(t=>t.id===fromId&&t.workspace===data.activeWorkspace);
+ const second=tabs.find(t=>t.id===targetId&&t.workspace===data.activeWorkspace);
+ if(!first||!second||first.id===second.id)return;
+ let name=groupName(second.group)||groupName(first.group);
+ if(!name){
+  const taken=new Set(tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>t.group));
+  let n=1;while(taken.has('Stack '+n))n++;
+  name='Stack '+n;
+ }
+ first.group=name;second.group=name;
+ // Dopo la creazione lo stack è inizialmente espanso, così si vedono le tab.
+ if(Array.isArray(data.collapsedStacks[data.activeWorkspace])){
+  data.collapsedStacks[data.activeWorkspace]=data.collapsedStacks[data.activeWorkspace].filter(v=>v!==name);
+ }
+ persistTabs();emit();
+}
 function verify(event){return win&&!win.isDestroyed()&&event.sender===win.webContents;}
 app.whenReady().then(()=>{
  load();const ses=session.fromPartition('persist:local-browser');ses.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
@@ -191,6 +303,7 @@ app.whenReady().then(()=>{
  ...(process.platform==='win32'?{titleBarStyle:'hidden',titleBarOverlay:{color:'#0b0b0b',symbolColor:'#eeeeee',height:30}}:{}),
  webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
  win.loadFile('index.html');win.webContents.on('did-finish-load',emit);
+ registerReopenShortcut(win.webContents);
  const restored=Array.isArray(data.sessionTabs)?data.sessionTabs.slice(0,30):[];
  for(const saved of restored){
    if(saved&&(saved.home||isWebUrl(saved.url))&&data.workspaces.some(w=>w.name===saved.workspace)){
@@ -244,6 +357,20 @@ win.on('resize',bounds);
  case 'newTab':return typeof args.url==='string'&&args.url.trim()?newTab(args.url):newHomeTab();
  case 'activateTab':if(Number.isInteger(args.id)&&tabs.some(t=>t.id===args.id&&t.workspace===data.activeWorkspace))show(args.id);break;
  case 'closeTab':if(Number.isInteger(args.id))closeTab(args.id);break;
+ case 'reopenClosedTab':reopenClosedTab();break;
+ case 'moveTabToWorkspace':if(Number.isInteger(args.id)&&typeof args.workspace==='string')
+   moveTabToWorkspace(args.id,args.workspace);break;
+ case 'stackTabs':if(Number.isInteger(args.fromId)&&Number.isInteger(args.targetId))
+   stackTwoTabs(args.fromId,args.targetId);break;
+ case 'toggleGroup':{
+  const group=groupName(args.group);
+  if(group&&tabs.some(t=>t.workspace===data.activeWorkspace&&groupName(t.group)===group)){
+   // Il flag è persistente: al riavvio i gruppi restano nello stesso stato.
+   toggleCollapsed(data.collapsedStacks,data.activeWorkspace,group);
+   save();emit();
+  }
+  break;
+ }
  case 'duplicateTab':{const source=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);if(source){if(source.isHome)newHomeTab(source.workspace);else newTab(source.url,source.workspace,{group:source.group,pinned:source.pinned});}break;}
  case 'pinTab':{const target=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);if(target){target.pinned=!target.pinned;persistTabs();emit();}break;}
  case 'groupTab':{const target=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);
@@ -306,23 +433,41 @@ win.on('resize',bounds);
  case 'tabContextMenu':{
   const selected=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);
   if(!selected)break;
+  const existingGroups=[...new Set([
+   'Ricerca','Sviluppo','Gaming',
+   ...tabs.filter(x=>x.workspace===data.activeWorkspace).map(x=>groupName(x.group)).filter(Boolean)
+  ])];
+  // I sottomenu nativi Windows non coprono né ridimensionano la pagina web.
   Menu.buildFromTemplate([
-   {label:'Duplica scheda',click:()=>selected.isHome?newHomeTab(selected.workspace):newTab(selected.url,selected.workspace,{pinned:selected.pinned,group:selected.group})},
-   {label:selected.pinned?'Rimuovi fissaggio':'Fissa scheda',click:()=>{selected.pinned=!selected.pinned;persistTabs();emit();}},
-   // Native submenus stay above WebContentsView without changing the site height.
-   // The default labels are examples; existing custom group names are also offered.
-   {label:'Assegna a gruppo',submenu:[...new Set(['Ricerca','Sviluppo','Gaming',...tabs.filter(x=>x.workspace===data.activeWorkspace).map(x=>x.group).filter(Boolean)])].map(name=>({
-     label:name,
-     type:'checkbox',
-     checked:selected.group===name,
-     click:()=>{selected.group=name;persistTabs();emit();}
+   {label:'Ricarica',enabled:!!selected.view,
+    click:()=>selected.view?.webContents.reload()},
+   {label:'Duplica scheda',click:()=>selected.isHome?newHomeTab(selected.workspace):
+     newTab(selected.url,selected.workspace,{pinned:selected.pinned,group:selected.group})},
+   {label:selected.pinned?'Sblocca scheda':'Fissa scheda',
+    click:()=>{selected.pinned=!selected.pinned;persistTabs();emit();}},
+   {type:'separator'},
+   {label:'Assegna a stack',submenu:existingGroups.map(name=>({
+    label:name,type:'radio',checked:groupName(selected.group)===name,
+    click:()=>{selected.group=name;persistTabs();emit();}
    }))},
-   {label:'Rimuovi dal gruppo',enabled:!!selected.group,click:()=>{selected.group=null;persistTabs();emit();}}
+   {label:'Rimuovi dallo stack',enabled:!!groupName(selected.group),
+    click:()=>{selected.group=null;persistTabs();emit();}},
+   {label:'Comprimi / Espandi stack',enabled:!!groupName(selected.group),
+    click:()=>{toggleCollapsed(data.collapsedStacks,data.activeWorkspace,selected.group);save();emit();}},
+   {type:'separator'},
+   {label:'Sposta nel workspace',submenu:data.workspaces.map(workspace=>({
+    label:workspace.name,enabled:workspace.name!==selected.workspace,
+    click:()=>moveTabToWorkspace(selected.id,workspace.name)
+   }))},
+   {label:'Copia indirizzo',enabled:!!selected.view,
+    click:()=>clipboard.writeText(selected.url)},
+   {type:'separator'},
+   {label:'Riapri ultima scheda chiusa',enabled:data.closedTabs.length>0,
+    accelerator:'CommandOrControl+Shift+T',click:()=>reopenClosedTab()},
+   {label:'Chiudi scheda',click:()=>closeTab(selected.id)}
   ]).popup({window:win});
   break;
  }
- // Ricerca da Home: convertiamo la scheda Home in una scheda web.
- // Ricerca da sito: navighiamo normalmente nella scheda corrente.
  case 'navigate':{
   if(typeof args.url!=='string'||!args.url.trim())break;
   if(t?.isHome){navigateFromHome(args.url);break;}
