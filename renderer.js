@@ -16,14 +16,16 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
 let selectedTabId=null;
 function openTabActions(id){
  selectedTabId=id;
+ act('setTabMenuOpen',{open:true});
  const t=state.tabs.find(x=>x.id===id);
  if(!t)return;
  $('tabActionsTitle').textContent=t.title||t.url;
  $('tabGroupInput').value=t.group||'';
  $('tabActions').hidden=false;
 }
-$('closeTabActions').onclick=()=>$('tabActions').hidden=true;
-$('duplicateSelected').onclick=()=>{act('duplicateTab',{id:selectedTabId});$('tabActions').hidden=true;};
+function closeTabMenu(){$('tabActions').hidden=true;act('setTabMenuOpen',{open:false});}
+$('closeTabActions').onclick=closeTabMenu;
+$('duplicateSelected').onclick=()=>{act('duplicateTab',{id:selectedTabId});closeTabMenu();};
 $('pinSelected').onclick=()=>{act('pinTab',{id:selectedTabId});$('tabActions').hidden=true;};
 $('saveGroup').onclick=()=>{act('groupTab',{id:selectedTabId,group:$('tabGroupInput').value});$('tabActions').hidden=true;};
 $('removeGroup').onclick=()=>{act('groupTab',{id:selectedTabId,group:''});$('tabActions').hidden=true;};
