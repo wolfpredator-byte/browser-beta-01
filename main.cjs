@@ -244,6 +244,7 @@ win.on('resize',bounds);
  case 'toggleSidePanel':{
   if(!['bookmarks','history','tabs'].includes(args.panel))break;
   sidePanelOpen=sidePanelOpen===args.panel?null:args.panel;
+  if(sidePanelOpen)downloadsOpen=false;
   bounds();emit();break;
  }
  case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
@@ -253,7 +254,7 @@ win.on('resize',bounds);
    try{t.view.webContents.downloadURL(t.url);}catch(e){console.error('Download failed:',e);}
    break;
  }
- case 'toggleDownloads':downloadsOpen=!downloadsOpen;bounds();emit();break;
+ case 'toggleDownloads':downloadsOpen=!downloadsOpen;if(downloadsOpen)sidePanelOpen=null;bounds();emit();break;
  case 'setTabMenuOpen':tabMenuOpen=false;bounds();break;
  case 'tabContextMenu':{
   const selected=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);
