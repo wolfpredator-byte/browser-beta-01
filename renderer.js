@@ -44,6 +44,7 @@ function renderDownloads(){
 }
 $('closeDownloads').onclick=()=>act('toggleDownloads');
 $('openDownloadsFolder').onclick=()=>act('showDownloadsFolder');
+$('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 function render(){const tabs=$('tabs');tabs.replaceChildren();state.tabs.forEach(t=>{const d=document.createElement('div');d.className='tab'+(t.active?' active':'');d.draggable=true;d.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(t.id));e.dataTransfer.effectAllowed='move';};d.ondragover=e=>e.preventDefault();d.ondrop=e=>{e.preventDefault();const id=Number(e.dataTransfer.getData('text/plain'));if(Number.isInteger(id))act('reorderTab',{id,beforeId:t.id});};
 if(t.group){const g=document.createElement('small');g.className='tab-group';g.textContent=t.group;d.appendChild(g);}
 const title=document.createElement('span');title.textContent=t.title||t.url;title.onclick=()=>act('activateTab',{id:t.id});d.appendChild(title);
