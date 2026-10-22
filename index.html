@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.2</title><link rel="stylesheet" href="style.css"></head>
-<body>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.3.1</title><link rel="stylesheet" href="style.css"></head>
+<body data-sidebar-mode="compact">
+<!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.3.1</span></div>
 <header class="toolbar">
+  <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
   <button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button>
   <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca sul web o inserisci un indirizzo..." autocomplete="off"></form>
@@ -9,15 +12,16 @@
   <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
 </header>
 <div id="loadError" role="status" hidden></div>
-<main id="dashboard">
- <aside class="sidebar">
+<aside id="globalSidebar" class="sidebar" aria-label="Pannello laterale">
   <div class="sidebar-top"><span class="sidebar-logo">◈</span><span class="sidebar-label">WORKSPACES</span><button id="toggleSidebar" title="Espandi/riduci barra laterale">☰</button></div>
   <div id="workspaces"></div>
-  <button id="addWorkspace" class="sideButton">＋ <span class="sidebar-label">Nuovo spazio</span></button>
+  <button id="addWorkspace" class="sideButton" title="Nuovo workspace"><span class="tool-icon">＋</span><span class="tool-label">Nuovo spazio</span></button>
   <div class="side-sep"></div>
-  <button id="showBookmarks" class="sideButton">☆ <span class="sidebar-label">Preferiti</span></button>
-  <button id="showHistory" class="sideButton">◷ <span class="sidebar-label">Cronologia</span></button>
+  <button id="showBookmarks" class="sideButton" title="Preferiti"><span class="tool-icon">☆</span><span class="tool-label">Preferiti</span></button>
+  <button id="showHistory" class="sideButton" title="Cronologia"><span class="tool-icon">◷</span><span class="tool-label">Cronologia</span></button>
+  <button id="sideDownloads" class="sideButton" title="Download"><span class="tool-icon">↓</span><span class="tool-label">Download</span></button>
  </aside>
+<main id="dashboard">
  <section class="home-content">
   <div class="home-center">
    <div class="orb-stage"><div id="jarvisOrb" class="orb idle" role="img" aria-label="JARVIS in standby"><div class="orb-body"></div><div class="thinking-rings"><i></i><i></i><i></i></div></div></div>
@@ -48,5 +52,5 @@
  <div class="tab-group-edit"><input id="tabGroupInput" maxlength="35" placeholder="Es. Ricerca"><button id="saveGroup">Applica</button></div>
  <button id="removeGroup">Rimuovi dal gruppo</button>
 </section>
-<footer class="tabbar"><span class="tabbar-label">SCHEDE</span><div id="tabs"></div><button id="new" title="Nuova scheda">＋</button></footer>
+<footer class="tabbar"><span class="tabbar-label">SCHEDE</span><div id="tabs"></div><button id="new" title="Nuova scheda Home">＋</button><div class="tabbar-spacer"></div></footer>
 <script src="renderer.js"></script></body></html>
