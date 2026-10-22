@@ -3,7 +3,9 @@ const path=require('node:path');
 const fs=require('node:fs');
 app.enableSandbox();
 let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false;
-const HEADER=64, FOOTER=43;
+// These pixel values reserve space for the top address bar and bottom tabs.
+ // Changing HEADER moves the top boundary of websites; FOOTER changes the bottom one.
+ const HEADER=64, FOOTER=43;
 const defaultData=()=>({activeWorkspace:'Personale',workspaces:[{name:'Personale',tabs:[]},{name:'Destiny Builder',tabs:[],projectPath:'',resources:['https://www.bungie.net/7/en/Destiny','https://github.com/']},{name:'Gaming',tabs:[],projectPath:'',resources:[]}],bookmarks:[],history:[]});
 
 function persistTabs(){
@@ -38,7 +40,9 @@ function isWebUrl(raw){try{return ['https:','http:'].includes(new URL(raw).proto
 const visible=()=>tabs.find(t=>t.id===activeId);
 function snapshot(){return {activeWorkspace:data.activeWorkspace,workspaces:data.workspaces.map(x=>({name:x.name,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null};}
 function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot());}
-function bounds(){if(!win||win.isDestroyed())return;const [w,h]=win.getContentSize();for(const t of tabs){if(!t.view)continue;t.view.setBounds({x:0,y:HEADER,width:Math.max(1,w-(downloadsOpen?340:0)),height:Math.max(1,h-HEADER-FOOTER-(tabMenuOpen?240:0))});}}
+// Recalculate page dimensions whenever Windows resizes or the Download panel opens.
+ // 340 is the width (in pixels) reserved for the downloads sidebar.
+ function bounds(){if(!win||win.isDestroyed())return;const [w,h]=win.getContentSize();for(const t of tabs){if(!t.view)continue;t.view.setBounds({x:0,y:HEADER,width:Math.max(1,w-(downloadsOpen?340:0)),height:Math.max(1,h-HEADER-FOOTER-(tabMenuOpen?240:0))});}}
 function show(id){const t=tabs.find(x=>x.id===id);if(!t)return;activeId=id;for(const tab of tabs)if(tab.view)win.contentView.removeChildView(tab.view);if(t.view&&t.workspace===data.activeWorkspace)win.contentView.addChildView(t.view);bounds();persistTabs();emit();}
 // The homepage is a genuine tab: it shares the same activation and closing logic.
 function newHomeTab(ws=data.activeWorkspace){
@@ -154,7 +158,14 @@ win.on('resize',bounds);
   Menu.buildFromTemplate([
    {label:'Duplica scheda',click:()=>selected.isHome?newHomeTab(selected.workspace):newTab(selected.url,selected.workspace,{pinned:selected.pinned,group:selected.group})},
    {label:selected.pinned?'Rimuovi fissaggio':'Fissa scheda',click:()=>{selected.pinned=!selected.pinned;persistTabs();emit();}},
-   {label:'Raggruppa / Rinomina gruppo…',click:()=>{win.webContents.send('group-tab',selected.id,selected.group||'');}},
+   // Native submenus stay above WebContentsView without changing the site height.
+   // The default labels are examples; existing custom group names are also offered.
+   {label:'Assegna a gruppo',submenu:[...new Set(['Ricerca','Sviluppo','Gaming',...tabs.filter(x=>x.workspace===data.activeWorkspace).map(x=>x.group).filter(Boolean)])].map(name=>({
+     label:name,
+     type:'checkbox',
+     checked:selected.group===name,
+     click:()=>{selected.group=name;persistTabs();emit();}
+   }))},
    {label:'Rimuovi dal gruppo',enabled:!!selected.group,click:()=>{selected.group=null;persistTabs();emit();}}
   ]).popup({window:win});
   break;
