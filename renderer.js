@@ -16,7 +16,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
 let selectedTabId=null;
 function openTabActions(id){
  selectedTabId=id;
- act('setTabMenuOpen',{open:true});
+ 
  const t=state.tabs.find(x=>x.id===id);
  if(!t)return;
  $('tabActionsTitle').textContent=t.title||t.url;
@@ -45,10 +45,11 @@ function renderDownloads(){
 $('closeDownloads').onclick=()=>act('toggleDownloads');
 $('openDownloadsFolder').onclick=()=>act('showDownloadsFolder');
 $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
-function render(){const tabs=$('tabs');tabs.replaceChildren();state.tabs.forEach(t=>{const d=document.createElement('div');d.className='tab'+(t.active?' active':'');d.draggable=true;d.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(t.id));e.dataTransfer.effectAllowed='move';};d.ondragover=e=>e.preventDefault();d.ondrop=e=>{e.preventDefault();const id=Number(e.dataTransfer.getData('text/plain'));if(Number.isInteger(id))act('reorderTab',{id,beforeId:t.id});};
+// Homepage lives inside a tab; it is displayed only when that tab is active.
+function render(){ $('dashboard').hidden=!state.homeActive; const tabs=$('tabs');tabs.replaceChildren();state.tabs.forEach(t=>{const d=document.createElement('div');d.className='tab'+(t.active?' active':'');d.draggable=true;d.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(t.id));e.dataTransfer.effectAllowed='move';};d.ondragover=e=>e.preventDefault();d.ondrop=e=>{e.preventDefault();const id=Number(e.dataTransfer.getData('text/plain'));if(Number.isInteger(id))act('reorderTab',{id,beforeId:t.id});};
 if(t.group){const g=document.createElement('small');g.className='tab-group';g.textContent=t.group;d.appendChild(g);}
-const title=document.createElement('span');title.textContent=t.title||t.url;title.onclick=()=>act('activateTab',{id:t.id});d.appendChild(title);
-const menu=addButton(d,'⋯',()=>openTabActions(t.id),'tab-more');menu.title='Azioni scheda';if(t.pinned)d.classList.add('pinned');
+const title=document.createElement('span');title.textContent=t.isHome?'⌂ Home':(t.title||t.url);title.onclick=()=>act('activateTab',{id:t.id});d.appendChild(title);
+const menu=addButton(d,'⋯',()=>act('tabContextMenu',{id:t.id}),'tab-more');menu.title='Azioni scheda';if(t.pinned)d.classList.add('pinned');
 addButton(d,'×',()=>act('closeTab',{id:t.id}));tabs.appendChild(d);});const w=$('workspaces');w.replaceChildren();state.workspaces.forEach(x=>addButton(w,`${x.name} (${x.count})`,()=>act('workspace',{name:x.name}),x.name===state.activeWorkspace?'selected':''));$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';$('address').placeholder=state.tabs.find(t=>t.active)?.url||'Cerca o inserisci un URL...';}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
