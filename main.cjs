@@ -1,11 +1,17 @@
-const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog,Menu}=require('electron');
+const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog,Menu,nativeImage}=require('electron');
 const path=require('node:path');
 const fs=require('node:fs');
 app.enableSandbox();
 let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false;
 // These pixel values reserve space for the top address bar and bottom tabs.
  // Changing HEADER moves the top boundary of websites; FOOTER changes the bottom one.
- const HEADER=64, FOOTER=43;
+ // Il drag strip (30px) e la toolbar (64px) formano l'area superiore.
+ // Aumentare HEADER richiede aggiornare anche le stesse altezze in style.css.
+ const HEADER=94, FOOTER=43;
+ // Larghezza in pixel della sidebar per ogni modalità: cambia questi valori
+ // solo insieme alle variabili CSS omonime, altrimenti i siti coprono il pannello.
+ const SIDEBAR_WIDTHS={hidden:0,compact:62,expanded:198};
+ function sidebarWidth(){return SIDEBAR_WIDTHS[data?.sidebarMode]??62;}
 const defaultData=()=>({activeWorkspace:'Personale',workspaces:[{name:'Personale',tabs:[]},{name:'Destiny Builder',tabs:[],projectPath:'',resources:['https://www.bungie.net/7/en/Destiny','https://github.com/']},{name:'Gaming',tabs:[],projectPath:'',resources:[]}],bookmarks:[],history:[]});
 
 function persistTabs(){
@@ -19,7 +25,7 @@ function persistTabs(){
 }
 const storage=()=>path.join(app.getPath('userData'),'browser-data.json');
 function save(){try{fs.writeFileSync(storage(),JSON.stringify(data,null,2));}catch(e){console.error(e);}}
-function load(){try{data=JSON.parse(fs.readFileSync(storage(),'utf8'));if(!Array.isArray(data.workspaces))throw Error('bad data');}catch{data=defaultData();save();}}
+function load(){try{data=JSON.parse(fs.readFileSync(storage(),'utf8'));if(!Array.isArray(data.workspaces))throw Error('bad data');}catch{data=defaultData();save();}if(!Object.hasOwn(SIDEBAR_WIDTHS,data.sidebarMode))data.sidebarMode='compact';}
 function workspace(){return data.workspaces.find(x=>x.name===data.activeWorkspace);}
 function safeUrl(s){
   if(typeof s!=='string'||s.length>2048)return null;
@@ -38,21 +44,42 @@ function safeUrl(s){
 }
 function isWebUrl(raw){try{return ['https:','http:'].includes(new URL(raw).protocol);}catch{return false;}}
 const visible=()=>tabs.find(t=>t.id===activeId);
-function snapshot(){return {activeWorkspace:data.activeWorkspace,workspaces:data.workspaces.map(x=>({name:x.name,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null};}
+function snapshot(){return {activeWorkspace:data.activeWorkspace,sidebarMode:data.sidebarMode,workspaces:data.workspaces.map(x=>({name:x.name,iconData:x.iconData||null,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null};}
 function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot());}
 // Recalculate page dimensions whenever Windows resizes or the Download panel opens.
  // 340 is the width (in pixels) reserved for the downloads sidebar.
- function bounds(){if(!win||win.isDestroyed())return;const [w,h]=win.getContentSize();for(const t of tabs){if(!t.view)continue;t.view.setBounds({x:0,y:HEADER,width:Math.max(1,w-(downloadsOpen?340:0)),height:Math.max(1,h-HEADER-FOOTER-(tabMenuOpen?240:0))});}}
+ function bounds(){
+ if(!win||win.isDestroyed())return;
+ const [width,height]=win.getContentSize();
+ // 'x' parte dopo la barra laterale; così resta visibile anche sopra ai siti.
+ const x=sidebarWidth();
+ const reservedForDownloads=downloadsOpen?340:0;
+ for(const tab of tabs){
+  if(!tab.view)continue; // Home non usa WebContentsView.
+  tab.view.setBounds({
+   x,y:HEADER,
+   width:Math.max(1,width-x-reservedForDownloads),
+   height:Math.max(1,height-HEADER-FOOTER)
+  });
+ }
+}
+
 function show(id){const t=tabs.find(x=>x.id===id);if(!t)return;activeId=id;for(const tab of tabs)if(tab.view)win.contentView.removeChildView(tab.view);if(t.view&&t.workspace===data.activeWorkspace)win.contentView.addChildView(t.view);bounds();persistTabs();emit();}
-// The homepage is a genuine tab: it shares the same activation and closing logic.
+// Inserisce una scheda immediatamente dopo quella attiva, nello stesso workspace.
+ // Se non esiste una scheda attiva per quel contesto, la inserisce alla fine.
+ function placeTab(tab){
+ const current=tabs.findIndex(t=>t.id===activeId&&t.workspace===tab.workspace);
+ if(current===-1)tabs.push(tab);else tabs.splice(current+1,0,tab);
+ }
+ // The homepage is a genuine tab: it shares the same activation and closing logic.
 function newHomeTab(ws=data.activeWorkspace){
  if(!data.workspaces.some(w=>w.name===ws))return null;
  const t={id:nextId++,workspace:ws,url:'app://home',title:'Home',view:null,isHome:true,loadError:null,pinned:false,group:null};
- tabs.push(t);
+ placeTab(t);
  if(ws===data.activeWorkspace)show(t.id);else persistTabs();
  return t.id;
 }
-function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,isHome:false,loadError:null,pinned:!!settings.pinned,group:typeof settings.group==='string'?settings.group.slice(0,35):null};tabs.push(t);// Right-click on an image: offer native Save Image, no need to open a new tab.
+function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,isHome:false,loadError:null,pinned:!!settings.pinned,group:typeof settings.group==='string'?settings.group.slice(0,35):null};placeTab(t);// Right-click on an image: offer native Save Image, no need to open a new tab.
 view.webContents.on('context-menu',(_event,params)=>{
  const items=[];
  if(params.mediaType==='image'&&isWebUrl(params.srcURL)){
@@ -73,15 +100,39 @@ view.webContents.on('render-process-gone',(_event,details)=>{
   t.loadError=`La pagina si è interrotta: ${details.reason}`;
   emit();
 });view.webContents.loadURL(url).catch(console.warn);if(ws===data.activeWorkspace)show(t.id);else emit();persistTabs();return t.id;}
-function closeTab(id){const i=tabs.findIndex(x=>x.id===id);if(i<0)return;const [t]=tabs.splice(i,1);if(t.view){win.contentView.removeChildView(t.view);t.view.webContents.close();}if(activeId===id){activeId=null;const candidate=tabs.find(x=>x.workspace===data.activeWorkspace);if(candidate)show(candidate.id);else emit();}else emit();persistTabs();}
+// Chiudere l'ultima scheda dell'intero browser chiude la finestra, come richiesto.
+function closeTab(id){
+ const index=tabs.findIndex(t=>t.id===id&&t.workspace===data.activeWorkspace);
+ if(index<0)return;
+ const [tab]=tabs.splice(index,1);
+ if(tab.view){win.contentView.removeChildView(tab.view);tab.view.webContents.close();}
+ if(tabs.length===0){
+   activeId=null;
+   persistTabs(); // Nessuna sessione da ripristinare all'avvio successivo.
+   win.close();
+   return;
+ }
+ if(activeId===id){
+  activeId=null;
+  const next=tabs.find(t=>t.workspace===data.activeWorkspace);
+  if(next)show(next.id);
+  else newHomeTab(data.activeWorkspace); // Altri workspace esistono: niente schermo vuoto.
+ } else {persistTabs();emit();}
+}
+
 function switchWorkspace(name){if(!data.workspaces.find(x=>x.name===name))return;data.activeWorkspace=name;save();const preferred=data.workspaceLastActive?.[name];
  const t=tabs.find(x=>x.workspace===name&&x.url===preferred)||tabs.find(x=>x.workspace===name);
- if(t)show(t.id);else{activeId=null;for(const t of tabs)if(t.view)win.contentView.removeChildView(t.view);emit();}}
+ if(t)show(t.id);else newHomeTab(name);}
 function verify(event){return win&&!win.isDestroyed()&&event.sender===win.webContents;}
 app.whenReady().then(()=>{
  load();const ses=session.fromPartition('persist:local-browser');ses.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
  ses.setPermissionCheckHandler(()=>false);
- win=new BrowserWindow({width:1280,height:800,minWidth:760,minHeight:520,backgroundColor:'#10141c',title:'Personal Browser Beta',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
+ win=new BrowserWindow({width:1280,height:800,minWidth:760,minHeight:520,
+ backgroundColor:'#050505',title:'Personal Browser Beta',autoHideMenuBar:true,
+ // Windows usa i veri controlli di sistema ma il bordo superiore è nostro.
+ // 'height:30' riserva 30px ai pulsanti Windows (minimizza/massimizza/chiudi).
+ ...(process.platform==='win32'?{titleBarStyle:'hidden',titleBarOverlay:{color:'#0b0b0b',symbolColor:'#eeeeee',height:30}}:{}),
+ webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
  win.loadFile('index.html');win.webContents.on('did-finish-load',emit);
  const restored=Array.isArray(data.sessionTabs)?data.sessionTabs.slice(0,30):[];
  for(const saved of restored){
@@ -133,7 +184,7 @@ win.on('resize',bounds);
  if(!verify(event)||typeof action!=='string'||!args||typeof args!=='object')return;
  const t=visible();
  switch(action){
- case 'newTab':return newTab(args.url||'https://www.google.com/');
+ case 'newTab':return typeof args.url==='string'&&args.url.trim()?newTab(args.url):newHomeTab();
  case 'activateTab':if(Number.isInteger(args.id)&&tabs.some(t=>t.id===args.id&&t.workspace===data.activeWorkspace))show(args.id);break;
  case 'closeTab':if(Number.isInteger(args.id))closeTab(args.id);break;
  case 'duplicateTab':{const source=tabs.find(x=>x.id===args.id&&x.workspace===data.activeWorkspace);if(source){if(source.isHome)newHomeTab(source.workspace);else newTab(source.url,source.workspace,{group:source.group,pinned:source.pinned});}break;}
@@ -143,6 +194,31 @@ win.on('resize',bounds);
  case 'reorderTab':{const src=tabs.findIndex(x=>x.id===args.id&&x.workspace===data.activeWorkspace);
  const dest=tabs.findIndex(x=>x.id===args.beforeId&&x.workspace===data.activeWorkspace);
  if(src>=0&&dest>=0&&src!==dest){const [item]=tabs.splice(src,1);const idx=tabs.findIndex(x=>x.id===args.beforeId);tabs.splice(idx,0,item);persistTabs();emit();}break;}
+ // Tre stati: nascosta (0px), icone (62px), icone + nomi (198px).
+ case 'setSidebarMode':{
+  if(!Object.hasOwn(SIDEBAR_WIDTHS,args.mode))break;
+  data.sidebarMode=args.mode;save();bounds();emit();break;
+ }
+ // L'utente sceglie un PNG/JPG/WebP locale: lo convertiamo a PNG 48x48.
+ // Le immagini non vengono inviate a siti esterni; restano nel JSON locale.
+ case 'chooseWorkspaceIcon':{
+  if(typeof args.name!=='string')break;
+  const target=data.workspaces.find(w=>w.name===args.name);if(!target)break;
+  const chosen=await dialog.showOpenDialog(win,{title:'Scegli icona del workspace',
+   filters:[{name:'Immagini',extensions:['png','jpg','jpeg','webp']}],
+   properties:['openFile']});
+  if(chosen.canceled||!chosen.filePaths[0])break;
+  const file=chosen.filePaths[0];
+  try{
+   // 4 MiB limita le immagini originali accettate; l'icona finale è 48px.
+   if(fs.statSync(file).size>4*1024*1024)throw Error('Immagine oltre 4 MiB');
+   const image=nativeImage.createFromPath(file);
+   if(image.isEmpty())throw Error('Formato immagine non valido');
+   target.iconData='data:image/png;base64,'+image.resize({width:48,height:48,quality:'best'}).toPNG().toString('base64');
+   save();emit();
+  }catch(error){dialog.showErrorBox('Icona non accettata',String(error.message||error));}
+  break;
+ }
  case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
  case 'downloadCurrentFile':{
    if(!t||!t.view||!isWebUrl(t.url))break;
