@@ -77,3 +77,14 @@ body[data-sidebar-mode="expanded"] #globalSidebar .sidebar-top .sidebar-label{fo
  padding:4px 8px;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
 #workspaceSwitcher span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabbar #tabs{max-width:calc(100% - 180px)}
+
+/* Il pannello (300px) non copre il sito: main.cjs sottrae gli stessi 300px. */
+body{--panel-width:0px}
+body[data-panel-open="true"]{--panel-width:300px}
+#dashboard{left:calc(var(--side-width) + var(--panel-width))}
+#sidePanel[hidden]{display:none!important}
+#sidePanel{position:absolute;top:94px;bottom:43px;left:var(--side-width);width:300px;
+ z-index:5;border-right:1px solid #ffffff25;background:#111;overflow:auto;padding:14px}
+#sidePanelItems{display:flex;flex-direction:column;gap:3px;padding-top:12px}
+#sidePanelItems .panel-item{display:block;width:100%;text-align:left;font-size:12px;
+ padding:11px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
