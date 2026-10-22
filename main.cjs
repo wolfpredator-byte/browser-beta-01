@@ -138,7 +138,12 @@ view.webContents.on('context-menu',(_event,params)=>{
  }
  if(items.length)Menu.buildFromTemplate(items).popup({window:win});
 });
-view.webContents.setWindowOpenHandler(({url})=>{if(isWebUrl(url))newTab(url,ws);return {action:'deny'};});view.webContents.on('will-navigate',(event,url)=>{if(!isWebUrl(url))event.preventDefault();});view.webContents.on('did-navigate',(_,url)=>{if(isWebUrl(url)){t.url=url;data.history.unshift({url,title:t.title,time:Date.now()});data.history=data.history.slice(0,200);persistTabs();emit();}});view.webContents.on('did-navigate-in-page',(_,url)=>{if(isWebUrl(url)){t.url=url;persistTabs();emit();}});view.webContents.on('page-title-updated',(_,title)=>{t.title=title.slice(0,120);persistTabs();emit();});view.webContents.on('did-start-loading',()=>{t.loadError=null;emit();});
+// Usiamo t.workspace, non il valore iniziale ws: se la scheda è stata
+// trasferita in un altro workspace, anche i suoi popup rimangono lì.
+view.webContents.setWindowOpenHandler(({url})=>{
+ if(isWebUrl(url))newTab(url,t.workspace);
+ return {action:'deny'};
+});view.webContents.on('will-navigate',(event,url)=>{if(!isWebUrl(url))event.preventDefault();});view.webContents.on('did-navigate',(_,url)=>{if(isWebUrl(url)){t.url=url;data.history.unshift({url,title:t.title,time:Date.now()});data.history=data.history.slice(0,200);persistTabs();emit();}});view.webContents.on('did-navigate-in-page',(_,url)=>{if(isWebUrl(url)){t.url=url;persistTabs();emit();}});view.webContents.on('page-title-updated',(_,title)=>{t.title=title.slice(0,120);persistTabs();emit();});view.webContents.on('did-start-loading',()=>{t.loadError=null;emit();});
 view.webContents.on('did-fail-load',(_,code,desc,validatedURL,isMainFrame)=>{
   if(code===-3||!isMainFrame)return;
   t.loadError=`Impossibile aprire ${validatedURL || t.url} — ${desc} (${code})`;
