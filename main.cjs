@@ -2,7 +2,7 @@ const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog}=require('
 const path=require('node:path');
 const fs=require('node:fs');
 app.enableSandbox();
-let win, activeId=null, tabs=[], data, nextId=1, downloads=[];
+let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false;
 const HEADER=64, FOOTER=43;
 const defaultData=()=>({activeWorkspace:'Personale',workspaces:[{name:'Personale',tabs:[]},{name:'Destiny Builder',tabs:[],projectPath:'',resources:['https://www.bungie.net/7/en/Destiny','https://github.com/']},{name:'Gaming',tabs:[],projectPath:'',resources:[]}],bookmarks:[],history:[]});
 
@@ -35,9 +35,9 @@ function safeUrl(s){
 }
 function isWebUrl(raw){try{return ['https:','http:'].includes(new URL(raw).protocol);}catch{return false;}}
 const visible=()=>tabs.find(t=>t.id===activeId);
-function snapshot(){return {activeWorkspace:data.activeWorkspace,workspaces:data.workspaces.map(x=>({name:x.name,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),loadError:visible()?.loadError||null};}
+function snapshot(){return {activeWorkspace:data.activeWorkspace,workspaces:data.workspaces.map(x=>({name:x.name,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),loadError:visible()?.loadError||null};}
 function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot());}
-function bounds(){if(!win||win.isDestroyed())return;const [w,h]=win.getContentSize();for(const t of tabs){t.view.setBounds({x:0,y:HEADER,width:Math.max(1,w),height:Math.max(1,h-HEADER-FOOTER)});}}
+function bounds(){if(!win||win.isDestroyed())return;const [w,h]=win.getContentSize();for(const t of tabs){t.view.setBounds({x:0,y:HEADER,width:Math.max(1,w-(downloadsOpen?340:0)),height:Math.max(1,h-HEADER-FOOTER)});}}
 function show(id){const t=tabs.find(x=>x.id===id);if(!t)return;activeId=id;for(const tab of tabs)win.contentView.removeChildView(tab.view);if(t.workspace===data.activeWorkspace)win.contentView.addChildView(t.view);bounds();persistTabs();emit();}
 function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,loadError:null,pinned:!!settings.pinned,group:typeof settings.group==='string'?settings.group.slice(0,35):null};tabs.push(t);view.webContents.setWindowOpenHandler(({url})=>{if(isWebUrl(url))newTab(url,ws);return {action:'deny'};});view.webContents.on('will-navigate',(event,url)=>{if(!isWebUrl(url))event.preventDefault();});view.webContents.on('did-navigate',(_,url)=>{if(isWebUrl(url)){t.url=url;data.history.unshift({url,title:t.title,time:Date.now()});data.history=data.history.slice(0,200);persistTabs();emit();}});view.webContents.on('did-navigate-in-page',(_,url)=>{if(isWebUrl(url)){t.url=url;persistTabs();emit();}});view.webContents.on('page-title-updated',(_,title)=>{t.title=title.slice(0,120);persistTabs();emit();});view.webContents.on('did-start-loading',()=>{t.loadError=null;emit();});
 view.webContents.on('did-fail-load',(_,code,desc,validatedURL,isMainFrame)=>{
@@ -74,13 +74,16 @@ win.on('resize',bounds);
    const id=Date.now()+'-'+Math.random().toString(36).slice(2,8);
    const filename=path.basename(item.getFilename()).replace(/[\\/]/g,'_');
    const target=path.join(app.getPath('downloads'),filename);
-   // Electron handles duplicates through its standard download dialog/behavior;
-   // do not silently overwrite an existing file.
+   // Let Electron display the native Windows Save As dialog.
+   // Do not call setSavePath: that would silently bypass the dialog.
+   let suggested=target;
    if(fs.existsSync(target)){
      const ext=path.extname(filename),stem=path.basename(filename,ext);
      let n=1;while(fs.existsSync(path.join(app.getPath('downloads'),stem+' ('+n+')'+ext)))n++;
-     item.setSavePath(path.join(app.getPath('downloads'),stem+' ('+n+')'+ext));
-   }else item.setSavePath(target);
+     suggested=path.join(app.getPath('downloads'),stem+' ('+n+')'+ext);
+   }
+   item.setSaveDialogOptions({title:'Salva download',defaultPath:suggested,buttonLabel:'Salva'});
+   downloadsOpen=true;bounds();
    const record={id,name:filename,state:'progressing',received:0,total:item.getTotalBytes(),path:item.getSavePath()};
    downloads.unshift(record);downloads=downloads.slice(0,40);emit();
    item.on('updated',(_e,state)=>{record.state=state;record.received=item.getReceivedBytes();record.total=item.getTotalBytes();emit();});
@@ -103,6 +106,7 @@ win.on('resize',bounds);
  const dest=tabs.findIndex(x=>x.id===args.beforeId&&x.workspace===data.activeWorkspace);
  if(src>=0&&dest>=0&&src!==dest){const [item]=tabs.splice(src,1);const idx=tabs.findIndex(x=>x.id===args.beforeId);tabs.splice(idx,0,item);persistTabs();emit();}break;}
  case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
+ case 'toggleDownloads':downloadsOpen=!downloadsOpen;bounds();emit();break;
  case 'navigate':if(t){const url=safeUrl(args.url);if(url){
  t.loadError=null;t.url=url;emit();
  t.view.webContents.loadURL(url).catch(e=>{t.loadError=String(e.message||e);emit();});
