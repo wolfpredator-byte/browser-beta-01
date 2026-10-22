@@ -1,4 +1,4 @@
-const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog,Menu,nativeImage}=require('electron');
+const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog,Menu,nativeImage,clipboard}=require('electron');
 const path=require('node:path');
 const fs=require('node:fs');
 app.enableSandbox();
@@ -82,8 +82,17 @@ function newHomeTab(ws=data.activeWorkspace){
 function newTab(raw='https://www.google.com/',ws=data.activeWorkspace,settings={}){if(!data.workspaces.some(w=>w.name===ws))return null;const url=safeUrl(raw);if(!url)return null;const view=new WebContentsView({webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition:'persist:local-browser'}});const t={id:nextId++,workspace:ws,url,title:'Nuova scheda',view,isHome:false,loadError:null,pinned:!!settings.pinned,group:typeof settings.group==='string'?settings.group.slice(0,35):null};placeTab(t);// Right-click on an image: offer native Save Image, no need to open a new tab.
 view.webContents.on('context-menu',(_event,params)=>{
  const items=[];
- if(params.mediaType==='image'&&isWebUrl(params.srcURL)){
-  items.push({label:'Salva immagine con nome…',click:()=>view.webContents.downloadURL(params.srcURL)});
+ if(params.mediaType==='image'){
+  // Il click destro fornisce srcURL, coordinate dell'immagine e tipo di risorsa.
+  // Le azioni di copia non richiedono di aprire una nuova scheda.
+  if(isWebUrl(params.srcURL)){
+   items.push({label:'Apri immagine in nuova scheda',click:()=>newTab(params.srcURL,ws)});
+   items.push({label:'Copia indirizzo immagine',click:()=>clipboard.writeText(params.srcURL)});
+   items.push({label:'Salva immagine con nome…',click:()=>view.webContents.downloadURL(params.srcURL)});
+  }
+  if(params.hasImageContents){
+   items.push({label:'Copia immagine',click:()=>view.webContents.copyImageAt(params.x,params.y)});
+  }
  }
  if(isWebUrl(params.linkURL)){
   items.push({label:'Apri collegamento in una nuova scheda',click:()=>newTab(params.linkURL,ws)});
@@ -217,6 +226,17 @@ win.on('resize',bounds);
    target.iconData='data:image/png;base64,'+image.resize({width:48,height:48,quality:'best'}).toPNG().toString('base64');
    save();emit();
   }catch(error){dialog.showErrorBox('Icona non accettata',String(error.message||error));}
+  break;
+ }
+ // Menu di sistema dei workspace: visibile anche se una pagina copre il renderer.
+ case 'showWorkspaceMenu':{
+  const options=data.workspaces.map(w=>({
+   label:w.name,
+   type:'radio',
+   checked:w.name===data.activeWorkspace,
+   click:()=>switchWorkspace(w.name)
+  }));
+  Menu.buildFromTemplate(options).popup({window:win});
   break;
  }
  case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
