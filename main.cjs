@@ -2,7 +2,7 @@ const {app,BrowserWindow,WebContentsView,ipcMain,session,shell,dialog,Menu,nativ
 const path=require('node:path');
 const fs=require('node:fs');
 app.enableSandbox();
-let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false;
+let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false, sidePanelOpen=null;
 // These pixel values reserve space for the top address bar and bottom tabs.
  // Changing HEADER moves the top boundary of websites; FOOTER changes the bottom one.
  // Il drag strip (30px) e la toolbar (64px) formano l'area superiore.
@@ -44,7 +44,7 @@ function safeUrl(s){
 }
 function isWebUrl(raw){try{return ['https:','http:'].includes(new URL(raw).protocol);}catch{return false;}}
 const visible=()=>tabs.find(t=>t.id===activeId);
-function snapshot(){return {activeWorkspace:data.activeWorkspace,sidebarMode:data.sidebarMode,workspaces:data.workspaces.map(x=>({name:x.name,iconData:x.iconData||null,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null};}
+function snapshot(){return {activeWorkspace:data.activeWorkspace,sidebarMode:data.sidebarMode,sidePanelOpen,workspaces:data.workspaces.map(x=>({name:x.name,iconData:x.iconData||null,projectPath:x.projectPath||'',resources:x.resources||[],count:tabs.filter(t=>t.workspace===x.name).length})),tabs:tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,active:t.id===activeId,pinned:!!t.pinned,group:t.group||null})),activeTab:activeId,downloadsOpen,downloads:downloads.map(d=>({...d})),bookmarks:data.bookmarks,history:data.history.slice(0,40),homeActive:!!visible()?.isHome,loadError:visible()?.loadError||null};}
 function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot());}
 // Recalculate page dimensions whenever Windows resizes or the Download panel opens.
  // 340 is the width (in pixels) reserved for the downloads sidebar.
@@ -52,7 +52,8 @@ function emit(){if(win&&!win.isDestroyed())win.webContents.send('state',snapshot
  if(!win||win.isDestroyed())return;
  const [width,height]=win.getContentSize();
  // 'x' parte dopo la barra laterale; così resta visibile anche sopra ai siti.
- const x=sidebarWidth();
+ // Se un pannello laterale è aperto, riserviamo altri 300px al suo contenuto.
+ const x=sidebarWidth()+(sidePanelOpen?300:0);
  const reservedForDownloads=downloadsOpen?340:0;
  for(const tab of tabs){
   if(!tab.view)continue; // Home non usa WebContentsView.
@@ -238,6 +239,12 @@ win.on('resize',bounds);
   }));
   Menu.buildFromTemplate(options).popup({window:win});
   break;
+ }
+ // Il pannello vive nella cornice del browser e non dentro le pagine web.
+ case 'toggleSidePanel':{
+  if(!['bookmarks','history','tabs'].includes(args.panel))break;
+  sidePanelOpen=sidePanelOpen===args.panel?null:args.panel;
+  bounds();emit();break;
  }
  case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
  case 'downloadCurrentFile':{
