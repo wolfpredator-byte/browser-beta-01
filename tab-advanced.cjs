@@ -93,4 +93,30 @@ function rememberClosed(closed,tab,max=20) {
   if(closed.length>max)closed.length=max;
 }
 
-module.exports={groupName,isCollapsed,toggleCollapsed,tabStripItems,moveTab,rememberClosed};
+/**
+ * Serializza una scheda per l'interfaccia senza inviare l'oggetto Electron.
+ *
+ * @param {object} tab - Scheda completa, che nel main contiene anche la View.
+ * @param {number|null} activeId - ID della scheda attualmente selezionata.
+ *
+ * ATTENZIONE: `workspace` è indispensabile. Se viene dimenticato,
+ * tabStripItems() non riconosce più nessuna scheda perché filtra con
+ * `tab.workspace === workspace`. Il risultato è la barra vuota della 0.4.
+ * Gli altri campi servono a titolo, icona Home, fissaggio e Tab Stacks.
+ */
+function toTabSnapshot(tab,activeId) {
+  return {
+    id:tab.id,
+    // Il workspace non deve essere inferito dal contesto UI:
+    // ci serve esplicitamente per classificare la scheda.
+    workspace:tab.workspace,
+    title:tab.title,
+    url:tab.url,
+    isHome:!!tab.isHome,
+    active:tab.id===activeId,
+    pinned:!!tab.pinned,
+    group:groupName(tab.group)
+  };
+}
+
+module.exports={groupName,isCollapsed,toggleCollapsed,tabStripItems,moveTab,rememberClosed,toTabSnapshot};
