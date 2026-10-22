@@ -19,8 +19,14 @@
   <div class="side-sep"></div>
   <button id="showBookmarks" class="sideButton" title="Preferiti"><span class="tool-icon">☆</span><span class="tool-label">Preferiti</span></button>
   <button id="showHistory" class="sideButton" title="Cronologia"><span class="tool-icon">◷</span><span class="tool-label">Cronologia</span></button>
+  <button id="showTabs" class="sideButton" title="Schede aperte"><span class="tool-icon">▤</span><span class="tool-label">Schede</span></button>
   <button id="sideDownloads" class="sideButton" title="Download"><span class="tool-icon">↓</span><span class="tool-label">Download</span></button>
  </aside>
+<!-- Pannello browser indipendente da Home e dalle pagine remote. -->
+<section id="sidePanel" hidden aria-label="Pannello laterale">
+ <div class="drawer-top"><strong id="sidePanelTitle">Preferiti</strong><button id="closeSidePanel" title="Chiudi pannello">×</button></div>
+ <div id="sidePanelItems"></div>
+</section>
 <main id="dashboard">
  <section class="home-content">
   <div class="home-center">
