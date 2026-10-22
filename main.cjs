@@ -5,7 +5,7 @@ const fs=require('node:fs');
 // con Node.js senza avviare una finestra o navigare su Internet.
 const {shouldCloseWindow,discardHomeAfterNavigation}=require('./tab-lifecycle.cjs');
 // Le regole degli stack e dei workspace non dipendono dalle API Electron.
-const {tabStripItems,toggleCollapsed,moveTab,rememberClosed,groupName}=require('./tab-advanced.cjs');
+const {tabStripItems,toggleCollapsed,moveTab,rememberClosed,groupName,toTabSnapshot}=require('./tab-advanced.cjs');
 app.enableSandbox();
 let win, activeId=null, tabs=[], data, nextId=1, downloads=[], downloadsOpen=false, tabMenuOpen=false, sidePanelOpen=null;
 // These pixel values reserve space for the top address bar and bottom tabs.
@@ -60,10 +60,12 @@ const visible=()=>tabs.find(t=>t.id===activeId);
  * NON inviare view/webContents: sono oggetti Electron del processo principale.
  */
 function snapshot(){
- const visibleTabs=tabs.filter(t=>t.workspace===data.activeWorkspace).map(t=>({
-  id:t.id,title:t.title,url:t.url,isHome:!!t.isHome,
-  active:t.id===activeId,pinned:!!t.pinned,group:groupName(t.group)
- }));
+ // Ogni scheda deve mantenere la propria proprietà workspace nel payload.
+ // Usiamo una sola funzione di serializzazione testata: la versione 0.4
+ // ometteva workspace e faceva sparire tutte le schede dalla barra.
+ const visibleTabs=tabs
+   .filter(t=>t.workspace===data.activeWorkspace)
+   .map(t=>toTabSnapshot(t,activeId));
  return {
   activeWorkspace:data.activeWorkspace,
   sidebarMode:data.sidebarMode,sidePanelOpen,
