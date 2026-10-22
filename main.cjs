@@ -106,6 +106,12 @@ win.on('resize',bounds);
  const dest=tabs.findIndex(x=>x.id===args.beforeId&&x.workspace===data.activeWorkspace);
  if(src>=0&&dest>=0&&src!==dest){const [item]=tabs.splice(src,1);const idx=tabs.findIndex(x=>x.id===args.beforeId);tabs.splice(idx,0,item);persistTabs();emit();}break;}
  case 'showDownloadsFolder':shell.openPath(app.getPath('downloads'));break;
+ case 'downloadCurrentFile':{
+   if(!t||!isWebUrl(t.url))break;
+   // Explicit user-triggered download: some image/file links open inline instead.
+   try{t.view.webContents.downloadURL(t.url);}catch(e){console.error('Download failed:',e);}
+   break;
+ }
  case 'toggleDownloads':downloadsOpen=!downloadsOpen;bounds();emit();break;
  case 'setTabMenuOpen':tabMenuOpen=args.open===true;bounds();break;
  case 'navigate':if(t){const url=safeUrl(args.url);if(url){
