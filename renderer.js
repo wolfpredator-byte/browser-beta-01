@@ -40,7 +40,27 @@ $('duplicateSelected').onclick=()=>{act('duplicateTab',{id:selectedTabId});close
 $('pinSelected').onclick=()=>{act('pinTab',{id:selectedTabId});$('tabActions').hidden=true;};
 $('saveGroup').onclick=()=>{act('groupTab',{id:selectedTabId,group:$('tabGroupInput').value});$('tabActions').hidden=true;};
 $('removeGroup').onclick=()=>{act('groupTab',{id:selectedTabId,group:''});$('tabActions').hidden=true;};
-function renderDownloads(){
+// Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
+ // L'interfaccia del pannello non dipende dall'esistenza della homepage.
+ function renderSidePanel(){
+   const mode=state.sidePanelOpen;
+   $('sidePanel').hidden=!mode;
+   if(!mode)return;
+   const title=mode==='bookmarks'?'Preferiti':mode==='history'?'Cronologia':'Schede';
+   $('sidePanelTitle').textContent=title;
+   const list=$('sidePanelItems');list.replaceChildren();
+   const items=mode==='bookmarks'?state.bookmarks:mode==='history'?state.history:state.tabs;
+   for(const item of (items||[]).slice(0,100)){
+     const url=item.url||'';
+     const label=item.title||url;
+     const button=document.createElement('button');button.className='panel-item';button.textContent=label;
+     button.title=url;button.onclick=()=>mode==='tabs'?act('activateTab',{id:item.id}):act('resource',{url});
+     list.appendChild(button);
+   }
+   if(!list.childElementCount)list.textContent='Nessun elemento da mostrare.';
+ }
+ $('closeSidePanel').onclick=()=>act('toggleSidePanel',{panel:state.sidePanelOpen});
+ function renderDownloads(){
  $('downloadDrawer').hidden=!state.downloadsOpen;
  const list=$('downloadList');list.replaceChildren();
  for(const item of state.downloads||[]){
@@ -60,6 +80,7 @@ $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.
  document.body.dataset.sidebarMode=state.sidebarMode||'compact';
+ document.body.dataset.panelOpen=state.sidePanelOpen?'true':'false';
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
  $('footerWorkspaceName').textContent=state.activeWorkspace||'Personale';
@@ -88,10 +109,12 @@ addButton(d,'×',()=>act('closeTab',{id:t.id}));tabs.appendChild(d);});// Ciascu
    button.onclick=()=>act('workspace',{name:workspace.name});
    button.oncontextmenu=event=>{event.preventDefault();act('chooseWorkspaceIcon',{name:workspace.name});};
    w.appendChild(button);
- }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';$('address').placeholder=state.tabs.find(t=>t.active)?.url||'Cerca o inserisci un URL...';}
+ }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';$('address').placeholder=state.tabs.find(t=>t.active)?.url||'Cerca o inserisci un URL...';}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
 }if(!list.length)el.textContent='Nessun elemento.';}
 $('workspaceSwitcher').onclick=()=>act('showWorkspaceMenu');
-$('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>{const name=prompt('Nome del workspace:');if(name)act('addWorkspace',{name});};$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>{const url=prompt('URL risorsa da associare al workspace:');if(url)act('addResource',{url});};$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>{panel='history';renderPanel();};$('showBookmarks').onclick=()=>{panel='bookmarks';renderPanel();};window.browserAPI.onState(next=>{state=next;render();});
+$('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>{const name=prompt('Nome del workspace:');if(name)act('addWorkspace',{name});};$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>{const url=prompt('URL risorsa da associare al workspace:');if(url)act('addResource',{url});};$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
+$('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
+$('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});window.browserAPI.onState(next=>{state=next;render();});
