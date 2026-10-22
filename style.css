@@ -12,3 +12,6 @@
 .download-row{padding:13px 0;border-bottom:1px solid #333}
 .download-name{overflow-wrap:anywhere}.download-row progress{width:100%;margin-top:7px;accent-color:#ddd}
 #openDownloadsFolder{margin-top:20px;border:1px solid #555}
+
+/* Hide the entire home view when an external tab is selected. No home beneath it. */
+#dashboard[hidden]{display:none!important}
