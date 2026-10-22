@@ -70,3 +70,10 @@ body[data-sidebar-mode="expanded"] #globalSidebar .sidebar-top .sidebar-label{fo
 .tabbar #tabs{flex:0 1 auto;min-width:0;max-width:calc(100% - 95px)}
 .tabbar #new{margin:0 1px;flex:none;min-width:29px;padding:4px 7px;font-size:19px}
 .tabbar .tabbar-spacer{flex:1;min-width:0}
+
+/* Workspace switcher compatto, come barra contestuale inferiore. */
+#workspaceSwitcher{flex:none;display:flex;align-items:center;gap:7px;
+ max-width:174px;min-width:100px;height:31px;border:1px solid #ffffff24;
+ padding:4px 8px;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+#workspaceSwitcher span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabbar #tabs{max-width:calc(100% - 180px)}
