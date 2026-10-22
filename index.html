@@ -35,5 +35,18 @@
   </section>
  </section>
 </main>
+<section id="downloadDrawer" class="download-drawer" hidden aria-label="Gestione download">
+ <div class="drawer-top"><strong>Download</strong><button id="closeDownloads" title="Chiudi pannello">×</button></div>
+ <p class="drawer-note">Scegli la destinazione nella finestra Salva di Windows.</p>
+ <div id="downloadList"></div>
+ <button id="openDownloadsFolder">Apri cartella Download</button>
+</section>
+<section id="tabActions" class="tab-actions" hidden aria-label="Azioni scheda">
+ <div class="drawer-top"><strong id="tabActionsTitle">Scheda</strong><button id="closeTabActions" title="Chiudi menu">×</button></div>
+ <div class="tab-actions-buttons"><button id="duplicateSelected">Duplica</button><button id="pinSelected">Fissa / Sblocca</button></div>
+ <label for="tabGroupInput">Nome gruppo</label>
+ <div class="tab-group-edit"><input id="tabGroupInput" maxlength="35" placeholder="Es. Ricerca"><button id="saveGroup">Applica</button></div>
+ <button id="removeGroup">Rimuovi dal gruppo</button>
+</section>
 <footer class="tabbar"><span class="tabbar-label">SCHEDE</span><div id="tabs"></div><button id="new" title="Nuova scheda">＋</button></footer>
 <script src="renderer.js"></script></body></html>
