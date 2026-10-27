@@ -1,8 +1,6 @@
 const $=id=>document.getElementById(id);
-let orbMode='idle';
 function setOrb(mode){
  if(!['idle','thinking','speaking'].includes(mode))return;
- orbMode=mode;
  const orb=$('jarvisOrb');orb.className='orb '+mode;
  orb.setAttribute('aria-label','JARVIS: '+mode+' (anteprima dimostrativa)');
  document.querySelectorAll('[data-orb]').forEach(btn=>btn.classList.toggle('chosen',btn.dataset.orb===mode));
@@ -24,22 +22,6 @@ $('jarvisMini').onclick=()=>window.browserAPI.action('home');
 $('homeSearch').onsubmit=e=>{e.preventDefault();const q=$('homeQuery').value.trim();if(q){window.browserAPI.action('navigate',{url:q});$('homeQuery').value='';}};
 let state={tabs:[],workspaces:[],bookmarks:[],history:[],downloads:[]},panel='bookmarks';const act=(name,args={})=>window.browserAPI.action(name,args);
 function addButton(parent,label,fn,cls=''){const b=document.createElement('button');b.textContent=label;b.className=cls;b.onclick=fn;parent.appendChild(b);return b;}
-let selectedTabId=null;
-function openTabActions(id){
- selectedTabId=id;
- 
- const t=state.tabs.find(x=>x.id===id);
- if(!t)return;
- $('tabActionsTitle').textContent=t.title||t.url;
- $('tabGroupInput').value=t.group||'';
- $('tabActions').hidden=false;
-}
-function closeTabMenu(){$('tabActions').hidden=true;act('setTabMenuOpen',{open:false});}
-$('closeTabActions').onclick=closeTabMenu;
-$('duplicateSelected').onclick=()=>{act('duplicateTab',{id:selectedTabId});closeTabMenu();};
-$('pinSelected').onclick=()=>{act('pinTab',{id:selectedTabId});$('tabActions').hidden=true;};
-$('saveGroup').onclick=()=>{act('groupTab',{id:selectedTabId,group:$('tabGroupInput').value});$('tabActions').hidden=true;};
-$('removeGroup').onclick=()=>{act('groupTab',{id:selectedTabId,group:''});$('tabActions').hidden=true;};
 // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
@@ -143,12 +125,14 @@ function render(){
    tabs.appendChild(tab);
  }
  // Ciascun workspace è un pulsante con icona 20px e nome separato.
- // Il click destro apre il selettore PNG/JPG/WebP di Windows (max 4MiB).
  const w=$('workspaces');w.replaceChildren();
  for(const workspace of state.workspaces){
    const button=document.createElement('button');
-   button.className='workspace-button'+(workspace.name===state.activeWorkspace?' selected':'');
-   button.title=workspace.name+' — click destro per cambiare icona';
+   button.className='workspace-button'+(workspace.name===state.activeWorkspace?' selected':'')+
+     (workspace.openElsewhere?' elsewhere':'');
+   // Un workspace può stare in una sola finestra: il clic porta in primo piano quella.
+   button.title=workspace.name+(workspace.openElsewhere?' — aperto in un’altra finestra':'')+
+     ' — click destro per altre opzioni';
    button.setAttribute('aria-label',workspace.name+' ('+workspace.count+' schede)');
    const icon=document.createElement('span');icon.className='workspace-icon';
    if(workspace.iconData&&workspace.iconData.startsWith('data:image/png;base64,')){
@@ -161,7 +145,8 @@ function render(){
    const count=document.createElement('span');count.className='workspace-count';count.textContent=String(workspace.count);
    button.append(icon,text,count);
    button.onclick=()=>act('workspace',{name:workspace.name});
-   button.oncontextmenu=event=>{event.preventDefault();act('chooseWorkspaceIcon',{name:workspace.name});};
+   // Click destro: menu nativo con "Apri in una nuova finestra" e "Cambia icona".
+   button.oncontextmenu=event=>{event.preventDefault();act('workspaceContextMenu',{name:workspace.name});};
    w.appendChild(button);
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';$('address').placeholder=state.tabs.find(t=>t.active)?.url||'Cerca o inserisci un URL...';}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
@@ -174,3 +159,5 @@ $('reopenClosed').onclick=()=>act('reopenClosedTab');
 $('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>{const name=prompt('Nome del workspace:');if(name)act('addWorkspace',{name});};$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>{const url=prompt('URL risorsa da associare al workspace:');if(url)act('addResource',{url});};$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});window.browserAPI.onState(next=>{state=next;render();});
+// Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
+window.browserAPI.onUi(message=>{if(message?.type==='focusAddress'){const a=$('address');a.focus();a.select();}});

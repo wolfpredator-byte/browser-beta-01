@@ -1,10 +1,10 @@
 'use strict';
 
 // Test eseguibili con Node.js senza avviare Electron.
-// Esecuzione: npm run check  (oppure: node --test test-tab-lifecycle.cjs)
+// Esecuzione: npm run check  (oppure: node --test test/tab-lifecycle.test.cjs)
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {shouldCloseWindow,discardHomeAfterNavigation}=require('./tab-lifecycle.cjs');
+const {shouldCloseWindow,discardHomeAfterNavigation}=require('../lib/tab-lifecycle.cjs');
 
 test('chiudere l’ultima scheda visibile chiude la finestra, anche con tab negli altri workspace',()=>{
   // Personale ha finito le schede, Destiny Builder ne conserva due.

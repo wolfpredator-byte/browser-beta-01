@@ -1,7 +1,7 @@
 'use strict';
 // Questi test descrivono il comportamento desiderato senza avviare Electron.
 const test=require('node:test'),assert=require('node:assert/strict');
-const {tabStripItems,toggleCollapsed,moveTab,rememberClosed,groupName,toTabSnapshot}=require('./tab-advanced.cjs');
+const {tabStripItems,toggleCollapsed,moveTab,rememberClosed,groupName,toTabSnapshot}=require('../lib/tab-advanced.cjs');
 
 const tabs=()=>[
  {id:1,workspace:'Personale',url:'https://a.it',group:'Ricerca'},

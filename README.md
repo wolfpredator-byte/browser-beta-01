@@ -35,3 +35,5 @@ Separare sempre l'interfaccia browser (`renderer.js`) dai siti esterni (`WebCont
 \n## Aggiornamento 0.1.1\n- Ricerca testuale con Google, URL espliciti caricati direttamente.\n- Nuova scheda: Google invece di Wikipedia.\n- Errori di caricamento principali mostrati nell'interfaccia per diagnosi.\n- Google/YouTube: la compatibilità non è garantita; se vedi ancora una pagina bianca, copia il messaggio di errore o l'output del terminale.\n- Attenzione: questa resta una base sperimentale, non un browser sicuro per account sensibili.\n# browser-beta-01
 
 by WolfPredator
+## Struttura (dalla Beta 0.5)
+`main.cjs` avvia l'app e collega i moduli in `lib/`; ogni azione passa dal bus dei comandi (`lib/command-bus.cjs`). I test delle regole pure sono in `test/`. Dettagli e prova: [BETA_0_5_GUIDA.md](BETA_0_5_GUIDA.md).

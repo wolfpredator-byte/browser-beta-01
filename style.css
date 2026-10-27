@@ -103,3 +103,7 @@ body[data-panel-open="true"]{--panel-width:300px}
 #reopenClosed{flex:none;padding:4px 7px;font-size:20px;min-width:28px}
 #reopenClosed:disabled{opacity:.32;cursor:default}
 .tabbar #tabs{max-width:calc(100% - 230px)}
+
+/* BETA 0.5 — workspace già aperto in un'altra finestra: icona attenuata e punto. */
+#globalSidebar .workspace-button.elsewhere .workspace-icon{opacity:.55}
+#globalSidebar .workspace-button.elsewhere .workspace-count::after{content:' ↗';color:#bbb}

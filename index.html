@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.4.1</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.5</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.4.1</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.5</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
@@ -50,13 +50,6 @@
  <p class="drawer-note">Scegli la destinazione nella finestra Salva di Windows.</p>
  <div id="downloadList"></div><button id="downloadCurrentFile" title="Forza il download del file attualmente visualizzato">Scarica il file della scheda</button>
  <button id="openDownloadsFolder">Apri cartella Download</button>
-</section>
-<section id="tabActions" class="tab-actions" hidden aria-label="Azioni scheda">
- <div class="drawer-top"><strong id="tabActionsTitle">Scheda</strong><button id="closeTabActions" title="Chiudi menu">×</button></div>
- <div class="tab-actions-buttons"><button id="duplicateSelected">Duplica</button><button id="pinSelected">Fissa / Sblocca</button></div>
- <label for="tabGroupInput">Nome gruppo</label>
- <div class="tab-group-edit"><input id="tabGroupInput" maxlength="35" placeholder="Es. Ricerca"><button id="saveGroup">Applica</button></div>
- <button id="removeGroup">Rimuovi dal gruppo</button>
 </section>
 <footer class="tabbar"><button id="workspaceSwitcher" title="Scegli workspace" aria-label="Seleziona workspace">◈ <span id="footerWorkspaceName">Personale</span> ▾</button><div id="tabs"></div><button id="new" title="Nuova scheda Home">＋</button><button id="reopenClosed" title="Riapri ultima scheda chiusa (Ctrl+Shift+T)" aria-label="Riapri ultima scheda chiusa">↶</button><div class="tabbar-spacer"></div></footer>
 <script src="renderer.js"></script></body></html>
