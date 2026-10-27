@@ -58,6 +58,15 @@ test('migrazione da 0.4: aggiunge i campi nuovi senza perdere i dati',()=>{
   assert.deepEqual(data.workspaces[0],{name:'Gaming',resources:[],projectPath:''});
 });
 
+test('migrazione da 0.5: background e rilevamento attivi, giochi rovinati scartati',()=>{
+  const data=normalize({workspaces:[{name:'Gaming'}],games:[
+    {id:1,name:'Destiny 2',exe:'destiny2.exe',workspace:'Gaming',sites:[],enabled:true},
+    {id:'x',name:'Rotto'},null]});
+  assert.deepEqual(data.settings,{runInBackground:true,gameWatcher:true,backgroundNoticeShown:false});
+  assert.deepEqual(data.games.map(g=>g.id),[1]);
+  assert.equal(normalize({workspaces:[{name:'A'}],settings:{runInBackground:false}}).settings.runInBackground,false);
+});
+
 test('workspace attivo inesistente: si usa il primo disponibile',()=>{
   const data=normalize({activeWorkspace:'Cancellato',workspaces:[{name:'Personale'}]});
   assert.equal(data.activeWorkspace,'Personale');

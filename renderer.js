@@ -63,11 +63,110 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    form.append(label,input,error,submit,hint);list.appendChild(form);
    input.focus();
  }
+
+ // ── Pannello Giochi (Beta 0.6) ──────────────────────────────────────────
+ // Due viste: elenco dei giochi e modulo di modifica. La vista è locale alla
+ // cornice: il processo principale sa solo che il pannello 'games' è aperto.
+ let gamesView={mode:'list'},renderedGames=null;
+ const el=(tag,props={},...children)=>{const node=Object.assign(document.createElement(tag),props);node.append(...children);return node;};
+ function checkRow(text,checked,onchange){
+   const box=el('input',{type:'checkbox',checked});box.onchange=()=>onchange(box.checked);
+   return el('label',{className:'check-row'},box,el('span',{textContent:text}));
+ }
+ function renderGames(){
+   $('sidePanelTitle').textContent=gamesView.mode==='edit'?(gamesView.id?'Modifica gioco':'Nuovo gioco'):'Giochi';
+   if(gamesView.mode==='edit'){
+     // Il modulo non si ricostruisce a ogni aggiornamento: perderesti ciò che scrivi.
+     const key='edit:'+gamesView.id;
+     if(renderedGames!==key){renderedGames=key;renderGameForm(gamesView.id);}
+     return;
+   }
+   renderedGames='list';
+   const list=$('sidePanelItems');list.replaceChildren();
+   if(!state.platformSupported)list.append(el('p',{className:'panel-error',textContent:'Il rilevamento dei giochi funziona solo su Windows.'}));
+   list.append(checkRow('Rilevamento giochi attivo',state.gameWatcher,enabled=>act('setGameWatcher',{enabled})));
+   for(const game of state.games||[]){
+     const title=el('div',{className:'game-title',textContent:game.name});
+     if(game.running)title.append(el('span',{className:'game-badge',textContent:'in gioco'}));
+     const meta=el('div',{className:'game-meta',
+       textContent:`${game.exe} · ${game.workspace} · ${game.sites.length} ${game.sites.length===1?'sito':'siti'}`});
+     const actions=el('div',{className:'game-actions'},
+       checkRow('Attivo',game.enabled,enabled=>act('setGameEnabled',{id:game.id,enabled})));
+     addButton(actions,'Modifica',()=>{gamesView={mode:'edit',id:game.id};renderGames();});
+     addButton(actions,'Prova',()=>act('testGame',{id:game.id})).title='Apre il companion come se il gioco fosse partito';
+     list.append(el('div',{className:'game-row'+(game.enabled?'':' disabled')},title,meta,actions));
+   }
+   if(!(state.games||[]).length)list.append(el('p',{className:'panel-hint',
+     textContent:'Aggiungi un gioco: quando lo avvii, il browser apre da solo i siti che scegli (mappa, inventario, build).'}));
+   addButton(list,'＋ Aggiungi gioco',()=>{gamesView={mode:'edit',id:null};renderGames();},'game-add');
+   list.append(el('p',{className:'panel-hint',textContent:'Controllo ogni 5 secondi, solo per i giochi attivi. Nessun gioco attivo = nessun controllo.'}));
+ }
+ function renderGameForm(id){
+   const game=(state.games||[]).find(g=>g.id===id)||{name:'',exe:'',sites:[],display:null,alwaysOnTop:false,closeOnExit:false,
+     workspace:state.workspaces.some(w=>w.name==='Gaming')?'Gaming':state.activeWorkspace};
+   const list=$('sidePanelItems');list.replaceChildren();
+   const back=()=>{gamesView={mode:'list'};renderGames();};
+   const field=(label,input)=>el('label',{className:'field'},el('span',{textContent:label}),input);
+   const name=el('input',{value:game.name,maxLength:60,placeholder:'Es. Destiny 2',autocomplete:'off'});
+   const exe=el('input',{value:game.exe,maxLength:84,placeholder:'Es. destiny2.exe',autocomplete:'off'});
+   const processes=el('select',{hidden:true});
+   processes.onchange=()=>{if(processes.value)exe.value=processes.value;};
+   const exeTools=el('div',{className:'inline-buttons'});
+   addButton(exeTools,'Sfoglia…',async()=>{const r=await act('chooseGameExe');if(r?.result?.ok)exe.value=r.result.exe;});
+   addButton(exeTools,'Programmi aperti',async()=>{
+     // Comodo con il gioco avviato: lo scegli dall'elenco invece di cercare il file.
+     const r=await act('listUserProcesses');
+     processes.replaceChildren(el('option',{value:'',textContent:'Scegli un programma aperto…'}),
+       ...(r?.result?.names||[]).map(n=>el('option',{value:n,textContent:n})));
+     processes.hidden=false;processes.focus();
+   });
+   const workspace=el('select');
+   for(const w of state.workspaces)workspace.append(el('option',{value:w.name,textContent:w.name,selected:w.name===game.workspace}));
+   const sites=el('textarea',{value:game.sites.join('\n'),rows:5,
+     placeholder:'Un indirizzo per riga, es.\napp.destinyitemmanager.com\nlight.gg'});
+   const display=el('select');
+   display.append(el('option',{value:'',textContent:'Dove era l’ultima volta'}));
+   for(const d of state.displays||[])display.append(el('option',{value:String(d.id),textContent:d.label,selected:d.id===game.display}));
+   let alwaysOnTop=game.alwaysOnTop,closeOnExit=game.closeOnExit;
+   const error=el('p',{className:'panel-error',role:'alert'});
+   const submit=el('button',{type:'submit',textContent:'Salva'});
+   const buttons=el('div',{className:'inline-buttons'},submit);
+   addButton(buttons,'Annulla',back);
+   if(id){
+     // Due click per eliminare: confirm() non è adatto a una cornice senza menu.
+     const remove=addButton(buttons,'Elimina',async()=>{
+       if(remove.dataset.armed){await act('deleteGame',{id});back();return;}
+       remove.dataset.armed='1';remove.textContent='Conferma eliminazione';remove.classList.add('danger');
+     });
+   }
+   const form=el('form',{className:'panel-form'},
+     field('Nome',name),field('Eseguibile',exe),exeTools,processes,field('Workspace da aprire',workspace),
+     field('Siti da aprire',sites),field('Monitor',display),
+     checkRow('Sempre in primo piano mentre giochi',alwaysOnTop,v=>{alwaysOnTop=v;}),
+     checkRow('Chiudi la finestra quando esci dal gioco',closeOnExit,v=>{closeOnExit=v;}),
+     error,buttons);
+   form.onkeydown=event=>{if(event.key==='Escape')back();};
+   form.oninput=()=>{error.textContent='';};
+   form.onsubmit=async event=>{
+     event.preventDefault();error.textContent='';submit.disabled=true;
+     const args={name:name.value,exe:exe.value,workspace:workspace.value,sites:sites.value,alwaysOnTop,closeOnExit};
+     if(id)args.id=id;
+     if(display.value)args.display=Number(display.value);
+     const response=await act('saveGame',args);
+     submit.disabled=false;
+     if(response?.ok&&response.result?.ok)back();
+     else{error.textContent=response?.result?.error||response?.error||'Salvataggio non riuscito';}
+   };
+   list.append(form);
+   name.focus();
+ }
  // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
+   if(mode!=='games'){gamesView={mode:'list'};renderedGames=null;}
+   else return renderGames();
    if(FORMS[mode])return renderForm(mode);
    renderedForm=null;
    if(!mode)return;
@@ -201,6 +300,7 @@ $('workspaceSwitcher').onclick=()=>act('showWorkspaceMenu');
 $('reopenClosed').onclick=()=>act('reopenClosedTab');
 $('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>act('toggleSidePanel',{panel:'newWorkspace'});$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>act('toggleSidePanel',{panel:'addResource'});$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
-$('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});window.browserAPI.onState(next=>{state=next;render();});
+$('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
+$('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
 window.browserAPI.onUi(message=>{if(message?.type==='focusAddress'){const a=$('address');a.focus();a.select();}});

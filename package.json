@@ -1,12 +1,13 @@
 {
   "name": "personal-workspace-browser",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Local Windows browser experiment",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.cjs && node --check preload.cjs && node --check renderer.js && node --check lib/state.cjs && node --check lib/windows.cjs && node --check lib/tabs.cjs && node --check lib/commands.cjs && node --check lib/menus.cjs && node --check lib/web-session.cjs && node --test \"test/*.test.cjs\""
+    "check": "node --check main.cjs && node --check preload.cjs && node --check renderer.js && node --check lib/state.cjs && node --check lib/windows.cjs && node --check lib/tabs.cjs && node --check lib/commands.cjs && node --check lib/commands-games.cjs && node --check lib/menus.cjs && node --check lib/web-session.cjs && node --check lib/tray.cjs && node --check lib/autostart.cjs && node --check lib/companion.cjs && node --check lib/processes.cjs && node --test \"test/*.test.cjs\"",
+    "icons": "node scripts/make-icons.cjs"
   },
   "devDependencies": {
     "electron": "^39.0.0"

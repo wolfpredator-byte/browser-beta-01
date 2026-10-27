@@ -3,12 +3,14 @@
 /**
  * Punto di ingresso del processo principale. Qui colleghiamo i pezzi:
  *
- *   lib/storage.cjs      browser-data.json (salvataggio atomico, migrazioni)
- *   lib/command-bus.cjs  bus dei comandi: unico ingresso per UI, menu, tasti, JARVIS
- *   lib/commands.cjs     l'elenco dei comandi
- *   lib/windows.cjs      finestre multiple (un workspace per finestra)
- *   lib/tabs.cjs         schede, workspace, stack, popup
- *   lib/web-session.cjs  permessi, user agent, download
+ *   lib/storage.cjs        browser-data.json (salvataggio atomico, migrazioni)
+ *   lib/command-bus.cjs    bus dei comandi: unico ingresso per UI, menu, tasti, icona, JARVIS
+ *   lib/commands*.cjs      l'elenco dei comandi
+ *   lib/windows.cjs        finestre multiple (un workspace per finestra)
+ *   lib/tabs.cjs           schede, workspace, stack, popup
+ *   lib/web-session.cjs    permessi, user agent, download
+ *   lib/tray.cjs           icona nell'area di notifica, funzionamento in background
+ *   lib/game-watcher.cjs   rilevamento dei giochi → lib/companion.cjs
  *   lib/*-rules.cjs, tab-*.cjs   regole pure, testate in test/
  */
 const path=require('node:path');
@@ -17,8 +19,14 @@ const {state,flushSave}=require('./lib/state.cjs');
 const {createStore}=require('./lib/storage.cjs');
 const {createCommandBus}=require('./lib/command-bus.cjs');
 const {registerCommands}=require('./lib/commands.cjs');
+const {registerGameCommands}=require('./lib/commands-games.cjs');
 const {shortcutCommand}=require('./lib/window-rules.cjs');
 const {setupWebSession}=require('./lib/web-session.cjs');
+const {createGameWatcher}=require('./lib/game-watcher.cjs');
+const {findRunning}=require('./lib/processes.cjs');
+const companion=require('./lib/companion.cjs');
+const tray=require('./lib/tray.cjs');
+const autostart=require('./lib/autostart.cjs');
 const windows=require('./lib/windows.cjs');
 const tabs=require('./lib/tabs.cjs');
 
@@ -33,14 +41,17 @@ function windowOfAnyContents(contents){
   return tab?windows.windowFor(tab.workspace):null;
 }
 
-app.whenReady().then(()=>{
+function start(){
   // Nessun menu applicazione: le scorciatoie sono gestite da window-rules.cjs,
   // e il menu predefinito di Electron ricaricherebbe la cornice invece della pagina.
   Menu.setApplicationMenu(null);
+  // Necessario su Windows per i messaggi dell'icona durante lo sviluppo.
+  app.setAppUserModelId(app.isPackaged?'personal-workspace-browser':process.execPath);
   state.store=createStore(path.join(app.getPath('userData'),'browser-data.json'));
   state.data=state.store.load();
   setupWebSession();
   registerCommands(bus);
+  registerGameCommands(bus);
 
   windows.setShortcutHandler((contents,input)=>{
     const command=shortcutCommand(input);
@@ -59,21 +70,40 @@ app.whenReady().then(()=>{
     return bus.dispatch(action,args,{window:w,source:'ui'});
   });
 
-  // Schede salvate → dormienti; poi riapriamo le finestre della volta scorsa.
+  tray.createTray((name,args={})=>bus.dispatch(name,args,{source:'tray'}));
+
+  state.gameWatcher=createGameWatcher({
+    games:()=>state.data.games,
+    findRunning,
+    onStart:game=>companion.openCompanion(game),
+    onStop:game=>companion.closeCompanion(game)
+  });
+  state.gameWatcher.setEnabled(state.data.settings.gameWatcher);
+  state.gameWatcher.start();
+
+  // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
-  const seen=new Set();
-  const wanted=state.data.openWindows.filter(x=>x&&typeof x.workspace==='string'&&
-    state.data.workspaces.some(w=>w.name===x.workspace)&&!seen.has(x.workspace)&&seen.add(x.workspace));
-  if(!wanted.length)wanted.push({workspace:state.data.activeWorkspace});
-  // L'ultimo workspace usato viene aperto per ultimo, così resta in primo piano.
-  wanted.sort((a,b)=>(a.workspace===state.data.activeWorkspace)-(b.workspace===state.data.activeWorkspace));
-  for(const saved of wanted)tabs.openWorkspaceWindow(saved.workspace,saved);
-});
+  if(!autostart.startedInBackground())tabs.openSavedWindows();
+}
+
+// Una sola copia del browser: aprirlo di nuovo (es. dal collegamento mentre è
+// nell'area di notifica) mostra le finestre della copia già attiva.
+if(!app.requestSingleInstanceLock())app.quit();
+else{
+  app.on('second-instance',()=>bus.dispatch('openBrowser',{},{source:'second-instance'}));
+  app.whenReady().then(start);
+}
 
 app.on('before-quit',()=>{
   // Registriamo TUTTE le finestre prima che inizino a chiudersi una alla volta.
   if(!state.quitting&&state.windows.length)windows.rememberOpenWindows();
   state.quitting=true;
+  state.gameWatcher?.stop();
 });
 app.on('will-quit',flushSave);
-app.on('window-all-closed',()=>app.quit());
+app.on('window-all-closed',()=>{
+  // In background restano solo il processo principale e l'icona: le pagine
+  // delle finestre chiuse sono già state distrutte (windows.cjs → onClosed).
+  if(state.data?.settings.runInBackground&&!state.quitting)tray.notifyBackground();
+  else app.quit();
+});
