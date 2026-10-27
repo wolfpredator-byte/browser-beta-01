@@ -43,7 +43,7 @@ function windowOfAnyContents(contents){
   const owner=windows.windowOfContents(contents);
   if(owner)return owner;
   const tab=state.tabs.find(t=>t.view?.webContents===contents);
-  return tab?windows.windowFor(tab.workspace):null;
+  return tab?windows.windowForTab(tab):null;
 }
 
 function start(){

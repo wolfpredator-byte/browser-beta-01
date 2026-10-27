@@ -357,7 +357,9 @@ function render(){
  document.body.dataset.panelOpen=state.sidePanelOpen?'true':'false';
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
- $('footerWorkspaceName').textContent=state.activeWorkspace||'Personale';
+ // Con più finestre dello stesso workspace: "Destiny Builder · 2".
+ $('footerWorkspaceName').textContent=(state.activeWorkspace||'Personale')+(state.pane?' · '+(state.pane+1):'');
+ renderLayoutInfo();
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
@@ -453,6 +455,17 @@ $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
 $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
 $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
+$('saveLayout').onclick=()=>act('saveLayout');
+$('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
 window.browserAPI.onUi(message=>{if(message?.type==='focusAddress'){const a=$('address');a.focus();a.select();}});
+// Disposizione delle finestre sui monitor (Beta 0.8): riepilogo nella Home del workspace.
+function renderLayoutInfo(){
+ const layout=state.workspaces.find(x=>x.name===state.activeWorkspace)?.layout;
+ const info=$('layoutInfo');
+ info.hidden=!layout;$('applyLayout').hidden=!layout;
+ if(!layout)return;
+ const when=new Date(layout.savedAt).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+ info.textContent=`Disposizione salvata: ${layout.windows} ${layout.windows===1?'finestra':'finestre'} su ${layout.monitors} monitor · ${when}`;
+}
