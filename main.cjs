@@ -11,6 +11,7 @@
  *   lib/web-session.cjs    permessi, user agent, download
  *   lib/tray.cjs           icona nell'area di notifica, funzionamento in background
  *   lib/game-watcher.cjs   rilevamento dei giochi → lib/companion.cjs
+ *   lib/projects.cjs       progetto.browser.json, fiducia, segreti → project-processes, monitors
  *   lib/*-rules.cjs, tab-*.cjs   regole pure, testate in test/
  */
 const path=require('node:path');
@@ -20,6 +21,7 @@ const {createStore}=require('./lib/storage.cjs');
 const {createCommandBus}=require('./lib/command-bus.cjs');
 const {registerCommands}=require('./lib/commands.cjs');
 const {registerGameCommands}=require('./lib/commands-games.cjs');
+const {registerProjectCommands}=require('./lib/commands-projects.cjs');
 const {shortcutCommand}=require('./lib/window-rules.cjs');
 const {setupWebSession}=require('./lib/web-session.cjs');
 const {createGameWatcher}=require('./lib/game-watcher.cjs');
@@ -27,6 +29,9 @@ const {findRunning}=require('./lib/processes.cjs');
 const companion=require('./lib/companion.cjs');
 const tray=require('./lib/tray.cjs');
 const autostart=require('./lib/autostart.cjs');
+const projects=require('./lib/projects.cjs');
+const projectProcesses=require('./lib/project-processes.cjs');
+const monitors=require('./lib/monitors.cjs');
 const windows=require('./lib/windows.cjs');
 const tabs=require('./lib/tabs.cjs');
 
@@ -52,6 +57,7 @@ function start(){
   setupWebSession();
   registerCommands(bus);
   registerGameCommands(bus);
+  registerProjectCommands(bus);
 
   windows.setShortcutHandler((contents,input)=>{
     const command=shortcutCommand(input);
@@ -81,6 +87,10 @@ function start(){
   state.gameWatcher.setEnabled(state.data.settings.gameWatcher);
   state.gameWatcher.start();
 
+  // Progetti: legge progetto.browser.json di ogni workspace con cartella e avvia i monitor.
+  projects.loadAll();
+  monitors.start();
+
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
   if(!autostart.startedInBackground())tabs.openSavedWindows();
@@ -99,6 +109,9 @@ app.on('before-quit',()=>{
   if(!state.quitting&&state.windows.length)windows.rememberOpenWindows();
   state.quitting=true;
   state.gameWatcher?.stop();
+  monitors.stop();
+  projects.closeAll();
+  projectProcesses.stopAll(); // I dev server non devono restare aperti senza il browser.
 });
 app.on('will-quit',flushSave);
 app.on('window-all-closed',()=>{

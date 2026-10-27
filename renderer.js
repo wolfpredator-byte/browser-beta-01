@@ -160,11 +160,161 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    list.append(form);
    name.focus();
  }
+
+ // ── Pannello Progetto (Beta 0.7) ────────────────────────────────────────
+ // Si ricostruisce solo quando i dati cambiano davvero (nuove righe di log,
+ // stato di un comando) e mai mentre stai scrivendo in un suo campo.
+ let renderedProject=null;
+ const projectUi={openLogs:new Set(),editingSecret:null};
+ const STATUS_LABELS={idle:'Fermo',running:'In esecuzione',stopped:'Fermato',exited:'Terminato',error:'Errore'};
+ function timeAgo(ms){
+   if(!ms)return 'mai';
+   const minutes=Math.round((Date.now()-ms)/60000);
+   return minutes<1?'adesso':minutes<60?minutes+' min fa':Math.round(minutes/60)+' h fa';
+ }
+ function section(title,...children){return el('section',{className:'project-section'},el('h4',{textContent:title}),...children);}
+ function projectButtons(...specs){
+   const row=el('div',{className:'inline-buttons'});
+   for(const [label,fn,cls] of specs)addButton(row,label,fn,cls||'');
+   return row;
+ }
+ async function runAndReport(command,args,errorBox){
+   const response=await act(command,args);
+   const error=response?.ok?response.result?.ok===false&&response.result.error:response?.error;
+   if(error&&errorBox)errorBox.textContent=error;
+   return !error;
+ }
+ function renderProject(){
+   const p=state.project;
+   $('sidePanelTitle').textContent=p?.config?.nome||'Progetto';
+   const list=$('sidePanelItems');
+   if(list.contains(document.activeElement)&&document.activeElement.matches('input,textarea'))return;
+   const key=JSON.stringify([p,[...projectUi.openLogs],projectUi.editingSecret]);
+   if(key===renderedProject)return;
+   renderedProject=key;
+   // Conserviamo lo scorrimento del pannello e dei log tra una ricostruzione e l'altra.
+   const panel=$('sidePanel'),scroll=panel.scrollTop;
+   const logScroll={};
+   for(const pre of list.querySelectorAll('pre.log'))logScroll[pre.dataset.index]={top:pre.scrollTop,atEnd:pre.scrollTop+pre.clientHeight>=pre.scrollHeight-4};
+   list.replaceChildren();
+   const error=el('p',{className:'panel-error',role:'alert'});
+   if(!p||p.status==='none'){
+     list.append(el('p',{className:'panel-hint',textContent:'Collega la cartella del progetto: il browser leggerà progetto.browser.json da lì.'}),
+       projectButtons(['Collega cartella',()=>act('projectFolder')]));
+     return;
+   }
+   list.append(el('p',{className:'project-folder',textContent:p.folder,title:p.folder}));
+   if(p.status==='missing'){
+     list.append(el('p',{className:'panel-hint',textContent:'Nella cartella non c’è progetto.browser.json. Questa è la proposta, ricavata da package.json:'}),
+       el('pre',{className:'json-preview',textContent:JSON.stringify(p.proposal,null,2)}),
+       projectButtons(['Crea il file',()=>runAndReport('projectCreateFile',{},error)]),error,
+       el('p',{className:'panel-hint',textContent:'Puoi modificarlo quando vuoi: il browser lo rilegge da solo.'}));
+     return;
+   }
+   if(p.status==='invalid'){
+     list.append(el('p',{className:'panel-error',textContent:'Il file ha degli errori:'}),
+       el('ul',{className:'project-errors'},...p.errors.map(e=>el('li',{textContent:e}))),
+       projectButtons(['Apri il file',()=>act('projectOpenFile')],['Rileggi',()=>act('projectReload')]));
+     return;
+   }
+   const c=p.config;
+   if(!p.trusted){
+     // Un file scaricato con un progetto altrui potrebbe contenere comandi dannosi:
+     // mostriamo esattamente cosa farà prima di permetterlo.
+     const items=[...c.avvio.map(x=>el('li',{},'Comando: ',el('code',{textContent:x.comando}))),
+       ...(c.editor?[el('li',{},'Editor: ',el('code',{textContent:c.editor}))]:[]),
+       ...c.monitor.map(m=>el('li',{},`Monitor «${m.nome}» → ${new URL(m.url).host}`+
+         (Object.keys(m.header).length?` (header: ${Object.keys(m.header).join(', ')})`:'')))];
+     list.append(el('div',{className:'trust-box'},
+       el('strong',{textContent:'Ti fidi di questo progetto?'}),
+       el('p',{textContent:'Questo file può avviare comandi sul tuo PC e inviare i segreti a questi indirizzi:'}),
+       el('ul',{},...items),
+       projectButtons(['Mi fido',()=>act('projectTrust'),'primary'],['Apri il file',()=>act('projectOpenFile')]),
+       el('p',{className:'panel-hint',textContent:'Se comandi o monitor cambiano, te lo chiederò di nuovo.'})));
+     return;
+   }
+   list.append(projectButtons(
+     ...(c.anteprima?[['Anteprima',()=>act('projectOpenPreview')]]:[]),
+     ...(c.editor?[['Apri in '+c.editor,()=>runAndReport('projectOpenEditor',{},error)]]:[]),
+     ['Modifica file',()=>act('projectOpenFile')]),error);
+
+   if(p.commands.length){
+     const rows=p.commands.map(cmd=>{
+       const running=cmd.status==='running';
+       const status=STATUS_LABELS[cmd.status]+(cmd.status==='exited'&&cmd.exitCode!==null?` (${cmd.exitCode})`:'');
+       const head=el('div',{className:'command-head'},el('span',{className:'command-name',textContent:cmd.name}),
+         el('span',{className:'command-status '+cmd.status,textContent:status}));
+       const buttons=projectButtons(
+         running?['■ Ferma',()=>runAndReport('projectStop',{index:cmd.index},error)]:['▶ Avvia',()=>{projectUi.openLogs.add(cmd.index);runAndReport('projectRun',{index:cmd.index},error);}],
+         [projectUi.openLogs.has(cmd.index)?'Nascondi log':'Log',()=>{
+           projectUi.openLogs.has(cmd.index)?projectUi.openLogs.delete(cmd.index):projectUi.openLogs.add(cmd.index);renderProject();}],
+         ...(cmd.lines.length?[['Svuota',()=>act('projectClearLog',{index:cmd.index})]]:[]));
+       const row=el('div',{className:'command-row'},head,el('code',{className:'command-text',textContent:cmd.command}),buttons);
+       if(projectUi.openLogs.has(cmd.index)){
+         const pre=el('pre',{className:'log',textContent:cmd.lines.join('\n')||'Nessun output.'});
+         pre.dataset.index=cmd.index;row.append(pre);
+       }
+       return row;
+     });
+     list.append(section('Comandi',...rows));
+   }
+
+   if(p.secrets.length){
+     const rows=p.secrets.map(s=>{
+       const row=el('div',{className:'secret-row'},el('code',{textContent:s.name}),
+         el('span',{className:s.set?'secret-ok':'secret-missing',textContent:s.set?'impostato':'mancante'}));
+       if(projectUi.editingSecret===s.name){
+         const input=el('input',{type:'password',placeholder:'Valore di '+s.name,autocomplete:'off'});
+         const form=el('form',{className:'secret-form'},input,el('button',{type:'submit',textContent:'Salva'}));
+         form.onsubmit=async e=>{
+           e.preventDefault();
+           if(await runAndReport('projectSetSecret',{name:s.name,value:input.value},error)){projectUi.editingSecret=null;input.blur();renderedProject=null;renderProject();}
+         };
+         input.onkeydown=e=>{if(e.key==='Escape'){projectUi.editingSecret=null;input.blur();renderedProject=null;renderProject();}};
+         row.append(form);
+         setTimeout(()=>input.focus());
+       }else row.append(projectButtons([s.set?'Cambia':'Imposta',()=>{projectUi.editingSecret=s.name;renderProject();}],
+         ...(s.set?[['Rimuovi',()=>act('projectRemoveSecret',{name:s.name})]]:[])));
+       return row;
+     });
+     list.append(section('Segreti',...rows,el('p',{className:'panel-hint',
+       textContent:'Cifrati con il tuo account Windows. Arrivano ai comandi come variabili d’ambiente e ai monitor come {{NOME}}.'})));
+   }
+
+   if(p.monitors.length){
+     const rows=p.monitors.map(m=>{
+       const changed=m.changedAt&&Date.now()-m.changedAt<24*3600000;
+       const title=el('div',{className:'command-head'},el('span',{className:'command-name',textContent:m.name}),
+         changed?el('span',{className:'game-badge',textContent:'cambiato'}):'');
+       const value=m.error?el('div',{className:'panel-error',textContent:m.error}):
+         el('div',{className:'monitor-value',textContent:m.value??'—'});
+       const meta=el('div',{className:'game-meta',textContent:
+         `${m.host}${m.field?' · '+m.field:''} · ogni ${m.minutes} min · ${m.checking?'controllo…':'controllato '+timeAgo(m.checkedAt)}`+
+         (changed&&m.previous?` · prima: ${m.previous}`:'')});
+       return el('div',{className:'command-row'},title,value,meta,projectButtons(['Controlla ora',()=>runAndReport('projectCheckMonitor',{name:m.name},error)]));
+     });
+     list.append(section('Monitor',...rows));
+   }
+
+   const searches=Object.entries(c.ricerche);
+   if(searches.length)list.append(section('Ricerche rapide',
+     ...searches.map(([k,t])=>el('div',{className:'game-meta'},el('code',{textContent:k}),' → '+new URL(t.replace('%s','x')).host)),
+     el('p',{className:'panel-hint',textContent:`Scrivi «${searches[0][0]} testo» nella barra degli indirizzi.`})));
+   if(c.link.length)list.append(section('Link',...c.link.map(l=>addButton(el('div'),l.nome,()=>act('resource',{url:l.url}),'item'))));
+
+   panel.scrollTop=scroll;
+   for(const pre of list.querySelectorAll('pre.log')){
+     const saved=logScroll[pre.dataset.index];
+     pre.scrollTop=!saved||saved.atEnd?pre.scrollHeight:saved.top;
+   }
+ }
  // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
+   if(mode!=='project')renderedProject=null;
+   else return renderProject();
    if(mode!=='games'){gamesView={mode:'list'};renderedGames=null;}
    else return renderGames();
    if(FORMS[mode])return renderForm(mode);
@@ -301,6 +451,8 @@ $('reopenClosed').onclick=()=>act('reopenClosedTab');
 $('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>act('toggleSidePanel',{panel:'newWorkspace'});$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>act('toggleSidePanel',{panel:'addResource'});$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
-$('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});window.browserAPI.onState(next=>{state=next;render();});
+$('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
+$('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
+$('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
 window.browserAPI.onUi(message=>{if(message?.type==='focusAddress'){const a=$('address');a.focus();a.select();}});

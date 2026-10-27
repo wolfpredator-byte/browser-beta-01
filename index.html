@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.6</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.7</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.6</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.7</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
@@ -22,6 +22,7 @@
   <button id="showTabs" class="sideButton" title="Schede aperte"><span class="tool-icon">▤</span><span class="tool-label">Schede</span></button>
   <button id="sideDownloads" class="sideButton" title="Download"><span class="tool-icon">↓</span><span class="tool-label">Download</span></button>
   <button id="showGames" class="sideButton" title="Giochi (companion)"><span class="tool-icon">♞</span><span class="tool-label">Giochi</span></button>
+  <button id="showProject" class="sideButton" title="Progetto del workspace"><span class="tool-icon">⧉</span><span class="tool-label">Progetto</span></button>
  </aside>
 <!-- Pannello browser indipendente da Home e dalle pagine remote. -->
 <section id="sidePanel" hidden aria-label="Pannello laterale">
@@ -41,7 +42,7 @@
   <section class="workspace-panel glass">
     <div class="workspace-head"><div><span class="eyebrow">CONTESTO ATTIVO</span><h2 id="title">Personale</h2></div><span class="status-dot">● Locale</span></div>
     <p id="folder" class="muted">Nessuna cartella locale associata</p>
-    <div class="actions"><button id="chooseFolder">Collega cartella</button><button id="openFolder">Apri cartella</button><button id="addResource">＋ Risorsa web</button></div>
+    <div class="actions"><button id="chooseFolder">Collega cartella</button><button id="openFolder">Apri cartella</button><button id="addResource">＋ Risorsa web</button><button id="openProject">⧉ Progetto</button></div>
     <div class="columns"><article><h3>Risorse salvate</h3><div id="resources"></div></article><article><h3 id="secondaryTitle">Preferiti</h3><div id="secondary"></div></article></div>
   </section>
  </section>

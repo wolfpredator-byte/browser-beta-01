@@ -36,4 +36,4 @@ Separare sempre l'interfaccia browser (`renderer.js`) dai siti esterni (`WebCont
 
 by WolfPredator
 ## Struttura (dalla Beta 0.5)
-`main.cjs` avvia l'app e collega i moduli in `lib/`; ogni azione passa dal bus dei comandi (`lib/command-bus.cjs`). I test delle regole pure sono in `test/`. Dettagli e prova: [BETA_0_5_GUIDA.md](BETA_0_5_GUIDA.md) (architettura) e [BETA_0_6_GUIDA.md](BETA_0_6_GUIDA.md) (gaming companion, area di notifica).
+`main.cjs` avvia l'app e collega i moduli in `lib/`; ogni azione passa dal bus dei comandi (`lib/command-bus.cjs`). I test delle regole pure sono in `test/`. Dettagli e prova: [BETA_0_5_GUIDA.md](BETA_0_5_GUIDA.md) (architettura) e [BETA_0_6_GUIDA.md](BETA_0_6_GUIDA.md) (gaming companion, area di notifica), [BETA_0_7_GUIDA.md](BETA_0_7_GUIDA.md) (workspace progetto).
