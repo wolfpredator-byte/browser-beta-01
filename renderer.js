@@ -22,11 +22,54 @@ $('jarvisMini').onclick=()=>window.browserAPI.action('home');
 $('homeSearch').onsubmit=e=>{e.preventDefault();const q=$('homeQuery').value.trim();if(q){window.browserAPI.action('navigate',{url:q});$('homeQuery').value='';}};
 let state={tabs:[],workspaces:[],bookmarks:[],history:[],downloads:[]},panel='bookmarks';const act=(name,args={})=>window.browserAPI.action(name,args);
 function addButton(parent,label,fn,cls=''){const b=document.createElement('button');b.textContent=label;b.className=cls;b.onclick=fn;parent.appendChild(b);return b;}
-// Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
+// Moduli nel pannello laterale. Sostituiscono prompt(), che Electron non supporta.
+ // Il pannello è l'unica zona della cornice mai coperta dalle pagine web.
+ // command/field: comando del bus e nome del parametro che riceve il testo.
+ const FORMS={
+   newWorkspace:{title:()=>'Nuovo workspace',label:'Nome',placeholder:'Es. Destiny Builder',
+     max:40,submit:'Crea',command:'addWorkspace',field:'name'},
+   addResource:{title:()=>'Risorsa per '+state.activeWorkspace,label:'Indirizzo web',
+     placeholder:'Es. light.gg oppure https://github.com/…',max:2048,submit:'Aggiungi',
+     command:'addResource',field:'url'}
+ };
+ // Lo stato arriva più volte al secondo (titoli, caricamenti): il modulo
+ // si ricostruisce solo quando cambia, altrimenti perderesti quello che stai scrivendo.
+ let renderedForm=null;
+ function renderForm(mode){
+   const def=FORMS[mode];
+   $('sidePanelTitle').textContent=def.title();
+   if(renderedForm===mode)return;
+   renderedForm=mode;
+   const list=$('sidePanelItems');list.replaceChildren();
+   const form=document.createElement('form');form.className='panel-form';
+   const label=document.createElement('label');label.textContent=def.label;label.htmlFor='panelInput';
+   const input=document.createElement('input');input.id='panelInput';input.maxLength=def.max;
+   input.placeholder=def.placeholder;input.autocomplete='off';
+   const error=document.createElement('p');error.className='panel-error';error.setAttribute('role','alert');
+   const submit=document.createElement('button');submit.type='submit';submit.textContent=def.submit;
+   const hint=document.createElement('p');hint.className='panel-hint';hint.textContent='Invio per confermare · Esc per annullare';
+   const close=()=>act('toggleSidePanel',{panel:mode});
+   input.onkeydown=event=>{if(event.key==='Escape')close();};
+   input.oninput=()=>{error.textContent='';};
+   form.onsubmit=async event=>{
+     event.preventDefault();
+     error.textContent='';submit.disabled=true;
+     const response=await act(def.command,{[def.field]:input.value});
+     submit.disabled=false;
+     // Il comando risponde {ok:true} oppure {ok:false,error}: l'errore resta nel modulo.
+     if(response?.ok&&response.result?.ok)close();
+     else{error.textContent=response?.result?.error||response?.error||'Operazione non riuscita';input.focus();}
+   };
+   form.append(label,input,error,submit,hint);list.appendChild(form);
+   input.focus();
+ }
+ // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
+   if(FORMS[mode])return renderForm(mode);
+   renderedForm=null;
    if(!mode)return;
    const title=mode==='bookmarks'?'Preferiti':mode==='history'?'Cronologia':'Schede';
    $('sidePanelTitle').textContent=title;
@@ -156,7 +199,7 @@ else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item'
 $('workspaceSwitcher').onclick=()=>act('showWorkspaceMenu');
 // Questo pulsante è una scorciatoia visuale alla stessa funzione di Ctrl+Shift+T.
 $('reopenClosed').onclick=()=>act('reopenClosedTab');
-$('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>{const name=prompt('Nome del workspace:');if(name)act('addWorkspace',{name});};$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>{const url=prompt('URL risorsa da associare al workspace:');if(url)act('addResource',{url});};$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
+$('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>act('toggleSidePanel',{panel:'newWorkspace'});$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>act('toggleSidePanel',{panel:'addResource'});$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.

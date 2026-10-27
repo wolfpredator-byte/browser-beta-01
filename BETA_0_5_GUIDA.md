@@ -14,6 +14,7 @@ Prima versione della roadmap: fondamenta per gaming companion, progetti e JARVIS
 7. **Scorciatoie:** `Ctrl+T` nuova scheda, `Ctrl+W` chiudi, `Ctrl+L` barra indirizzi, `F5`/`Ctrl+R` ricarica, `Alt+←/→` indietro/avanti, `Ctrl+Shift+T` riapri.
 8. **`localhost:5173`** (senza `http://`) apre il dev server in `http`, non più in `https`.
 9. **User agent "pulito":** i siti vedono un normale Chrome, non "Electron". Aiuta con i login Google.
+10. **"Nuovo spazio" e "+ Risorsa web" funzionano.** Prima usavano `prompt()`, che Electron non supporta, e non facevano nulla. Ora aprono un modulo nel pannello laterale (l'unica zona mai coperta dalle pagine web): `Invio` conferma, `Esc` annulla, e gli errori (nome già usato, frase al posto di un indirizzo, risorsa doppia) restano visibili nel modulo.
 
 ## Modalità insegnamento: com'è organizzato il codice
 
@@ -68,6 +69,10 @@ Una scheda con `view:null` e `isHome:false` è dormiente. `ensureView(t)` crea l
 | link `target=_blank`, Ctrl+clic | nuova scheda nello stesso workspace |
 | indirizzi non web (`file:`, `javascript:`) | negato |
 
+### Moduli nel pannello (`FORMS` in `renderer.js`)
+
+Ogni modulo dichiara titolo, etichetta, lunghezza massima, comando del bus e nome del parametro. I comandi `addWorkspace` e `addResource` rispondono `{ok:true}` oppure `{ok:false,error}`: il modulo si chiude solo con `ok:true`. `renderedForm` evita di ricostruire il modulo a ogni aggiornamento di stato, che arriva più volte al secondo e cancellerebbe quello che stai scrivendo.
+
 ### Salvataggio (`storage.cjs` + `state.cjs`)
 
 - `save()` scrive su `.tmp` e lo rinomina; il file precedente diventa `.bak`. Se entrambi sono illeggibili, il file rovinato viene rinominato `browser-data.corrupt-<numero>.json` e non cancellato.
@@ -90,10 +95,11 @@ Verifica:
 - [ ] `F12` apre i DevTools in una finestra separata.
 - [ ] Un login "Accedi con…" in popup si completa (es. DIM con Bungie).
 - [ ] `Ctrl+T`, `Ctrl+W`, `Ctrl+L`, `Alt+←` funzionano anche con il focus dentro una pagina.
+- [ ] **Nuovo spazio** crea un workspace; un nome già usato mostra l'errore.
+- [ ] **+ Risorsa web** accetta `light.gg` e rifiuta una frase.
 
-**Stato:** 39 test superati. Avvio reale verificato su un profilo di prova (copia dei dati 0.4.1): migrazione, finestre multiple con ripristino, schede dormienti, popup con `window.opener`, schermo intero, user agent, validazione dei comandi. Il login Bungie/Google reale e la prova su più monitor sono ancora da fare a mano.
+**Stato:** 40 test superati. Avvio reale verificato su un profilo di prova (copia dei dati 0.4.1): migrazione, finestre multiple con ripristino, schede dormienti, popup con `window.opener`, schermo intero, user agent, validazione dei comandi. Il login Bungie/Google reale e la prova su più monitor sono ancora da fare a mano.
 
 ## Limiti noti
-- **"Nuovo spazio" non funziona** (anche nelle beta precedenti): usa `prompt()`, che Electron non supporta. Va sostituito con un piccolo campo nella cornice.
 - Cambiando workspace in una finestra, le pagine del workspace lasciato restano caricate (per tornarci al volo). Si liberano chiudendo la finestra di quel workspace.
 - Tutti i workspace condividono ancora gli stessi cookie.

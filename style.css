@@ -107,3 +107,15 @@ body[data-panel-open="true"]{--panel-width:300px}
 /* BETA 0.5 — workspace già aperto in un'altra finestra: icona attenuata e punto. */
 #globalSidebar .workspace-button.elsewhere .workspace-icon{opacity:.55}
 #globalSidebar .workspace-button.elsewhere .workspace-count::after{content:' ↗';color:#bbb}
+
+/* BETA 0.5 — moduli nel pannello laterale (nuovo workspace, nuova risorsa). */
+.panel-form{display:flex;flex-direction:column;gap:8px}
+.panel-form label{font-size:11px;color:#aaa;letter-spacing:.4px}
+.panel-form input{width:100%;background:#ffffff0d;color:#fff;border:1px solid #ffffff2d;
+ border-radius:10px;padding:10px 12px;outline:none}
+.panel-form input:focus{border-color:#b4b4b4}
+.panel-form button[type=submit]{align-self:flex-start;background:#fff;color:#111;padding:8px 16px}
+.panel-form button[disabled]{opacity:.5;cursor:default}
+.panel-error{min-height:16px;margin:0;color:#f28b82;font-size:12px}
+.panel-error:empty{min-height:0}
+.panel-hint{margin:2px 0 0;color:#777;font-size:11px}

@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {safeUrl,isWebUrl,popupAction,isPermissionAllowed,cleanUserAgent}=require('../lib/web-rules.cjs');
+const {safeUrl,isWebUrl,looksLikeAddress,popupAction,isPermissionAllowed,cleanUserAgent}=require('../lib/web-rules.cjs');
 
 test('frasi diventano ricerche, domini diventano indirizzi https',()=>{
   assert.equal(safeUrl('ace of spades'),'https://www.google.com/search?q=ace%20of%20spades');
@@ -45,4 +45,13 @@ test('lo user agent non dichiara Electron né il nome dell’app',()=>{
   const ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) personal-workspace-browser/0.5.0 Chrome/142.0.0.0 Electron/39.8.10 Safari/537.36';
   const clean=cleanUserAgent(ua,'personal-workspace-browser');
   assert.equal(clean,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36');
+});
+
+test('risorse: domini e URL sono indirizzi, le frasi no',()=>{
+  assert.equal(looksLikeAddress('light.gg'),true);
+  assert.equal(looksLikeAddress(' https://github.com/x '),true);
+  assert.equal(looksLikeAddress('localhost:3000/api'),true);
+  assert.equal(looksLikeAddress('build titano'),false);
+  assert.equal(looksLikeAddress(''),false);
+  assert.equal(looksLikeAddress(undefined),false);
 });
