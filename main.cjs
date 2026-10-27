@@ -29,8 +29,38 @@ function persistTabs(){
  save();
 }
 const storage=()=>path.join(app.getPath('userData'),'browser-data.json');
-function save(){try{fs.writeFileSync(storage(),JSON.stringify(data,null,2));}catch(e){console.error(e);}}
-function load(){try{data=JSON.parse(fs.readFileSync(storage(),'utf8'));if(!Array.isArray(data.workspaces))throw Error('bad data');}catch{data=defaultData();save();}if(!Object.hasOwn(SIDEBAR_WIDTHS,data.sidebarMode))data.sidebarMode='compact';
+/**
+ * Salvataggio atomico: scriviamo prima su .tmp, poi lo rinominiamo.
+ * Se Windows si spegne durante la scrittura, si rovina solo il .tmp e
+ * browser-data.json resta quello precedente. Il file precedente diventa .bak.
+ */
+function save(){
+ const file=storage(),tmp=file+'.tmp',bak=file+'.bak';
+ try{
+  fs.writeFileSync(tmp,JSON.stringify(data,null,2));
+  if(fs.existsSync(file))fs.renameSync(file,bak);
+  fs.renameSync(tmp,file);
+ }catch(e){console.error('Salvataggio non riuscito',e);}
+}
+/** Legge un file dati; restituisce null se manca o non è valido. */
+function readData(file){
+ try{
+  const parsed=JSON.parse(fs.readFileSync(file,'utf8'));
+  return Array.isArray(parsed?.workspaces)?parsed:null;
+ }catch{return null;}
+}
+function load(){
+ const file=storage();
+ // Ordine: file principale, poi .bak (l'ultimo salvataggio valido precedente).
+ data=readData(file)||readData(file+'.bak');
+ if(!data){
+  // Non sovrascriviamo mai un file illeggibile: lo mettiamo da parte per recuperarlo a mano.
+  if(fs.existsSync(file)){
+   try{fs.renameSync(file,file.replace(/\.json$/,'.corrupt-'+Date.now()+'.json'));}catch(e){console.error(e);}
+  }
+  data=defaultData();save();
+ }
+ if(!Object.hasOwn(SIDEBAR_WIDTHS,data.sidebarMode))data.sidebarMode='compact';
  // Migrazione sicura per chi apre la Beta 0.4 da una versione precedente:
  // mantenere preferiti, sessioni e workspace anche se queste chiavi non esistono.
  if(!data.collapsedStacks||typeof data.collapsedStacks!=='object'||Array.isArray(data.collapsedStacks))data.collapsedStacks={};
@@ -340,7 +370,7 @@ win.on('resize',bounds);
      while(fs.existsSync(suggested)){suggested=path.join(base,stem+' ('+n+++')'+extension);}
      const decision=await dialog.showMessageBox(win,{
        type:'question',title:'Download',message:'Vuoi salvare questo file?',
-       detail:filename+'\\nDestinazione: '+suggested,
+       detail:filename+'\nDestinazione: '+suggested,
        buttons:['Salva','Salva in…','Annulla'],defaultId:0,cancelId:2,noLink:true
      });
      if(decision.response===2||win.isDestroyed()){item.cancel();return;}
@@ -489,8 +519,9 @@ win.on('resize',bounds);
   }else newTab(args.url);
   break;
  }
- case 'back':if(t?.view.webContents.canGoBack())t.view.webContents.goBack();break;
- case 'forward':if(t?.view.webContents.canGoForward())t.view.webContents.goForward();break;
+ // Home non ha una View: senza '?.' dopo view queste azioni andrebbero in errore.
+ case 'back':if(t?.view?.webContents.canGoBack())t.view.webContents.goBack();break;
+ case 'forward':if(t?.view?.webContents.canGoForward())t.view.webContents.goForward();break;
  case 'reload':if(t?.view){t.loadError=null;t.view.webContents.reload();}break;
  case 'home':{const existing=tabs.find(x=>x.workspace===data.activeWorkspace&&x.isHome);if(existing)show(existing.id);else newHomeTab();break;}
  case 'workspace':if(typeof args.name==='string')switchWorkspace(args.name);break;
