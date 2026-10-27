@@ -308,11 +308,62 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      pre.scrollTop=!saved||saved.atEnd?pre.scrollHeight:saved.top;
    }
  }
+
+ // ── Pannello JARVIS (Beta 0.9) ──────────────────────────────────────────
+ let renderedJarvis=null;
+ function renderJarvis(){
+   const j=state.jarvis;
+   $('sidePanelTitle').textContent='JARVIS';
+   const key=JSON.stringify(j)+Math.floor(Date.now()/30000); // aggiorna anche "x min fa"
+   if(key===renderedJarvis)return;
+   renderedJarvis=key;
+   const list=$('sidePanelItems');list.replaceChildren();
+   if(!j)return;
+   const error=el('p',{className:'panel-error',role:'alert'});
+   list.append(checkRow('Server MCP attivo',j.enabled,enabled=>act('setJarvisEnabled',{enabled})));
+   const status=j.error?el('p',{className:'panel-error',textContent:'Non avviato: '+j.error}):
+     j.url?el('p',{className:'game-meta'},'In ascolto su ',el('code',{textContent:j.url})):
+     el('p',{className:'panel-hint',textContent:'Spento: nessun programma può comandare il browser.'});
+   list.append(status);
+   if(j.enabled&&j.url){
+     list.append(el('p',{className:'game-meta',textContent:j.lastSeen?
+       `Ultimo client: ${j.clientName||'sconosciuto'} · ${timeAgo(j.lastSeen)}`:'Nessun client collegato finora.'}));
+     list.append(checkRow('Può leggere il testo delle pagine',j.readPages,enabled=>act('setJarvisReadPages',{enabled})));
+     const regen=addButton(el('span'),'Rigenera token',async()=>{
+       if(!regen.dataset.armed){regen.dataset.armed='1';regen.textContent='Conferma: i client andranno riconfigurati';regen.classList.add('danger');return;}
+       await act('regenerateJarvisToken');renderedJarvis=null;renderJarvis();
+     });
+     list.append(projectButtons(['Copia configurazione',async()=>{
+       if(await runAndReport('copyJarvisConfig',{},error)){error.textContent='';copied.textContent='Copiata negli appunti.';}
+     }],['Mostra file',()=>act('showJarvisConfigFile')]),el('div',{className:'inline-buttons'},regen));
+     const copied=el('p',{className:'panel-hint'});
+     list.append(copied,error,el('p',{className:'panel-hint',
+       textContent:'JARVIS legge url e token da jarvis-mcp.json (vedi examples/jarvis_browser.py). Avviare comandi del progetto chiede sempre la tua conferma.'}));
+     list.append(section('Strumenti',el('div',{className:'tool-chips'},...j.tools.map(name=>el('code',{textContent:name})))));
+     list.append(section('Attività',...(j.activity.length?j.activity.map(a=>el('div',{className:'activity-row'+(a.ok?'':' failed')},
+       el('span',{textContent:new Date(a.time).toLocaleTimeString('it-IT')}),el('code',{textContent:a.tool}),
+       el('span',{textContent:a.ok?'ok':a.error||'errore',title:a.error||''}))):[el('p',{className:'panel-hint',textContent:'Nessuna richiesta.'})])));
+   }else list.append(el('p',{className:'panel-hint',textContent:
+     'Attivalo per permettere a JARVIS (o a un altro client MCP, come Claude Code) di usare il browser. '+
+     'Ascolta solo su questo PC (127.0.0.1) e richiede un token.'}));
+ }
+ // La sfera segue JARVIS quando è collegato; altrimenti resta la demo con i pulsanti.
+ function renderOrb(){
+   const connected=!!state.jarvisConnected;
+   document.querySelector('.orb-controls').hidden=connected;
+   $('jarvisMini').dataset.mode=connected?state.orb.mode:'idle';
+   if(connected){
+     setOrb(state.orb.mode);
+     document.querySelector('.offline').textContent=state.orb.message||`JARVIS connesso · ${state.jarvisClient||'client MCP'}`;
+   }else document.querySelector('.offline').textContent='Interfaccia JARVIS dimostrativa · assistente non connesso';
+ }
  // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
+   if(mode!=='jarvis')renderedJarvis=null;
+   else return renderJarvis();
    if(mode!=='project')renderedProject=null;
    else return renderProject();
    if(mode!=='games'){gamesView={mode:'list'};renderedGames=null;}
@@ -360,6 +411,7 @@ function render(){
  // Con più finestre dello stesso workspace: "Destiny Builder · 2".
  $('footerWorkspaceName').textContent=(state.activeWorkspace||'Personale')+(state.pane?' · '+(state.pane+1):'');
  renderLayoutInfo();
+ renderOrb();
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
@@ -456,6 +508,7 @@ $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
 $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
 $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');
+$('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.

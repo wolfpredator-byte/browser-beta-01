@@ -12,6 +12,7 @@
  *   lib/tray.cjs           icona nell'area di notifica, funzionamento in background
  *   lib/game-watcher.cjs   rilevamento dei giochi → lib/companion.cjs
  *   lib/projects.cjs       progetto.browser.json, fiducia, segreti → project-processes, monitors
+ *   lib/jarvis.cjs         server MCP su 127.0.0.1 per JARVIS (protocollo in mcp-protocol.cjs)
  *   lib/*-rules.cjs, tab-*.cjs   regole pure, testate in test/
  */
 const path=require('node:path');
@@ -32,6 +33,7 @@ const autostart=require('./lib/autostart.cjs');
 const projects=require('./lib/projects.cjs');
 const projectProcesses=require('./lib/project-processes.cjs');
 const monitors=require('./lib/monitors.cjs');
+const jarvis=require('./lib/jarvis.cjs');
 const windows=require('./lib/windows.cjs');
 const tabs=require('./lib/tabs.cjs');
 
@@ -91,6 +93,9 @@ function start(){
   projects.loadAll();
   monitors.start();
 
+  // JARVIS: server MCP locale, solo se attivato dal pannello o dall'icona.
+  jarvis.init(bus);
+
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
   if(!autostart.startedInBackground())tabs.openSavedWindows();
@@ -112,6 +117,7 @@ app.on('before-quit',()=>{
   monitors.stop();
   projects.closeAll();
   projectProcesses.stopAll(); // I dev server non devono restare aperti senza il browser.
+  jarvis.stop();
 });
 app.on('will-quit',flushSave);
 app.on('window-all-closed',()=>{
