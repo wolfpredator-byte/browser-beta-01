@@ -57,4 +57,5 @@ La cornice ha una CSP che le vieta di caricare immagini da Internet. Le icone le
 - **Cerchio di caricamento schiacciato:** la regola delle prime beta `.tab span{flex:1}` stirava ogni `span` della scheda, compreso il cerchio. Ora `.tab span.tab-spinner` (più specifica) lo tiene a 13×13 px.
 - **Login Google e passkey:** con l'identità Firefox Google mostrava la pagina di accesso, ma provava subito una passkey e Windows rispondeva "Something went wrong". Su `accounts.google.com` (solo lì) `page-preload.cjs` ora nasconde le passkey: `PublicKeyCredential` non esiste e le richieste WebAuthn vengono rifiutate prima di arrivare a Windows. Google usa il flusso classico: email, password, eventuale conferma sul telefono.
 
-**Da provare:** T11 con l'installer 0.9.2. Se l'accesso non riesce, mandami uno **📸** della schermata che compare **dopo** aver inserito l'email (e, se arrivi lì, dopo la password).
+**Risultato sul tuo PC (installer 0.9.2):** accesso Google riuscito (T11) e cerchio di caricamento corretto (T41). Gli altri test della 0.9.1 erano già superati.
+Se un giorno Google tornasse a rifiutare l'accesso, il punto da cui ripartire è `page-preload.cjs` insieme a `FIREFOX_UA` in `lib/web-rules.cjs`.
