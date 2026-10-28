@@ -72,6 +72,7 @@ function start(){
   registerProjectCommands(bus);
   registerSettingsCommands(bus);
   require('./lib/toasts.cjs').setup(bus);
+  require('./lib/popup.cjs').setup();
 
   windows.setShortcutHandler((contents,input)=>{
     const command=shortcutCommand(input);

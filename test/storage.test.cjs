@@ -63,7 +63,7 @@ test('migrazione da 0.5: background e rilevamento attivi, giochi rovinati scarta
     {id:1,name:'Destiny 2',exe:'destiny2.exe',workspace:'Gaming',sites:[],enabled:true},
     {id:'x',name:'Rotto'},null]});
   assert.deepEqual(data.settings,{runInBackground:true,gameWatcher:true,backgroundNoticeShown:false,
-    jarvis:{enabled:false,readPages:true},adblock:{enabled:true,allowlist:[]},sleepAfterMinutes:30,searchEngine:'google'});
+    jarvis:{enabled:false,readPages:true},adblock:{enabled:true,allowlist:[]},sleepAfterMinutes:30,searchEngine:'google',tabAnimations:true});
   assert.deepEqual(data.sitePermissions,{});
   assert.deepEqual(data.games.map(g=>g.id),[1]);
   assert.equal(normalize({workspaces:[{name:'A'}],settings:{runInBackground:false}}).settings.runInBackground,false);

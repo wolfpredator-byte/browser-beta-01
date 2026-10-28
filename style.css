@@ -469,3 +469,36 @@ body[data-downloads-open="true"] #loadError,body[data-downloads-open="true"] #da
 ::-webkit-scrollbar-thumb:active{background:#8f80ff;border:2px solid transparent;background-clip:padding-box}
 ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
 .i-check{--i:url(assets/icons/check.svg)}.i-info{--i:url(assets/icons/info.svg)}
+
+/* ═══ BETA 0.15 — pannello Download e centro notifiche ═══ */
+.download-filters,.notify-filters{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+.download-filters .filter,.notify-filters .filter{font-size:12px;padding:5px 11px;border-radius:9px;border:1px solid var(--v-line);background:rgba(255,255,255,.03)}
+.download-filters .filter.chosen,.notify-filters .filter.chosen{background:#6f5ff5;border-color:transparent;color:#fff}
+.download-filters .filter:disabled,.notify-filters .filter:disabled{opacity:.4;cursor:default}
+.download-row{display:flex;align-items:center;gap:11px;padding:10px 8px;border-bottom:1px solid var(--v-line);border-radius:8px;cursor:default}
+.download-row:hover{background:rgba(124,108,255,.08)}
+.download-badge{flex:0 0 32px;height:32px;border-radius:9px;display:grid;place-items:center;background:rgba(124,108,255,.18);color:#c9c0ff}
+.download-row.done .download-badge{background:rgba(52,199,120,.18);color:#6fe3a2}
+.download-row.error .download-badge,.download-row.cancelled .download-badge{background:rgba(255,90,106,.16);color:#ff8794}
+.download-badge .i{width:16px;height:16px}
+.download-text{flex:1;min-width:0}
+.download-name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.download-state{font-size:11px;color:var(--v-muted)}
+.download-bar{height:4px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}
+.download-bar i{display:block;height:100%;background:linear-gradient(90deg,#7c6cff,#b4a8ff);border-radius:3px}
+.download-action{opacity:.7}.download-action:hover{opacity:1}
+.download-action.danger{color:#ff8794}
+.download-action .i{width:16px;height:16px}
+.notify-row{display:flex;align-items:flex-start;gap:11px;padding:10px 6px;border-bottom:1px solid var(--v-line)}
+.notify-row.success .download-badge{background:rgba(52,199,120,.18);color:#6fe3a2}
+.notify-row.error .download-badge{background:rgba(255,90,106,.16);color:#ff8794}
+.notify-row.bookmark .download-badge{background:rgba(242,201,76,.16);color:#f2c94c}
+.notify-head{display:flex;gap:8px;align-items:baseline}
+.notify-head .download-name{flex:1}
+.notify-time{font-size:10px;color:var(--v-muted);white-space:nowrap}
+.notify-row .inline-buttons{margin-top:6px}
+#globalSidebar .tool-icon{position:relative}
+#notifyBadge{position:absolute;top:-6px;right:-9px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:#6f5ff5;color:#fff;font-size:9px;font-weight:700;line-height:15px;text-align:center}
+#notifyBadge[hidden]{display:none}
+.download-drawer>button{margin:12px 6px 0 0;border:1px solid var(--v-line);background:rgba(255,255,255,.04);font-size:12px}
+.download-drawer>button:hover{background:rgba(124,108,255,.16)}

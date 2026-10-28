@@ -497,6 +497,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        checkRow('Rileva l’avvio dei giochi',s.gameWatcher,enabled=>act('setGameWatcher',{enabled}))),
      section('Schede',
        row('Sospendi le schede non guardate',selectBox(SLEEP_LABELS,s.sleepAfterMinutes,v=>act('setSleepMinutes',{minutes:Number(v)}))),
+       checkRow('Animazione a scorrimento quando cambi scheda',s.tabAnimations,enabled=>act('setTabAnimations',{enabled})),
        hint('Mai sospese: la scheda che guardi, quelle fissate, quelle che suonano e quelle con i DevTools aperti.')),
      section('Privacy e sicurezza',
        checkRow('Blocca pubblicità e tracker',s.adblock.enabled,enabled=>act('setAdblockEnabled',{enabled})),
@@ -520,6 +521,42 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    );
    panel.scrollTop=scroll;
  }
+ // ── Centro notifiche (Beta 0.15, mock-up "Notification System") ─────────
+ const NOTIFY_FILTERS=[['all','Tutte'],['download','Download'],['sito','Sito'],['jarvis','JARVIS'],['sistema','Sistema']];
+ const NOTIFY_ICONS={download:'download',success:'check',error:'warning',undo:'tab-reopen',bookmark:'bookmark-filled',info:'info'};
+ let notifyFilter='all',renderedNotify=null;
+ function renderNotifications(){
+   $('sidePanelTitle').textContent='Centro notifiche';
+   const all=state.notifications||[];
+   const key=JSON.stringify([all,notifyFilter])+Math.floor(Date.now()/30000);
+   if(key===renderedNotify)return;
+   renderedNotify=key;
+   const list=$('sidePanelItems');list.replaceChildren();
+   const filters=el('div',{className:'notify-filters'});
+   for(const [k,label] of NOTIFY_FILTERS){
+     const b=el('button',{className:'filter'+(notifyFilter===k?' chosen':''),textContent:label});
+     b.onclick=()=>{notifyFilter=k;renderNotifications();};filters.append(b);
+   }
+   list.append(filters);
+   const shown=all.filter(n=>notifyFilter==='all'||n.category===notifyFilter);
+   for(const n of shown){
+     const row=el('div',{className:'notify-row '+n.kind});
+     const badge=el('span',{className:'download-badge'},icon(NOTIFY_ICONS[n.kind]||'info'));
+     const text=el('div',{className:'download-text'},
+       el('div',{className:'notify-head'},el('span',{className:'download-name',textContent:n.title}),el('span',{className:'notify-time',textContent:timeAgo(n.time)})),
+       ...(n.text?[el('div',{className:'download-state',textContent:n.text})]:[]));
+     if(n.actions.length){const row2=el('div',{className:'inline-buttons'});for(const a of n.actions)addButton(row2,a.label,()=>act(a.command,a.args||{}));text.append(row2);}
+     row.append(badge,text);
+     iconButton(row,'close','Togli dall’elenco',()=>act('removeNotification',{id:n.id}),'download-action');
+     list.append(row);
+   }
+   if(!shown.length)list.append(el('p',{className:'panel-hint',textContent:all.length?'Niente in questa categoria.':'Nessuna notifica in questa sessione.'}));
+   if(all.length)list.append(projectButtons(['Cancella tutto',()=>act('clearNotifications')]));
+ }
+ function renderNotifyBadge(){
+   const n=state.notificationsUnread||0,badge=$('notifyBadge');
+   badge.hidden=!n;badge.textContent=n>9?'9+':String(n);
+ }
  // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
@@ -527,6 +564,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    $('sidePanel').hidden=!mode;
    if(mode!=='site')renderedSite=null;
    else return renderSite();
+   if(mode!=='notifications')renderedNotify=null;
+   else return renderNotifications();
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
    if(mode!=='project')renderedProject=null;
@@ -550,27 +589,48 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    if(!list.childElementCount)list.textContent='Nessun elemento da mostrare.';
  }
  $('closeSidePanel').onclick=()=>act('toggleSidePanel',{panel:state.sidePanelOpen});
- const DOWNLOAD_STATES={waiting:'In attesa di conferma',progressing:'In corso',completed:'Completato',cancelled:'Annullato',interrupted:'Interrotto'};
+ // ── Pannello Download (Beta 0.15): schede In corso / Completati / Annullati / Errori ──
+ const DOWNLOAD_STATES={waiting:'In attesa di conferma',progressing:'In corso',completed:'Completato',cancelled:'Annullato',interrupted:'Errore'};
+ const DOWNLOAD_FILTERS=[['all','Tutti',()=>true],['running','In corso',d=>['waiting','progressing'].includes(d.state)],
+   ['completed','Completati',d=>d.state==='completed'],['cancelled','Annullati',d=>d.state==='cancelled'],['error','Errori',d=>d.state==='interrupted']];
+ let downloadFilter='all';
+ const sizeText=bytes=>bytes>=1073741824?(bytes/1073741824).toFixed(1)+' GB':bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':Math.max(1,Math.round(bytes/1024))+' KB';
  function renderDownloads(){
  $('downloadDrawer').hidden=!state.downloadsOpen;
- const list=$('downloadList');list.replaceChildren();
  const downloads=state.downloads||[];
- for(const item of downloads){
-  const row=document.createElement('div');row.className='download-row';
-  const title=document.createElement('div');title.className='download-name';title.textContent=item.name;
-  const percent=item.total>0&&item.state!=='completed'?' · '+Math.min(100,Math.round(100*item.received/item.total))+'%':'';
-  const desc=document.createElement('div');desc.className='download-state';desc.textContent=(DOWNLOAD_STATES[item.state]||'In corso')+percent;
-  row.append(title,desc);
-  if(item.error)row.append(el('div',{className:'panel-error',textContent:item.error}));
-  if(item.total>0&&['waiting','progressing'].includes(item.state)){const track=document.createElement('progress');track.max=item.total;track.value=item.received;row.appendChild(track);}
-  // Azioni: apri e mostra a download finito, annulla mentre è in corso.
-  const actions=el('div',{className:'inline-buttons'});
-  if(item.state==='completed'){addButton(actions,'Apri',()=>act('downloadOpen',{id:item.id}));addButton(actions,'Mostra nella cartella',()=>act('downloadShow',{id:item.id}));}
-  else if(['waiting','progressing'].includes(item.state))addButton(actions,'Annulla',()=>act('downloadCancel',{id:item.id}));
-  if(actions.childElementCount)row.append(actions);
+ // Schede con il conteggio; quelle vuote restano visibili ma spente.
+ const filters=$('downloadFilters');filters.replaceChildren();
+ for(const [key,label,test] of DOWNLOAD_FILTERS){
+   const count=downloads.filter(test).length;
+   const b=el('button',{className:'filter'+(downloadFilter===key?' chosen':''),textContent:count&&key!=='all'?`${label} (${count})`:label});
+   b.disabled=!count&&key!=='all';
+   b.onclick=()=>{downloadFilter=key;renderDownloads();};
+   filters.append(b);
+ }
+ const test=DOWNLOAD_FILTERS.find(f=>f[0]===downloadFilter)[2];
+ const list=$('downloadList');list.replaceChildren();
+ for(const item of downloads.filter(test)){
+  const running=['waiting','progressing'].includes(item.state);
+  const kind=item.state==='completed'?'done':item.state==='interrupted'?'error':item.state==='cancelled'?'cancelled':'running';
+  const row=el('div',{className:'download-row '+kind,title:item.path||item.name});
+  const percent=item.total>0?Math.min(100,Math.round(100*item.received/item.total)):null;
+  const meta=running?(percent===null?sizeText(item.received):`${sizeText(item.received)} di ${sizeText(item.total)} · ${percent}%`):
+    (item.state==='completed'?sizeText(item.total||item.received)+' · Completato':DOWNLOAD_STATES[item.state]);
+  const text=el('div',{className:'download-text'},el('div',{className:'download-name',textContent:item.name}),
+    el('div',{className:'download-state',textContent:meta}));
+  if(item.error)text.append(el('div',{className:'panel-error',textContent:item.error}));
+  if(running&&item.total>0){const bar=el('div',{className:'download-bar'},el('i'));bar.firstChild.style.width=percent+'%';text.append(bar);}
+  const badge=el('span',{className:'download-badge'},icon(kind==='done'?'check':kind==='error'?'warning':kind==='cancelled'?'close':'download'));
+  row.append(badge,text);
+  if(item.state==='completed')iconButton(row,'downloads','Mostra nella cartella',()=>act('downloadShow',{id:item.id}),'download-action');
+  else if(running)iconButton(row,'close','Annulla download',()=>act('downloadCancel',{id:item.id}),'download-action danger');
+  else if(item.url)iconButton(row,'reload','Riprova',()=>act('downloadRetry',{id:item.id}),'download-action');
+  // Doppio clic apre il file; click destro: menu VARCO del file.
+  if(item.state==='completed')row.ondblclick=()=>act('downloadOpen',{id:item.id});
+  row.oncontextmenu=e=>{e.preventDefault();act('downloadContextMenu',{id:item.id});};
   list.appendChild(row);
  }
- if(!list.childElementCount)list.textContent='Nessun download in questa sessione.';
+ if(!list.childElementCount)list.append(el('p',{className:'panel-hint',textContent:downloads.length?'Niente in questa scheda.':'Nessun download in questa sessione.'}));
  $('clearDownloads').hidden=!downloads.some(d=>!['waiting','progressing'].includes(d.state));
  // Pallino sul pulsante ↓ mentre qualcosa si sta scaricando.
  $('showDownloads').classList.toggle('busy',downloads.some(d=>['waiting','progressing'].includes(d.state)));
@@ -687,7 +747,7 @@ function render(){
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
 $('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca o inserisci un indirizzo web';
-renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();}
+renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();renderNotifyBadge();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
@@ -704,6 +764,7 @@ $('saveLayout').onclick=()=>act('saveLayout');
 $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
 $('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
 $('showSettings').onclick=()=>act('openSettings');
+$('showNotifications').onclick=()=>act('toggleSidePanel',{panel:'notifications'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
