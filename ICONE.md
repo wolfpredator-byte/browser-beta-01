@@ -1,4 +1,6 @@
-# Richiesta icone e logo — Personal Browser
+# Icone e logo — VARCO
+
+> **Fatto (Beta 0.13):** il VARCO Icon System v1 è in `assets/icons/` (SVG) e `assets/app-icon.*`, `assets/tray-icon*.png`, ed è collegato all'interfaccia. Questo elenco resta come riferimento per nuove icone.
 
 Questo è l'elenco di **tutte** le icone del browser, così puoi disegnarle tu (o farle disegnare). Oggi quasi tutte sono **caratteri Unicode** (◈ ⌂ ☆ …). Funzionano, ma hanno spessori e dimensioni diverse tra loro e cambiano aspetto da un font all'altro: è il motivo per cui alcune sembrano "fuori posto".
 

@@ -1,49 +1,53 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.12.1</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>VARCO</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.12.1</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo"><span class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.13</span></div>
 <header class="toolbar">
-  <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
-  <div class="brand" title="Personal Browser">◈</div>
-  <button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button>
-  <button id="siteButton" hidden aria-label="Permessi e blocco pubblicità del sito">⛉<span id="siteBlocked"></span></button>
-  <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca, scrivi un indirizzo, oppure > per i comandi" autocomplete="off"></form>
+  <button id="toggleSidebarVisibility" class="tool" title="Nascondi / mostra la barra laterale" aria-label="Nascondi o mostra la barra laterale"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button>
+  <button id="back" class="tool" title="Indietro (Alt+←)" aria-label="Indietro"><span class="i i-back" aria-hidden="true"></span></button><button id="forward" class="tool" title="Avanti (Alt+→)" aria-label="Avanti"><span class="i i-forward" aria-hidden="true"></span></button><button id="reload" class="tool" title="Ricarica (F5)" aria-label="Ricarica"><span class="i i-reload" aria-hidden="true"></span></button>
+  <!-- Barra degli indirizzi a pillola come nel mock-up: scudo del sito a sinistra, stella a destra. -->
+  <div class="address-pill" id="addressPill">
+   <button id="siteButton" class="tool" hidden aria-label="Permessi e blocco pubblicità del sito"><span class="i i-shield" aria-hidden="true"></span><span id="siteBlocked"></span></button>
+   <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca o inserisci un indirizzo web" autocomplete="off"></form>
   <!-- Ctrl+F: prende il posto della barra degli indirizzi finché è aperta. -->
-  <form id="findBar" hidden><span class="find-icon">⌕</span><input id="findInput" aria-label="Trova nella pagina" placeholder="Trova nella pagina" autocomplete="off"><span id="findCount" aria-live="polite"></span><button type="button" id="findPrev" title="Precedente (Shift+Invio)">↑</button><button type="submit" id="findNext" title="Successivo (Invio)">↓</button><button type="button" id="findClose" title="Chiudi (Esc)">×</button></form>
+  <form id="findBar" hidden><span class="find-icon"><span class="i i-search" aria-hidden="true"></span></span><input id="findInput" aria-label="Trova nella pagina" placeholder="Trova nella pagina" autocomplete="off"><span id="findCount" aria-live="polite"></span><button type="button" id="findPrev" class="tool" title="Precedente (Shift+Invio)" aria-label="Precedente"><span class="i i-find-prev" aria-hidden="true"></span></button><button type="submit" id="findNext" class="tool" title="Successivo (Invio)" aria-label="Successivo"><span class="i i-find-next" aria-hidden="true"></span></button><button type="button" id="findClose" class="tool" title="Chiudi (Esc)" aria-label="Chiudi"><span class="i i-close" aria-hidden="true"></span></button></form>
   <button id="zoomLevel" hidden title="Zoom della pagina: clic per tornare al 100% (Ctrl 0)">100%</button>
-  <button id="paletteButton" title="Palette dei comandi (F1 · Ctrl+Shift+P)" aria-label="Palette dei comandi">⌘</button>
-  <button id="bookmark" title="Aggiungi ai preferiti">☆</button><button id="showDownloads" title="Download">↓</button>
+   <button id="bookmark" class="tool" title="Aggiungi ai preferiti" aria-label="Aggiungi ai preferiti"><span class="i i-bookmark" aria-hidden="true"></span></button>
+  </div>
+  <button id="paletteButton" class="tool" title="Palette dei comandi (F1 · Ctrl+Shift+P)" aria-label="Palette dei comandi"><span class="i i-commands" aria-hidden="true"></span></button>
+  <button id="showDownloads" class="tool" title="Download" aria-label="Download"><span class="i i-download" aria-hidden="true"></span></button>
   <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
 </header>
 <!-- Pagina di errore: occupa lo spazio della pagina, che intanto è nascosta. -->
 <section id="loadError" role="alert" hidden>
  <div class="error-card">
-  <div class="error-icon">⚠</div>
+  <div class="error-icon"><span class="i i-warning" aria-hidden="true"></span></div>
   <h2 id="loadErrorTitle"></h2>
   <p id="loadErrorDetail"></p>
   <code id="loadErrorUrl"></code>
-  <div class="error-actions"><button id="loadErrorRetry" class="primary">↻ Riprova</button><button id="loadErrorHttp" hidden></button><button id="loadErrorProject" hidden>⧉ Comandi del progetto</button></div>
+  <div class="error-actions"><button id="loadErrorRetry" class="primary"><span class="i i-reload" aria-hidden="true"></span> Riprova</button><button id="loadErrorHttp" hidden></button><button id="loadErrorProject" hidden><span class="i i-project" aria-hidden="true"></span> Comandi del progetto</button></div>
   <p id="loadErrorCode" class="error-code"></p>
  </div>
 </section>
 <aside id="globalSidebar" class="sidebar" aria-label="Pannello laterale">
-  <div class="sidebar-top"><span class="sidebar-logo">◈</span><span class="sidebar-label">WORKSPACES</span><button id="toggleSidebar" title="Espandi/riduci barra laterale">☰</button></div>
+  <div class="sidebar-top"><button id="toggleSidebar" class="tool" title="Espandi / riduci la barra laterale" aria-label="Espandi o riduci la barra laterale"><span class="i i-menu" aria-hidden="true"></span></button><span class="sidebar-label">WORKSPACES</span></div>
+  <button id="home" class="sideButton" title="Home del workspace"><span class="tool-icon"><span class="i i-home" aria-hidden="true"></span></span><span class="tool-label">Home</span></button>
   <div id="workspaces"></div>
-  <button id="addWorkspace" class="sideButton" title="Nuovo workspace"><span class="tool-icon">＋</span><span class="tool-label">Nuovo spazio</span></button>
+  <button id="addWorkspace" class="sideButton" title="Nuovo workspace"><span class="tool-icon"><span class="i i-workspace-add" aria-hidden="true"></span></span><span class="tool-label">Nuovo spazio</span></button>
   <div class="side-sep"></div>
-  <button id="showBookmarks" class="sideButton" title="Preferiti"><span class="tool-icon">☆</span><span class="tool-label">Preferiti</span></button>
-  <button id="showHistory" class="sideButton" title="Cronologia"><span class="tool-icon">◷</span><span class="tool-label">Cronologia</span></button>
-  <button id="showTabs" class="sideButton" title="Schede aperte"><span class="tool-icon">▤</span><span class="tool-label">Schede</span></button>
-  <button id="sideDownloads" class="sideButton" title="Download"><span class="tool-icon">↓</span><span class="tool-label">Download</span></button>
-  <button id="showGames" class="sideButton" title="Giochi (companion)"><span class="tool-icon">♞</span><span class="tool-label">Giochi</span></button>
-  <button id="showProject" class="sideButton" title="Progetto del workspace"><span class="tool-icon">⧉</span><span class="tool-label">Progetto</span></button>
-  <button id="showJarvis" class="sideButton" title="JARVIS (server MCP)"><span class="tool-icon">◉</span><span class="tool-label">JARVIS</span></button>
-  <button id="showSettings" class="sideButton settings-button" title="Impostazioni (Ctrl+,)"><span class="tool-icon">⚙</span><span class="tool-label">Impostazioni</span></button>
+  <button id="showBookmarks" class="sideButton" title="Preferiti"><span class="tool-icon"><span class="i i-bookmarks" aria-hidden="true"></span></span><span class="tool-label">Preferiti</span></button>
+  <button id="showHistory" class="sideButton" title="Cronologia"><span class="tool-icon"><span class="i i-history" aria-hidden="true"></span></span><span class="tool-label">Cronologia</span></button>
+  <button id="showTabs" class="sideButton" title="Schede aperte"><span class="tool-icon"><span class="i i-tabs" aria-hidden="true"></span></span><span class="tool-label">Schede</span></button>
+  <button id="sideDownloads" class="sideButton" title="Download"><span class="tool-icon"><span class="i i-downloads" aria-hidden="true"></span></span><span class="tool-label">Download</span></button>
+  <button id="showGames" class="sideButton" title="Giochi (companion)"><span class="tool-icon"><span class="i i-games" aria-hidden="true"></span></span><span class="tool-label">Giochi</span></button>
+  <button id="showProject" class="sideButton" title="Progetto del workspace"><span class="tool-icon"><span class="i i-project" aria-hidden="true"></span></span><span class="tool-label">Progetto</span></button>
+  <button id="showJarvis" class="sideButton" title="JARVIS (server MCP)"><span class="tool-icon"><span class="i i-jarvis-panel" aria-hidden="true"></span></span><span class="tool-label">JARVIS</span></button>
+  <button id="showSettings" class="sideButton settings-button" title="Impostazioni (Ctrl+,)"><span class="tool-icon"><span class="i i-settings" aria-hidden="true"></span></span><span class="tool-label">Impostazioni</span></button>
  </aside>
 <!-- Pannello browser indipendente da Home e dalle pagine remote. -->
 <section id="sidePanel" hidden aria-label="Pannello laterale">
- <div class="drawer-top"><strong id="sidePanelTitle">Preferiti</strong><button id="closeSidePanel" title="Chiudi pannello">×</button></div>
+ <div class="drawer-top"><strong id="sidePanelTitle">Preferiti</strong><button id="closeSidePanel" class="tool" title="Chiudi pannello" aria-label="Chiudi"><span class="i i-close" aria-hidden="true"></span></button></div>
  <div id="sidePanelItems"></div>
 </section>
 <main id="dashboard">
@@ -51,36 +55,45 @@
  <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><h1>Impostazioni</h1><div id="settingsBody"></div></div></section>
  <section class="home-content">
   <div class="home-center">
-   <div class="orb-stage"><div id="jarvisOrb" class="orb idle" role="img" aria-label="JARVIS in standby"><div class="orb-body"></div><div class="thinking-rings"><i></i><i></i><i></i></div></div></div>
-   <p class="eyebrow">JARVIS · LOCAL WORKSPACE</p>
-   <h1>Che cosa vuoi esplorare?</h1>
-   <form id="homeSearch" class="home-search"><span class="search-symbol">⌕</span><input id="homeQuery" placeholder="Cerca sul web..." autocomplete="off"><button type="submit">↗</button></form>
-   <p class="offline">Interfaccia JARVIS dimostrativa · assistente non connesso</p>
-   <div class="orb-controls" aria-label="Anteprima animazione sfera"><button data-orb="idle" class="chosen">Idle</button><button data-orb="thinking">Thinking</button><button data-orb="speaking">Speaking</button></div>
+   <!-- Logo VARCO; quando JARVIS è collegato al suo posto compare la sfera animata. -->
+   <div class="hero">
+    <img id="heroLogo" class="hero-logo" src="assets/app-icon-256.png" alt="VARCO">
+    <div class="orb-stage" id="orbStage" hidden><div id="jarvisOrb" class="orb idle" role="img" aria-label="JARVIS in standby"><div class="orb-body"></div><div class="thinking-rings"><i></i><i></i><i></i></div></div></div>
+   </div>
+   <h1 class="wordmark">VARCO</h1>
+   <p class="motto">YOUR SPACE. BEYOND THE WEB.</p>
+   <form id="homeSearch" class="home-search"><span class="i i-search" aria-hidden="true"></span><input id="homeQuery" placeholder="Cerca sul web o nei tuoi progetti…" autocomplete="off"><button type="submit" aria-label="Cerca"><span class="i i-external" aria-hidden="true"></span></button></form>
+   <p class="offline" hidden></p>
+   <div class="orb-controls" hidden aria-label="Anteprima animazione sfera"><button data-orb="idle" class="chosen">Idle</button><button data-orb="thinking">Thinking</button><button data-orb="speaking">Speaking</button></div>
+  </div>
+  <div class="home-cards">
+   <article class="card glass"><h3><span class="i i-project" aria-hidden="true"></span>Progetti</h3><div id="homeProjects"></div></article>
+   <article class="card glass"><h3><span class="i i-external" aria-hidden="true"></span>Accesso rapido</h3><div id="homeQuick"></div></article>
+   <article class="card glass jarvis-card"><div class="jarvis-card-head"><span class="orb-dot"></span><h3>JARVIS</h3></div><p id="jarvisCardTitle">JARVIS è spento.</p><p id="jarvisCardText" class="muted"></p><button id="jarvisCardButton"><span class="i i-jarvis-panel" aria-hidden="true"></span><span>Apri JARVIS</span></button></article>
   </div>
   <section class="workspace-panel glass">
-    <div class="workspace-head"><div><span class="eyebrow">CONTESTO ATTIVO</span><h2 id="title">Personale</h2></div><span class="status-dot">● Locale</span></div>
+    <div class="workspace-head"><div><span class="eyebrow">WORKSPACE ATTIVO</span><h2 id="title">Personale</h2></div><span class="status-dot">● Locale</span></div>
     <p id="folder" class="muted">Nessuna cartella locale associata</p>
     <p id="layoutInfo" class="muted" hidden></p>
-    <div class="actions"><button id="chooseFolder">Collega cartella</button><button id="openFolder">Apri cartella</button><button id="addResource">＋ Risorsa web</button><button id="openProject">⧉ Progetto</button><button id="saveLayout" title="Ricorda su quale monitor sta ogni finestra di questo workspace e le sue schede">▦ Salva disposizione</button><button id="applyLayout" hidden>▦ Ripristina disposizione</button></div>
+    <div class="actions"><button id="chooseFolder">Collega cartella</button><button id="openFolder">Apri cartella</button><button id="addResource"><span class="i i-workspace-add" aria-hidden="true"></span> Risorsa web</button><button id="openProject"><span class="i i-project" aria-hidden="true"></span> Progetto</button><button id="saveLayout" title="Ricorda su quale monitor sta ogni finestra di questo workspace e le sue schede">▦ Salva disposizione</button><button id="applyLayout" hidden>▦ Ripristina disposizione</button></div>
     <div class="columns"><article><h3>Risorse salvate</h3><div id="resources"></div></article><article><h3 id="secondaryTitle">Preferiti</h3><div id="secondary"></div></article></div>
   </section>
  </section>
 </main>
 <section id="downloadDrawer" class="download-drawer" hidden aria-label="Gestione download">
- <div class="drawer-top"><strong>Download</strong><button id="closeDownloads" title="Chiudi pannello">×</button></div>
+ <div class="drawer-top"><strong>Download</strong><button id="closeDownloads" class="tool" title="Chiudi pannello" aria-label="Chiudi"><span class="i i-close" aria-hidden="true"></span></button></div>
  <p class="drawer-note">Scegli la destinazione nella finestra Salva di Windows.</p>
  <div id="downloadList"></div><button id="clearDownloads" hidden>Svuota elenco</button><button id="downloadCurrentFile" title="Forza il download del file attualmente visualizzato">Scarica il file della scheda</button>
  <button id="openDownloadsFolder">Apri cartella Download</button>
 </section>
-<footer class="tabbar"><button id="workspaceSwitcher" title="Scegli workspace" aria-label="Seleziona workspace">◈ <span id="footerWorkspaceName">Personale</span> ▾</button><div id="tabs"></div><button id="new" title="Nuova scheda Home">＋</button><button id="reopenClosed" title="Riapri ultima scheda chiusa (Ctrl+Shift+T)" aria-label="Riapri ultima scheda chiusa">↶</button><div class="tabbar-spacer"></div></footer>
+<footer class="tabbar"><button id="workspaceSwitcher" title="Scegli workspace" aria-label="Seleziona workspace"><span class="i i-workspace-switch" aria-hidden="true"></span><span id="footerWorkspaceName">Personale</span></button><div id="tabs"></div><button id="new" class="tool" title="Nuova scheda (Ctrl+T)" aria-label="Nuova scheda"><span class="i i-tab-new" aria-hidden="true"></span></button><button id="reopenClosed" class="tool" title="Riapri ultima scheda chiusa (Ctrl+Shift+T)" aria-label="Riapri ultima scheda chiusa"><span class="i i-tab-reopen" aria-hidden="true"></span></button><div class="tabbar-spacer"></div></footer>
 <!-- Suggerimenti della barra degli indirizzi (Beta 0.12). Mentre sono aperti la pagina web
      è nascosta e al suo posto c'è una sua fotografia: altrimenti coprirebbe l'elenco. -->
 <img id="paletteBackdrop" alt="" hidden>
 <!-- Palette (Beta 0.12.1): solo una barra di ricerca fluttuante; i risultati compaiono mentre scrivi. -->
 <div id="palette" hidden>
  <div class="palette-float" role="dialog" aria-label="Palette dei comandi">
-  <div class="palette-bar"><span class="palette-glyph">⌘</span><input id="paletteInput" placeholder="Cosa vuoi fare? Comandi, schede, workspace, siti…" autocomplete="off" spellcheck="false" aria-controls="paletteList"><kbd>Esc</kbd></div>
+  <div class="palette-bar"><span class="palette-glyph"><span class="i i-commands" aria-hidden="true"></span></span><input id="paletteInput" placeholder="Cosa vuoi fare? Comandi, schede, workspace, siti…" autocomplete="off" spellcheck="false" aria-controls="paletteList"><kbd>Esc</kbd></div>
   <div id="paletteList" role="listbox" hidden></div>
  </div>
 </div>

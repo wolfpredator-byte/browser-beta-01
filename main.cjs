@@ -111,7 +111,7 @@ function start(){
 
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
-  if(!autostart.startedInBackground())tabs.openSavedWindows();
+  if(!autostart.startedInBackground()){require('./lib/splash.cjs').open();tabs.openSavedWindows();}
 }
 
 // Una sola copia del browser: aprirlo di nuovo (es. dal collegamento mentre è

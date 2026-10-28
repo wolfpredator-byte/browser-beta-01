@@ -1,5 +1,5 @@
 """
-Esempio: JARVIS usa il Personal Browser come strumento MCP.
+Esempio: JARVIS usa il browser VARCO come strumento MCP.
 
 Prerequisiti
   1. Nel browser: pannello JARVIS (◉ nella sidebar) → "Server MCP attivo".

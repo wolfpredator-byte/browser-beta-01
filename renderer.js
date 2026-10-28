@@ -1,4 +1,8 @@
 const $=id=>document.getElementById(id);
+// Icone VARCO (Beta 0.13): SVG in assets/icons usati come maschera, così prendono il colore del testo.
+function icon(name){const span=document.createElement('span');span.className='i i-'+name;span.setAttribute('aria-hidden','true');return span;}
+window.icon=icon;
+function iconButton(parent,name,label,fn,cls=''){const b=document.createElement('button');b.className='tool '+cls;b.title=label;b.setAttribute('aria-label',label);b.append(icon(name));b.onclick=fn;parent.appendChild(b);return b;}
 function setOrb(mode){
  if(!['idle','thinking','speaking'].includes(mode))return;
  const orb=$('jarvisOrb');orb.className='orb '+mode;
@@ -348,15 +352,47 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      'Ascolta solo su questo PC (127.0.0.1) e richiede un token.'}));
  }
  // La sfera segue JARVIS quando è collegato; altrimenti resta la demo con i pulsanti.
+ // Beta 0.13: al centro della Home c'è il logo VARCO; quando JARVIS è collegato
+ // al suo posto compare la sfera, che segue i suoi stati (idle, pensa, parla).
  function renderOrb(){
    const connected=!!state.jarvisConnected;
-   document.querySelector('.orb-controls').hidden=connected;
    $('jarvisMini').dataset.mode=connected?state.orb.mode:'idle';
-   if(connected){
-     setOrb(state.orb.mode);
-     document.querySelector('.offline').textContent=state.orb.message||`JARVIS connesso · ${state.jarvisClient||'client MCP'}`;
-   }else document.querySelector('.offline').textContent='Interfaccia JARVIS dimostrativa · assistente non connesso';
+   $('heroLogo').hidden=connected;$('orbStage').hidden=!connected;
+   const message=document.querySelector('.offline');
+   message.hidden=!connected;
+   if(connected){setOrb(state.orb.mode);message.textContent=state.orb.message||`JARVIS connesso · ${state.jarvisClient||'client MCP'}`;}
+   // Riquadro JARVIS
+   $('jarvisCardTitle').textContent=connected?'Pronto ad aiutarti.':state.jarvisEnabled?'In attesa di JARVIS…':'JARVIS è spento.';
+   $('jarvisCardText').textContent=connected?`Collegato: ${state.jarvisClient||'client MCP'}`:
+     state.jarvisEnabled?'Il server è acceso: avvia JARVIS sul PC.':'Accendilo per permettere a JARVIS di usare il browser.';
+   document.querySelector('.jarvis-card').classList.toggle('connected',connected);
  }
+ // Riquadri della Home: progetti (workspace con una cartella) e cartelle di Windows.
+ const QUICK_FOLDERS=[['downloads','Download','downloads'],['documents','Documenti','project'],['pictures','Immagini','external'],['desktop','Desktop','ws-default']];
+ let renderedHomeCards=null;
+ function renderHomeCards(){
+   const projects=state.workspaces.filter(w=>w.projectPath);
+   const list=projects.length?projects:state.workspaces;
+   const key=JSON.stringify(list.map(w=>[w.name,w.projectPath,w.name===state.activeWorkspace]));
+   if(key===renderedHomeCards)return;
+   renderedHomeCards=key;
+   const box=$('homeProjects');box.replaceChildren();
+   for(const w of list){
+     const row=el('div',{className:'card-row'+(w.name===state.activeWorkspace?' current':'')});
+     const open=el('button',{className:'card-link',title:w.projectPath||w.name},icon(w.projectPath?'ws-project':'ws-default'),el('span',{textContent:w.name}));
+     open.onclick=()=>act('workspace',{name:w.name});
+     row.append(open);
+     iconButton(row,'external','Apri in una nuova finestra',()=>act('openWorkspaceWindow',{name:w.name}),'card-side');
+     box.append(row);
+   }
+   const quick=$('homeQuick');
+   if(!quick.childElementCount)for(const [name,label,ic] of QUICK_FOLDERS){
+     const b=el('button',{className:'card-link'},icon(ic),el('span',{textContent:label}));
+     b.onclick=()=>act('openKnownFolder',{name});
+     quick.append(b);
+   }
+ }
+ $('jarvisCardButton').onclick=()=>act('openSidePanel',{panel:'jarvis'});
 
  // ── Pannello del sito (Beta 0.10): permessi e blocco pubblicità ──────────
  let renderedSite=null;
@@ -476,7 +512,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
          ['Importa…',()=>settingsAction('importData')],['Apri la cartella dei dati',()=>act('showDataFolder')]),
        hint('Il backup contiene workspace, preferiti, cronologia, giochi, disposizioni, permessi e impostazioni. Non contiene i segreti dei progetti né le password dei siti.')),
      section('Informazioni',
-       el('p',{className:'game-meta',textContent:`Personal Browser ${s.versions.app} · Electron ${s.versions.electron} · Chromium ${s.versions.chrome}`}),
+       el('p',{className:'game-meta',textContent:`VARCO ${s.versions.app} · Electron ${s.versions.electron} · Chromium ${s.versions.chrome}`}),
        el('p',{className:s.errors?'panel-error':'game-meta',textContent:s.errors?`${s.errors} ${s.errors===1?'errore registrato':'errori registrati'} in questa sessione.`:'Nessun errore in questa sessione.'}),
        projectButtons(['Copia la diagnostica',()=>settingsAction('copyDiagnostics','Diagnostica copiata negli appunti: incollala dove ti serve.')]),
        hint('Versioni, memoria, impostazioni e ultimi errori. Non contiene token né segreti.'))
@@ -558,6 +594,7 @@ function render(){
  $('footerWorkspaceName').textContent=(state.activeWorkspace||'Personale')+(state.pane?' · '+(state.pane+1):'');
  renderLayoutInfo();
  renderOrb();
+ renderHomeCards();
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
@@ -568,12 +605,12 @@ function render(){
      group.className='stack-heading'+(entry.collapsed?' collapsed':'')+(entry.active?' contains-active':'');
      const toggle=document.createElement('button');
      toggle.className='stack-toggle';
-     toggle.textContent=(entry.collapsed?'▸ ':'▾ ')+entry.group+' ('+entry.count+')';
+     toggle.replaceChildren(icon(entry.collapsed?'stack-closed':'stack-open'),entry.group+' ('+entry.count+')');
      toggle.title=entry.collapsed?'Espandi stack':'Comprimi stack';
      toggle.setAttribute('aria-expanded',String(!entry.collapsed));
      toggle.onclick=()=>act('toggleGroup',{group:entry.group});
      group.appendChild(toggle);
-     const actions=addButton(group,'⋯',()=>act('tabContextMenu',{id:entry.tabIds[0]}),'stack-actions');
+     const actions=iconButton(group,'tab-more','Azioni stack',()=>act('tabContextMenu',{id:entry.tabIds[0]}),'stack-actions');
      actions.title='Azioni stack';
      // Trascinare un'altra scheda SOPRA lo stack la aggiunge al gruppo.
      group.ondragover=event=>event.preventDefault();
@@ -609,15 +646,16 @@ function render(){
    if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
    else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
    const title=document.createElement('span');
-   title.textContent=t.isHome?(t.page==='settings'?'⚙ Impostazioni':'⌂ Home'):(t.title||t.url);
+   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':'home-tab'),t.page==='settings'?'Impostazioni':'Home');
+   else title.textContent=t.title||t.url;
    title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
    title.onclick=()=>act('activateTab',{id:t.id});
    tab.appendChild(title);
    // Il menu contestuale è nativo Windows, anche con una pagina web aperta.
    tab.oncontextmenu=event=>{event.preventDefault();act('tabContextMenu',{id:t.id});};
-   const menu=addButton(tab,'⋯',()=>act('tabContextMenu',{id:t.id}),'tab-more');
+   const menu=iconButton(tab,'tab-more','Menu scheda',()=>act('tabContextMenu',{id:t.id}),'tab-more');
    menu.title='Menu scheda';
-   addButton(tab,'×',()=>act('closeTab',{id:t.id}));
+   iconButton(tab,'close','Chiudi scheda',()=>act('closeTab',{id:t.id}),'tab-close');
    tabs.appendChild(tab);
  }
  // Ciascun workspace è un pulsante con icona 20px e nome separato.
@@ -635,7 +673,8 @@ function render(){
      const image=document.createElement('img');image.src=workspace.iconData;
      image.alt='';image.width=20;image.height=20;icon.appendChild(image);
    }else{
-     icon.textContent=workspace.name==='Destiny Builder'?'◈':workspace.name==='Gaming'?'♜':workspace.name==='Personale'?'⌂':'▣';
+     // Icone predefinite del set VARCO: personale, gaming, progetto (con cartella), altro.
+     icon.append(window.icon(workspace.name==='Personale'?'ws-personal':workspace.name==='Gaming'?'ws-gaming':workspace.projectPath?'ws-project':'ws-default'));
    }
    const text=document.createElement('span');text.className='workspace-name';text.textContent=workspace.name;
    const count=document.createElement('span');count.className='workspace-count';count.textContent=String(workspace.count);
@@ -646,7 +685,7 @@ function render(){
    w.appendChild(button);
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
-$('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca, scrivi un indirizzo, oppure > per i comandi';
+$('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca o inserisci un indirizzo web';
 renderZoom();renderFindForTab();renderSiteButton();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
@@ -683,13 +722,13 @@ let findTab=null;
 function openFind(){
  if(state.homeActive)return;
  findTab=state.activeTab;
- $('nav').hidden=true;$('findBar').hidden=false;
+ $('addressPill').hidden=true;$('findBar').hidden=false;
  const input=$('findInput');input.focus();input.select();
  if(input.value)act('findInPage',{text:input.value,forward:true,findNext:true});
 }
 function closeFind(stop=true){
  if($('findBar').hidden)return;
- $('findBar').hidden=true;$('nav').hidden=false;$('findCount').textContent='';
+ $('findBar').hidden=true;$('addressPill').hidden=false;$('findCount').textContent='';
  if(stop)act('stopFind');
 }
 // Cambiando scheda la ricerca si chiude: apparteneva alla pagina precedente.

@@ -1,13 +1,12 @@
 {
   "name": "personal-workspace-browser",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "private": true,
-  "description": "Local Windows browser experiment",
+  "description": "VARCO — your space, beyond the web",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.cjs && node --check preload.cjs && node --check page-preload.cjs && node --check renderer.js && node --check lib/state.cjs && node --check lib/windows.cjs && node --check lib/tabs.cjs && node --check lib/commands.cjs && node --check lib/commands-games.cjs && node --check lib/menus.cjs && node --check lib/web-session.cjs && node --check lib/tray.cjs && node --check lib/autostart.cjs && node --check lib/companion.cjs && node --check lib/processes.cjs && node --check lib/projects.cjs && node --check lib/project-processes.cjs && node --check lib/monitors.cjs && node --check lib/commands-projects.cjs && node --check lib/layouts.cjs && node --check lib/jarvis.cjs && node --check lib/permissions.cjs && node --check lib/adblock.cjs && node --check lib/sleeper.cjs && node --check lib/palette.cjs && node --check lib/diagnostics.cjs && node --check lib/commands-settings.cjs && node --check palette-rules.js && node --test \"test/*.test.cjs\"",
-    "icons": "node scripts/make-icons.cjs",
+    "check": "node --check main.cjs && node --check preload.cjs && node --check page-preload.cjs && node --check renderer.js && node --check lib/state.cjs && node --check lib/windows.cjs && node --check lib/tabs.cjs && node --check lib/commands.cjs && node --check lib/commands-games.cjs && node --check lib/menus.cjs && node --check lib/web-session.cjs && node --check lib/tray.cjs && node --check lib/autostart.cjs && node --check lib/companion.cjs && node --check lib/processes.cjs && node --check lib/projects.cjs && node --check lib/project-processes.cjs && node --check lib/monitors.cjs && node --check lib/commands-projects.cjs && node --check lib/layouts.cjs && node --check lib/jarvis.cjs && node --check lib/permissions.cjs && node --check lib/adblock.cjs && node --check lib/sleeper.cjs && node --check lib/palette.cjs && node --check lib/diagnostics.cjs && node --check lib/commands-settings.cjs && node --check lib/splash.cjs && node --check palette-rules.js && node --test \"test/*.test.cjs\"",
     "pack": "electron-builder --win dir",
     "dist": "electron-builder --win nsis"
   },
@@ -17,7 +16,7 @@
   },
   "build": {
     "appId": "local.personal-workspace-browser",
-    "productName": "Personal Browser",
+    "productName": "VARCO",
     "copyright": "Uso personale",
     "directories": {
       "output": "dist"
@@ -29,6 +28,7 @@
       "renderer.js",
       "palette-rules.js",
       "index.html",
+      "splash.html",
       "style.css",
       "lib/**/*",
       "assets/**/*",
@@ -38,7 +38,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "assets/app-icon.png"
+      "icon": "assets/app-icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -46,7 +46,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Personal Browser",
+      "shortcutName": "VARCO",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     }

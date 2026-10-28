@@ -265,3 +265,158 @@ body[data-downloads-open="true"] #loadError{right:340px}
 .palette-bar kbd{font-family:inherit;font-size:10px;color:#888;border:1px solid #ffffff24;border-radius:5px;padding:1px 6px}
 #paletteList{border-top:1px solid #ffffff1a;padding:5px}
 #paletteList[hidden]{display:none}
+
+/* ═══ BETA 0.13 — VARCO ═══════════════════════════════════════════════════
+   Icone: SVG monocromatici del VARCO Icon System usati come maschera
+   (img-src 'self' nella CSP), colorati con il colore del testo. */
+.i{display:inline-block;flex:0 0 auto;width:18px;height:18px;background-color:currentColor;vertical-align:-4px;
+  -webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+.i-back{--i:url(assets/icons/back.svg)}.i-bookmark{--i:url(assets/icons/bookmark.svg)}.i-bookmark-filled{--i:url(assets/icons/bookmark-filled.svg)}.i-bookmarks{--i:url(assets/icons/bookmarks.svg)}
+.i-close{--i:url(assets/icons/close.svg)}.i-command{--i:url(assets/icons/command.svg)}.i-commands{--i:url(assets/icons/commands.svg)}.i-download{--i:url(assets/icons/download.svg)}
+.i-downloads{--i:url(assets/icons/downloads.svg)}.i-external{--i:url(assets/icons/external.svg)}.i-find-next{--i:url(assets/icons/find-next.svg)}.i-find-prev{--i:url(assets/icons/find-prev.svg)}
+.i-forward{--i:url(assets/icons/forward.svg)}.i-games{--i:url(assets/icons/games.svg)}.i-history{--i:url(assets/icons/history.svg)}.i-home{--i:url(assets/icons/home.svg)}
+.i-home-tab{--i:url(assets/icons/home-tab.svg)}.i-jarvis{--i:url(assets/icons/jarvis.svg)}.i-jarvis-panel{--i:url(assets/icons/jarvis-panel.svg)}.i-lock{--i:url(assets/icons/lock.svg)}
+.i-logo{--i:url(assets/icons/logo.svg)}.i-menu{--i:url(assets/icons/menu.svg)}.i-project{--i:url(assets/icons/project.svg)}.i-reload{--i:url(assets/icons/reload.svg)}
+.i-search{--i:url(assets/icons/search.svg)}.i-settings{--i:url(assets/icons/settings.svg)}.i-settings-tab{--i:url(assets/icons/settings-tab.svg)}.i-shield{--i:url(assets/icons/shield.svg)}
+.i-shield-warning{--i:url(assets/icons/shield-warning.svg)}.i-sidebar-toggle{--i:url(assets/icons/sidebar-toggle.svg)}.i-stack-closed{--i:url(assets/icons/stack-closed.svg)}.i-stack-open{--i:url(assets/icons/stack-open.svg)}
+.i-tab-more{--i:url(assets/icons/tab-more.svg)}.i-tab-new{--i:url(assets/icons/tab-new.svg)}.i-tab-reopen{--i:url(assets/icons/tab-reopen.svg)}.i-tabs{--i:url(assets/icons/tabs.svg)}
+.i-warning{--i:url(assets/icons/warning.svg)}.i-workspace-add{--i:url(assets/icons/workspace-add.svg)}.i-workspace-switch{--i:url(assets/icons/workspace-switch.svg)}.i-ws-default{--i:url(assets/icons/ws-default.svg)}
+.i-ws-gaming{--i:url(assets/icons/ws-gaming.svg)}.i-ws-personal{--i:url(assets/icons/ws-personal.svg)}.i-ws-project{--i:url(assets/icons/ws-project.svg)}
+
+
+/* Tema VARCO: vetro scuro, accento viola. Sovrascrive i colori delle beta precedenti
+   senza cambiare le misure (devono restare quelle di window-rules.cjs). */
+:root{--v-bg:#07070e;--v-bg2:#0b0b16;--v-glass:rgba(24,23,44,.55);--v-glass-strong:rgba(18,17,34,.92);
+  --v-line:rgba(150,140,255,.16);--v-line-strong:rgba(160,150,255,.32);--v-accent:#7c6cff;--v-accent-2:#a99bff;
+  --v-text:#e9e8f5;--v-muted:#8f8daa;color:var(--v-text);background:var(--v-bg)}
+body{background:var(--v-bg)}
+button{color:var(--v-text)}
+button:hover{background:rgba(124,108,255,.12)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--v-accent-2)}
+button.tool{display:inline-flex;align-items:center;justify-content:center;padding:7px;min-width:34px;height:34px;border-radius:10px}
+.glass{background:var(--v-glass);border:1px solid var(--v-line);backdrop-filter:blur(18px)}
+.muted,.panel-hint,.game-meta{color:var(--v-muted)}
+
+/* Barra del titolo: logo + VARCO spaziato, come nel mock-up. */
+.window-titlebar{background:var(--v-bg);color:var(--v-text);gap:8px}
+.window-titlebar .titlebar-logo{width:15px;height:15px;color:var(--v-accent-2)}
+.window-titlebar .wordmark-small{font-size:11px;letter-spacing:.42em;color:var(--v-text);font-weight:500}
+.window-titlebar .titlebar-beta{font-size:9px;color:var(--v-muted);letter-spacing:.08em}
+
+/* Toolbar */
+.toolbar{background:var(--v-bg);border-bottom:1px solid var(--v-line);gap:4px}
+.address-pill{flex:1;display:flex;align-items:center;gap:2px;margin:0 8px;padding:0 4px;height:40px;
+  background:rgba(255,255,255,.045);border:1px solid var(--v-line);border-radius:12px}
+.address-pill:focus-within{border-color:var(--v-line-strong);box-shadow:0 0 0 3px rgba(124,108,255,.12)}
+.address-pill[hidden]{display:none}
+.address-pill #nav{flex:1;margin:0}
+.address-pill #address{background:transparent;border:0;padding:9px 6px;backdrop-filter:none;color:var(--v-text)}
+.address-pill #address::placeholder{color:var(--v-muted)}
+.address-pill button.tool{height:30px;min-width:30px;padding:5px}
+#siteButton .i{width:17px;height:17px}
+#siteButton.insecure{color:#f2c94c}
+#findBar{flex:1}
+.orb-mini{background:radial-gradient(circle at 35% 30%,#b8adff,#5b4ae6 60%,#2a2170);border:1px solid var(--v-line-strong);box-shadow:0 0 14px rgba(124,108,255,.45)}
+.orb-mini span{background:#fff;opacity:.9}
+
+/* Barra laterale */
+#globalSidebar{background:rgba(9,9,18,.96);border-right:1px solid var(--v-line)}
+#globalSidebar .sidebar-label{color:var(--v-muted)}
+#globalSidebar .workspace-button.selected{background:rgba(124,108,255,.16);border-color:var(--v-line-strong);
+  box-shadow:inset 0 0 0 1px rgba(124,108,255,.25),0 0 18px rgba(124,108,255,.18)}
+#globalSidebar .workspace-icon .i{width:20px;height:20px}
+#globalSidebar .tool-icon .i{width:20px;height:20px}
+#globalSidebar .sideButton{color:#c9c7e0}
+#globalSidebar .sideButton:hover{color:#fff}
+.side-sep{background:var(--v-line)}
+
+/* Pannelli e download */
+#sidePanel,.download-drawer{background:var(--v-glass-strong);border-color:var(--v-line);backdrop-filter:blur(20px)}
+
+/* Barra delle schede (resta in basso) */
+.tabbar{background:var(--v-bg2);border-top:1px solid var(--v-line)}
+.tab{background:rgba(255,255,255,.04);border-color:var(--v-line)}
+.tab.active{background:rgba(124,108,255,.16);border-color:var(--v-line-strong)}
+.tab span .i{width:14px;height:14px;margin-right:5px;vertical-align:-2px}
+.tab button.tool{height:24px;min-width:24px;padding:4px}
+.tab button.tool .i{width:14px;height:14px}
+.stack-toggle .i{width:13px;height:13px;margin-right:4px}
+#workspaceSwitcher{display:inline-flex;align-items:center;gap:7px}
+#workspaceSwitcher .i{width:16px;height:16px;color:var(--v-accent-2)}
+
+/* Suggerimenti e palette */
+#suggest,.palette-float{background:rgba(16,15,30,.96);border-color:var(--v-line-strong)}
+.palette-row.selected{background:rgba(124,108,255,.18)}
+.palette-glyph .i{width:17px;height:17px;color:var(--v-accent-2)}
+.find-icon .i{width:16px;height:16px;color:var(--v-muted)}
+
+/* Pagina di errore */
+#loadError{background:var(--v-bg)}
+.error-icon .i{width:40px;height:40px}
+.error-actions button.primary{background:var(--v-accent);color:#fff;border-color:transparent}
+.error-actions button{display:inline-flex;align-items:center;gap:6px}
+.error-actions button .i{width:16px;height:16px}
+
+/* ── Home VARCO ─────────────────────────────────────────────────────────
+   Sfondo: assets/home-bg.jpg se c'è (l'immagine che manderai), altrimenti
+   un cielo stellato disegnato in CSS con il bagliore viola del mock-up. */
+#dashboard{background:var(--v-bg)}
+.home-content{justify-content:flex-start;gap:26px;padding:34px max(24px,4vw) 48px;
+  background:
+    linear-gradient(180deg,rgba(7,7,14,.15) 0%,rgba(7,7,14,.35) 55%,rgba(7,7,14,.92) 100%),
+    url(assets/home-bg.jpg) center/cover no-repeat,
+    radial-gradient(ellipse 60% 35% at 50% 62%,rgba(124,108,255,.28),transparent 70%),
+    radial-gradient(ellipse 35% 18% at 50% 58%,rgba(255,140,170,.10),transparent 70%),
+    radial-gradient(1px 1px at 12% 18%,#fff9,transparent),radial-gradient(1px 1px at 28% 8%,#fff7,transparent),
+    radial-gradient(1.5px 1.5px at 41% 23%,#fffa,transparent),radial-gradient(1px 1px at 57% 12%,#fff8,transparent),
+    radial-gradient(1px 1px at 69% 29%,#fff6,transparent),radial-gradient(1.5px 1.5px at 83% 15%,#fff9,transparent),
+    radial-gradient(1px 1px at 91% 34%,#fff6,transparent),radial-gradient(1px 1px at 7% 41%,#fff5,transparent),
+    radial-gradient(1px 1px at 35% 44%,#fff5,transparent),radial-gradient(1px 1px at 76% 47%,#fff5,transparent),
+    linear-gradient(180deg,#0a0920 0%,#100c2a 45%,#07070e 100%)}
+.home-center{min-height:0;padding-top:6px;width:min(680px,100%)}
+.hero{height:170px;display:flex;align-items:center;justify-content:center}
+/* Il PNG ha il quadrato dell'icona: la maschera radiale lo sfuma e resta il portale. */
+.hero-logo{width:170px;height:170px;object-fit:contain;filter:drop-shadow(0 0 28px rgba(124,108,255,.55));
+  -webkit-mask:radial-gradient(circle,#000 52%,transparent 71%);mask:radial-gradient(circle,#000 52%,transparent 71%)}
+.hero-logo[hidden],.orb-stage[hidden]{display:none}
+.home-center h1.wordmark{font-size:clamp(30px,4vw,46px);font-weight:300;letter-spacing:.55em;margin:4px 0 2px;padding-left:.55em;color:#f2f1fb}
+.motto{font-size:10px;letter-spacing:.5em;color:#b9b6d6;margin:0 0 26px;padding-left:.5em}
+.home-search{height:52px;border-radius:26px;background:rgba(20,19,38,.62);border:1px solid var(--v-line-strong);box-shadow:0 10px 40px rgba(0,0,0,.45);padding:0 8px 0 18px}
+.home-search>.i{width:19px;height:19px;color:#bdb8e8}
+.home-search input{color:var(--v-text);font-size:14px}
+.home-search input::placeholder{color:#9a97b8}
+.home-search button{background:rgba(124,108,255,.85);color:#fff;border-radius:18px;height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px}
+.offline{color:#b9b6d6}
+.offline[hidden],.orb-controls[hidden]{display:none}
+.home-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:min(980px,100%)}
+.card{padding:14px 16px 12px;min-width:0}
+.card h3{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-size:14px;font-weight:550;padding-bottom:10px;border-bottom:1px solid var(--v-line)}
+.card h3 .i{width:17px;height:17px;color:var(--v-accent-2)}
+.card-row{display:flex;align-items:center}
+.card-link{flex:1;display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 6px;border-radius:8px;min-width:0;color:#d9d7ee}
+.card-link span:not(.i){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-link .i{width:16px;height:16px;color:#bdb8e8}
+.card-row.current .card-link{color:#fff;background:rgba(124,108,255,.12)}
+.card-side{opacity:.55}.card-side:hover{opacity:1}
+.card-side .i{width:15px;height:15px}
+.jarvis-card{display:flex;flex-direction:column;align-items:center;text-align:center}
+.jarvis-card-head{display:flex;align-items:center;gap:10px;align-self:stretch;border-bottom:1px solid var(--v-line);padding-bottom:10px;margin-bottom:8px}
+.jarvis-card-head h3{border:0;margin:0;padding:0}
+.orb-dot{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d4ccff,#6d5cf0 55%,#251d66);box-shadow:0 0 14px rgba(124,108,255,.5)}
+.jarvis-card.connected .orb-dot{animation:blob 3s ease-in-out infinite}
+#jarvisCardTitle{margin:6px 0 0;font-size:15px}
+#jarvisCardText{margin:4px 0 12px}
+#jarvisCardButton{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--v-line-strong);border-radius:20px;padding:8px 18px;background:rgba(124,108,255,.18)}
+#jarvisCardButton .i{width:16px;height:16px}
+.workspace-panel{width:min(980px,100%)}
+.actions button{display:inline-flex;align-items:center;gap:6px}
+.actions button .i{width:15px;height:15px}
+#settingsBody .project-section{background:var(--v-glass);border-color:var(--v-line)}
+@media(max-width:900px){.home-cards{grid-template-columns:1fr}}
+/* Nella colonna della Home nessun blocco si restringe: senza, la ricerca finiva sotto i riquadri. */
+.home-content>*{flex-shrink:0}
+#globalSidebar .sidebar-label{display:none}
+#globalSidebar .sidebar-top{justify-content:center}
+/* Sfera JARVIS nei colori VARCO (resta la forma liquida animata della 0.4). */
+.orb-body{background:radial-gradient(circle at 34% 28%,#ffffff 0%,#d9d2ff 18%,#8f80ff 48%,#4b3bd1 75%,#241a6e 100%);box-shadow:0 0 38px rgba(124,108,255,.65),inset 0 0 18px rgba(255,255,255,.25)}
+.thinking-rings i{border-top-color:#c9c0ff}
