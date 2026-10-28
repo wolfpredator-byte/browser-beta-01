@@ -7,9 +7,46 @@
   "scripts": {
     "start": "electron .",
     "check": "node --check main.cjs && node --check preload.cjs && node --check renderer.js && node --check lib/state.cjs && node --check lib/windows.cjs && node --check lib/tabs.cjs && node --check lib/commands.cjs && node --check lib/commands-games.cjs && node --check lib/menus.cjs && node --check lib/web-session.cjs && node --check lib/tray.cjs && node --check lib/autostart.cjs && node --check lib/companion.cjs && node --check lib/processes.cjs && node --check lib/projects.cjs && node --check lib/project-processes.cjs && node --check lib/monitors.cjs && node --check lib/commands-projects.cjs && node --check lib/layouts.cjs && node --check lib/jarvis.cjs && node --test \"test/*.test.cjs\"",
-    "icons": "node scripts/make-icons.cjs"
+    "icons": "node scripts/make-icons.cjs",
+    "pack": "electron-builder --win dir",
+    "dist": "electron-builder --win nsis"
   },
   "devDependencies": {
-    "electron": "^39.0.0"
+    "electron": "^39.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "local.personal-workspace-browser",
+    "productName": "Personal Browser",
+    "copyright": "Uso personale",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "renderer.js",
+      "index.html",
+      "style.css",
+      "lib/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/app-icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Personal Browser",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    }
   }
 }

@@ -38,6 +38,10 @@ const windows=require('./lib/windows.cjs');
 const tabs=require('./lib/tabs.cjs');
 
 app.enableSandbox();
+// Stessa cartella dati per `npm start` e per l'eseguibile installato: workspace,
+// sessioni, segreti e jarvis-mcp.json restano in %APPDATA%\personal-workspace-browser.
+// --user-data-dir (profili di prova) ha la precedenza.
+if(!app.commandLine.hasSwitch('user-data-dir'))app.setPath('userData',path.join(app.getPath('appData'),'personal-workspace-browser'));
 const bus=createCommandBus();
 
 /** Trova la finestra di una cornice o di una pagina web che ha il focus. */
@@ -52,8 +56,9 @@ function start(){
   // Nessun menu applicazione: le scorciatoie sono gestite da window-rules.cjs,
   // e il menu predefinito di Electron ricaricherebbe la cornice invece della pagina.
   Menu.setApplicationMenu(null);
-  // Necessario su Windows per i messaggi dell'icona durante lo sviluppo.
-  app.setAppUserModelId(app.isPackaged?'personal-workspace-browser':process.execPath);
+  // Identità dell'app per Windows (notifiche, barra delle applicazioni): coincide con
+  // build.appId di package.json nell'eseguibile; durante lo sviluppo è electron.exe.
+  app.setAppUserModelId(app.isPackaged?'local.personal-workspace-browser':process.execPath);
   state.store=createStore(path.join(app.getPath('userData'),'browser-data.json'));
   state.data=state.store.load();
   setupWebSession();
