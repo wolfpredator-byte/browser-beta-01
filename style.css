@@ -252,3 +252,16 @@ body[data-downloads-open="true"] #loadError{right:340px}
 #settingsBody>*{break-inside:avoid}
 #settingsBody .project-section{background:#ffffff08;border:1px solid #ffffff1a;border-radius:14px;padding:4px 16px 12px;margin:0 0 16px}
 .home-content[hidden]{display:none}
+
+/* BETA 0.12.1 — palette fluttuante: una barra al centro, risultati solo mentre scrivi. */
+#paletteBackdrop.blur{filter:blur(8px) brightness(.45)}
+#palette{position:fixed;inset:0;z-index:1000;background:#0005;display:flex;justify-content:center;align-items:flex-start}
+#palette[hidden]{display:none}
+.palette-float{margin-top:18vh;width:min(620px,calc(100vw - 32px));background:#161618f2;border:1px solid #ffffff2b;
+  border-radius:16px;box-shadow:0 24px 70px #000c;overflow:hidden}
+.palette-bar{display:flex;align-items:center;gap:10px;padding:0 14px}
+.palette-glyph{color:#888;font-size:16px}
+#paletteInput{flex:1;font:inherit;font-size:16px;color:#fff;background:transparent;border:0;padding:15px 0;outline:none}
+.palette-bar kbd{font-family:inherit;font-size:10px;color:#888;border:1px solid #ffffff24;border-radius:5px;padding:1px 6px}
+#paletteList{border-top:1px solid #ffffff1a;padding:5px}
+#paletteList[hidden]{display:none}

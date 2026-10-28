@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.12</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.12.1</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.12</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.12.1</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
@@ -12,7 +12,7 @@
   <!-- Ctrl+F: prende il posto della barra degli indirizzi finché è aperta. -->
   <form id="findBar" hidden><span class="find-icon">⌕</span><input id="findInput" aria-label="Trova nella pagina" placeholder="Trova nella pagina" autocomplete="off"><span id="findCount" aria-live="polite"></span><button type="button" id="findPrev" title="Precedente (Shift+Invio)">↑</button><button type="submit" id="findNext" title="Successivo (Invio)">↓</button><button type="button" id="findClose" title="Chiudi (Esc)">×</button></form>
   <button id="zoomLevel" hidden title="Zoom della pagina: clic per tornare al 100% (Ctrl 0)">100%</button>
-  <button id="paletteButton" title="Comandi (F1 · Ctrl+Shift+P)" aria-label="Comandi">⌘</button>
+  <button id="paletteButton" title="Palette dei comandi (F1 · Ctrl+Shift+P)" aria-label="Palette dei comandi">⌘</button>
   <button id="bookmark" title="Aggiungi ai preferiti">☆</button><button id="showDownloads" title="Download">↓</button>
   <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
 </header>
@@ -77,6 +77,13 @@
 <!-- Suggerimenti della barra degli indirizzi (Beta 0.12). Mentre sono aperti la pagina web
      è nascosta e al suo posto c'è una sua fotografia: altrimenti coprirebbe l'elenco. -->
 <img id="paletteBackdrop" alt="" hidden>
+<!-- Palette (Beta 0.12.1): solo una barra di ricerca fluttuante; i risultati compaiono mentre scrivi. -->
+<div id="palette" hidden>
+ <div class="palette-float" role="dialog" aria-label="Palette dei comandi">
+  <div class="palette-bar"><span class="palette-glyph">⌘</span><input id="paletteInput" placeholder="Cosa vuoi fare? Comandi, schede, workspace, siti…" autocomplete="off" spellcheck="false" aria-controls="paletteList"><kbd>Esc</kbd></div>
+  <div id="paletteList" role="listbox" hidden></div>
+ </div>
+</div>
 <div id="suggest" role="listbox" aria-label="Suggerimenti" hidden></div>
 <script src="palette-rules.js"></script>
 <script src="renderer.js"></script></body></html>

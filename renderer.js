@@ -728,20 +728,26 @@ function renderLayoutInfo(){
 // ── Barra degli indirizzi con suggerimenti (Beta 0.12) ──────────────────
 // Prende il posto della palette della 0.11: scrivendo nella barra compaiono pochi
 // suggerimenti (schede, comandi, workspace, preferiti, cronologia). Con ">" all'inizio
-// solo i comandi: F1, Ctrl+Shift+P e il pulsante ⌘ aprono la barra così.
+// solo i comandi. La palette vera e propria (F1, Ctrl+Shift+P, ⌘) è più sotto.
 // Invio senza scegliere nulla fa quello che ha sempre fatto: apre l'indirizzo o la ricerca.
 const KIND_LABELS={tab:'Scheda',command:'Comando',workspace:'Workspace',project:'Progetto',game:'Gioco',bookmark:'Preferito',history:'Cronologia',web:''};
 const COMMAND_KINDS=new Set(['command','project','workspace','game']);
 const MAX_SUGGESTIONS=8;
 let suggestItems=[],suggestShown=[],suggestIndex=0,suggestOpen=false,suggestRequested=false;
-function showSuggestions(message){
- const input=$('address');
- suggestItems=message.items||[];suggestRequested=false;
+/** Foto della pagina al posto della pagina vera (che il processo principale ha nascosto). */
+function setBackdrop(message,blur){
+ const img=$('paletteBackdrop'),b=message.bounds;
  if(!message.keepBackdrop){
-   const img=$('paletteBackdrop'),b=message.bounds;
    img.hidden=!(message.backdrop&&b);
    if(!img.hidden){img.src=message.backdrop;Object.assign(img.style,{left:b.x+'px',top:b.y+'px',width:b.width+'px',height:b.height+'px'});}
  }
+ img.classList.toggle('blur',blur);
+}
+function showSuggestions(message){
+ if(message.mode==='palette'){openFloatingPalette(message);return;}
+ const input=$('address');
+ suggestItems=message.items||[];suggestRequested=false;
+ setBackdrop(message,false);
  suggestOpen=true;
  closeFind(false);
  if(message.mode==='commands'&&!input.value.startsWith('>'))input.value='>';
@@ -822,6 +828,70 @@ $('address').addEventListener('keydown',e=>{
 $('address').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('address'))closeSuggestions();},120));
 $('paletteBackdrop').onmousedown=()=>{closeSuggestions();$('address').blur();};
 $('paletteButton').onclick=()=>act('openPalette');
+
+// ── Palette fluttuante (Beta 0.12.1) ────────────────────────────────────
+// Una sola barra di ricerca al centro della finestra, sopra la pagina sfocata.
+// Vuota non mostra niente; scrivendo compaiono al massimo 6 risultati.
+const MAX_PALETTE=6;
+let paletteItems=[],paletteShown=[],paletteIndex=0;
+function openFloatingPalette(message){
+ paletteItems=message.items||[];
+ // F1 mentre i suggerimenti della barra erano aperti: la pagina è già nascosta, cambiamo solo vista.
+ suggestOpen=false;suggestRequested=false;$('suggest').hidden=true;
+ closeFind(false);
+ setBackdrop(message,true);
+ $('palette').hidden=false;
+ const input=$('paletteInput');input.value='';
+ renderPalette();
+ input.focus();
+}
+function closeFloatingPalette(){
+ if($('palette').hidden)return Promise.resolve();
+ $('palette').hidden=true;
+ const img=$('paletteBackdrop');img.hidden=true;img.removeAttribute('src');
+ return act('closePalette');
+}
+function renderPalette(){
+ const q=$('paletteInput').value.trim();
+ const list=$('paletteList');list.replaceChildren();
+ paletteShown=q?window.paletteRules.filterItems(paletteItems,q,MAX_PALETTE):[];
+ if(q){const web=webItem(q);web.run={command:'newTab',args:{url:q}};web.detail=web.detail+' · nuova scheda';
+   if(/^Cerca/.test(web.label)&&paletteShown.length)paletteShown.push(web);else paletteShown.unshift(web);}
+ paletteIndex=0;
+ paletteShown.forEach((item,index)=>{
+   const icon=item.favicon?el('img',{className:'palette-icon',src:item.favicon,alt:''}):
+     el('span',{className:'palette-icon glyph',textContent:item.kind==='web'?'⌕':item.kind==='command'?'›':''});
+   const text=el('span',{className:'palette-text'},el('span',{className:'palette-label',textContent:item.label}),
+     ...(item.detail?[el('span',{className:'palette-detail',textContent:item.detail})]:[]));
+   const row=el('div',{className:'palette-row',role:'option'},icon,text,
+     ...(item.keys?[el('kbd',{textContent:item.keys})]:[]),
+     ...(KIND_LABELS[item.kind]?[el('span',{className:'palette-kind kind-'+item.kind,textContent:KIND_LABELS[item.kind]})]:[]));
+   row.onmousemove=()=>{if(paletteIndex!==index){paletteIndex=index;highlightPalette();}};
+   row.onclick=()=>runPaletteItem(item);
+   list.append(row);
+ });
+ list.hidden=!paletteShown.length;
+ highlightPalette();
+}
+function highlightPalette(){
+ const rows=$('paletteList').children;
+ for(let i=0;i<rows.length;i++)rows[i].classList.toggle('selected',i===paletteIndex);
+}
+async function runPaletteItem(item){
+ if(!item)return;
+ await closeFloatingPalette();
+ act(item.run.command,item.run.args||{});
+}
+$('paletteInput').oninput=renderPalette;
+$('paletteInput').onkeydown=e=>{
+ const move=step=>{e.preventDefault();if(!paletteShown.length)return;paletteIndex=(paletteIndex+step+paletteShown.length)%paletteShown.length;highlightPalette();};
+ if(e.key==='ArrowDown')move(1);
+ else if(e.key==='ArrowUp')move(-1);
+ else if(e.key==='Enter'){e.preventDefault();runPaletteItem(paletteShown[paletteIndex]);}
+ else if(e.key==='Escape'){e.preventDefault();closeFloatingPalette();}
+};
+// Clic fuori dalla barra: chiude.
+$('palette').onmousedown=e=>{if(!e.target.closest('.palette-float'))closeFloatingPalette();};
 
 // ── Pagina di errore (Beta 0.11.1) ──────────────────────────────────────
 // Prima era un avviso sopra la pagina, ma le pagine stanno sopra la cornice e lo coprivano.
