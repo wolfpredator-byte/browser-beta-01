@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.9.2</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.10</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.9.2</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.10</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
   <button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button>
+  <button id="siteButton" hidden aria-label="Permessi e blocco pubblicità del sito">⛉<span id="siteBlocked"></span></button>
   <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca sul web o inserisci un indirizzo..." autocomplete="off"></form>
   <!-- Ctrl+F: prende il posto della barra degli indirizzi finché è aperta. -->
   <form id="findBar" hidden><span class="find-icon">⌕</span><input id="findInput" aria-label="Trova nella pagina" placeholder="Trova nella pagina" autocomplete="off"><span id="findCount" aria-live="polite"></span><button type="button" id="findPrev" title="Precedente (Shift+Invio)">↑</button><button type="submit" id="findNext" title="Successivo (Invio)">↓</button><button type="button" id="findClose" title="Chiudi (Esc)">×</button></form>

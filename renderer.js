@@ -357,11 +357,65 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      document.querySelector('.offline').textContent=state.orb.message||`JARVIS connesso · ${state.jarvisClient||'client MCP'}`;
    }else document.querySelector('.offline').textContent='Interfaccia JARVIS dimostrativa · assistente non connesso';
  }
+
+ // ── Pannello del sito (Beta 0.10): permessi e blocco pubblicità ──────────
+ let renderedSite=null;
+ const PERMISSION_CHOICES=[['ask','Chiedi'],['allow','Consenti'],['deny','Blocca']];
+ function renderSite(){
+   const s=state.site;
+   $('sidePanelTitle').textContent=s?.host||'Sito';
+   const list=$('sidePanelItems');
+   // Non ricostruire mentre scegli in un menu a tendina: perderebbe la scelta.
+   if(list.contains(document.activeElement)&&document.activeElement.matches('select'))return;
+   const key=JSON.stringify(s);
+   if(key===renderedSite)return;
+   renderedSite=key;
+   list.replaceChildren();
+   if(!s){list.append(el('p',{className:'panel-hint',textContent:'Apri un sito per vederne permessi e blocco pubblicità.'}));return;}
+   list.append(el('p',{className:s.secure?'site-secure':'site-insecure',textContent:s.secure?
+     '🔒 Connessione protetta':'⚠ Connessione non protetta (http): non inserire password o dati personali.'}));
+   // Blocco pubblicità
+   const a=s.adblock;
+   const status=!a.enabled?'Spento su tutti i siti.':a.state==='loading'?'Scarico le liste di blocco…':
+     a.state==='error'?'Liste non disponibili: '+a.error:
+     `${s.blocked} ${s.blocked===1?'elemento bloccato':'elementi bloccati'} in questa pagina · liste del ${new Date(a.updatedAt).toLocaleDateString('it-IT')}`;
+   list.append(section('Pubblicità e tracker',
+     checkRow('Blocca su tutti i siti',a.enabled,enabled=>act('setAdblockEnabled',{enabled})),
+     ...(a.enabled?[checkRow(`Blocca su ${s.host}`,a.siteEnabled,enabled=>act('setAdblockForSite',{host:s.host,enabled}))]:[]),
+     el('p',{className:'panel-hint',textContent:status}),
+     ...(a.enabled&&!a.siteEnabled?[el('p',{className:'panel-hint',textContent:'Su questo sito il blocco è disattivato (es. perché la pagina non funzionava).'})]:[])));
+   // Permessi
+   if(s.origin){
+     const rows=s.permissions.map(p=>{
+       const select=el('select',{className:'permission-select'});
+       for(const [value,label] of PERMISSION_CHOICES)select.append(el('option',{value,textContent:label,selected:p.value===value}));
+       select.onchange=()=>{select.blur();act('setSitePermission',{origin:s.origin,kind:p.kind,value:select.value});};
+       return el('label',{className:'permission-row'},el('span',{textContent:p.label[0].toUpperCase()+p.label.slice(1)}),select);
+     });
+     list.append(section('Permessi di questo sito',...rows,
+       projectButtons(['Dimentica questo sito',()=>act('forgetSite',{origin:s.origin})])));
+   }
+   const others=s.sites.filter(x=>x.origin!==s.origin);
+   if(others.length)list.append(section('Altri siti con scelte salvate',...others.map(x=>el('div',{className:'command-row'},
+     el('div',{className:'command-name',textContent:new URL(x.origin).host}),el('div',{className:'game-meta',textContent:x.summary}),
+     projectButtons(['Dimentica',()=>act('forgetSite',{origin:x.origin})])))));
+ }
+ // Scudo accanto alla barra: numero di elementi bloccati e avviso per le pagine http.
+ function renderSiteButton(){
+   const button=$('siteButton'),s=state.site;
+   button.hidden=!s;
+   if(!s)return;
+   button.classList.toggle('insecure',!s.secure);
+   button.title=(s.secure?'':'Connessione non protetta · ')+`${s.blocked} elementi bloccati · permessi del sito`;
+   $('siteBlocked').textContent=s.blocked>0?(s.blocked>99?'99+':String(s.blocked)):'';
+ }
  // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
+   if(mode!=='site')renderedSite=null;
+   else return renderSite();
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
    if(mode!=='project')renderedProject=null;
@@ -455,7 +509,8 @@ function render(){
    }
    const t=entry.tab;
    const tab=document.createElement('div');
-   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+
+   // sleeping: pagina sospesa per risparmiare memoria, si ricarica al clic.
+   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+(t.sleeping?' sleeping':'')+
      (entry.inGroup?' stacked':'');
    tab.draggable=true;
    tab.ondragstart=event=>{
@@ -513,7 +568,7 @@ function render(){
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
 $('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca sul web o inserisci un indirizzo...';
-renderZoom();renderFindForTab();}
+renderZoom();renderFindForTab();renderSiteButton();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
@@ -528,6 +583,7 @@ $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
 $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');
 $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
+$('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.

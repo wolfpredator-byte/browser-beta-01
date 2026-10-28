@@ -34,6 +34,7 @@ const projects=require('./lib/projects.cjs');
 const projectProcesses=require('./lib/project-processes.cjs');
 const monitors=require('./lib/monitors.cjs');
 const jarvis=require('./lib/jarvis.cjs');
+const sleeper=require('./lib/sleeper.cjs');
 const windows=require('./lib/windows.cjs');
 const tabs=require('./lib/tabs.cjs');
 
@@ -100,6 +101,8 @@ function start(){
 
   // JARVIS: server MCP locale, solo se attivato dal pannello o dall'icona.
   jarvis.init(bus);
+  // Schede non guardate da tempo tornano dormienti (impostazione nell'icona).
+  sleeper.start();
 
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
@@ -120,6 +123,7 @@ app.on('before-quit',()=>{
   state.quitting=true;
   state.gameWatcher?.stop();
   monitors.stop();
+  sleeper.stop();
   projects.closeAll();
   projectProcesses.stopAll(); // I dev server non devono restare aperti senza il browser.
   jarvis.stop();

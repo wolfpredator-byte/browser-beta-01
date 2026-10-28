@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {safeUrl,isWebUrl,looksLikeAddress,popupAction,isPermissionAllowed,cleanUserAgent}=require('../lib/web-rules.cjs');
+const {safeUrl,isWebUrl,looksLikeAddress,popupAction,cleanUserAgent}=require('../lib/web-rules.cjs');
 
 test('frasi diventano ricerche, domini diventano indirizzi https',()=>{
   assert.equal(safeUrl('ace of spades'),'https://www.google.com/search?q=ace%20of%20spades');
@@ -33,13 +33,6 @@ test('target=_blank e Ctrl+clic diventano schede; il resto è negato',()=>{
   assert.equal(popupAction('file:///C:/x','new-window'),'deny');
 });
 
-test('permessi: schermo intero e copia sì, webcam e posizione no',()=>{
-  assert.equal(isPermissionAllowed('fullscreen'),true);
-  assert.equal(isPermissionAllowed('clipboard-sanitized-write'),true);
-  assert.equal(isPermissionAllowed('media'),false);
-  assert.equal(isPermissionAllowed('geolocation'),false);
-  assert.equal(isPermissionAllowed('clipboard-read'),false);
-});
 
 test('lo user agent non dichiara Electron né il nome dell’app',()=>{
   const ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) personal-workspace-browser/0.5.0 Chrome/142.0.0.0 Electron/39.8.10 Safari/537.36';

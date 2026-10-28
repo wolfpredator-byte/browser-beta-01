@@ -194,3 +194,16 @@ pre.json-preview{max-height:300px;margin:8px 0}
 .download-row .inline-buttons{margin-top:7px}
 #clearDownloads{margin-top:12px;border:1px solid #555}
 @media(prefers-reduced-motion:reduce){.tab-spinner{animation:none}}
+
+/* BETA 0.10 — scudo del sito, pannello permessi, schede sospese. */
+#siteButton{position:relative;font-size:17px;padding:6px 10px;color:#ddd}
+#siteButton[hidden]{display:none!important}
+#siteButton.insecure{color:#f2c94c}
+#siteBlocked{position:absolute;right:1px;bottom:2px;font-size:9px;font-weight:700;color:#111;background:#8fe39a;border-radius:6px;padding:0 4px;line-height:13px}
+#siteBlocked:empty{display:none}
+.site-secure{font-size:12px;color:#8fe39a;margin:0 0 6px}
+.site-insecure{font-size:12px;color:#f2c94c;margin:0 0 6px}
+.permission-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:#ddd;padding:5px 0;border-bottom:1px solid #ffffff12}
+.permission-select{background:#1a1a1a;color:#fff;border:1px solid #ffffff2d;border-radius:8px;padding:5px 8px;font:inherit}
+.tab.sleeping:not(.active){opacity:.6}
+.tab.sleeping .tab-favicon{filter:grayscale(1)}
