@@ -29,13 +29,17 @@ Ogni minuto: le schede visibili aggiornano `lastVisibleAt`; quelle nascoste da t
 
 ## Test da fare
 
-- [ ] **T42** — Apri un sito con pubblicità (es. un sito di notizie): lo scudo mostra un numero verde e le pubblicità mancano. **📸** della pagina.
-- [ ] **T43** — Pannello del sito → togli **Blocca su questo sito**: la pagina si ricarica con le pubblicità; riattivalo.
-- [ ] **T44** — Discord web (o un sito di videochiamate): alla richiesta del microfono compare la domanda. **Consenti** con "Ricorda": la chiamata funziona e al prossimo accesso non chiede più. **📸** della domanda.
-- [ ] **T45** — Pannello del sito → Microfono **Blocca**: il sito non riceve più il microfono.
-- [ ] **T46** — Apri un sito `http://` (non https): lo scudo è giallo e il pannello avvisa.
-- [ ] **T47** — Menu dell'icona ◈ → **Sospendi schede inattive → Dopo 15 minuti**. Lascia alcune schede in secondo piano per 15–16 minuti: diventano attenuate; aprendole si ricaricano. Una scheda **fissata** o con musica non viene sospesa.
-- [ ] **T48** — Task Manager con molte schede aperte, prima e dopo la sospensione: la memoria scende. **📸** se vuoi confrontare.
+- [x] **T42** — Apri un sito con pubblicità (es. un sito di notizie): lo scudo mostra un numero verde e le pubblicità mancano. **📸** della pagina.
+- [x] **T43** — Pannello del sito → togli **Blocca su questo sito**: la pagina si ricarica con le pubblicità; riattivalo.
+- [x] **T44** — Discord web (o un sito di videochiamate): alla richiesta del microfono compare la domanda. **Consenti** con "Ricorda": la chiamata funziona e al prossimo accesso non chiede più. **📸** della domanda.
+- [x] **T45** — Pannello del sito → Microfono **Blocca**: il sito non riceve più il microfono.
+- [x] **T46** — Apri un sito `http://` (non https): lo scudo è giallo e il pannello avvisa.
+- [x] **T47** — Menu dell'icona ◈ → **Sospendi schede inattive → Dopo 15 minuti**. Lascia alcune schede in secondo piano per 15–16 minuti: diventano attenuate; aprendole si ricaricano. Una scheda **fissata** o con musica non viene sospesa.
+- [x] **T48** — Task Manager con molte schede aperte, prima e dopo la sospensione: la memoria scende. **📸** se vuoi confrontare.
+
+**Risultato dei tuoi test:** tutto funziona. Task Manager (memoria privata, installer 0.10.0):
+- prima della sospensione: **21 processi, ~1,19 GB** (di cui una sola pagina pesante da ~550 MB);
+- dopo la sospensione: **6 processi, ~0,42 GB**, cioè circa **−65%**. Restano il processo principale (~215 MB, contiene anche il motore del blocco pubblicità), la GPU, il servizio di rete, l'interfaccia e le pagine ancora attive.
 
 **Stato:** 92 test superati. Provato nell'app (profilo di prova): liste scaricate al primo avvio (6,8 MB in cache), 6 elementi bloccati su ilmeteo.it → 0 con l'eccezione per il sito → 14 dopo averla tolta; domanda "example.com vuole inviarti notifiche" con "Ricorda", seconda richiesta concessa senza domanda, cambio a "Blocca" dal pannello e la pagina vede subito "denied"; fotocamera non decisa vista come disponibile dalla verifica silenziosa; scheda in secondo piano sospesa e risvegliata al clic, scheda fissata non sospesa. Installer controllato: contiene la libreria e il suo preload, e nell'eseguibile il blocco funziona (6 elementi su ilmeteo.it).
 **Non provati:** fotocamera e microfono veri (non ho acceso i tuoi dispositivi) e la sospensione con il tempo reale di 15 minuti (simulata spostando l'orario dell'ultima visita).
