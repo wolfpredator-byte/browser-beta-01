@@ -1,15 +1,15 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {pageBounds,isVisibleOnScreens,shortcutCommand,HEADER,FOOTER}=require('../lib/window-rules.cjs');
+const {pageBounds,isVisibleOnScreens,shortcutCommand,HEADER,FOOTER,GAP}=require('../lib/window-rules.cjs');
 
 const content={width:1280,height:800};
 const base={sidebarMode:'compact',sidePanelOpen:false,downloadsOpen:false,fullscreen:false};
 
-test('la pagina lascia spazio a cornice, sidebar e barra schede',()=>{
-  assert.deepEqual(pageBounds(content,base),{x:62,y:HEADER,width:1218,height:800-HEADER-FOOTER});
-  assert.equal(pageBounds(content,{...base,sidebarMode:'hidden'}).x,0);
-  assert.equal(pageBounds(content,{...base,sidebarMode:'expanded',sidePanelOpen:true}).x,198+300);
-  assert.equal(pageBounds(content,{...base,downloadsOpen:true}).width,1280-62-340);
+test('la pagina lascia spazio a cornice, sidebar e barra schede, staccata dai bordi',()=>{
+  assert.deepEqual(pageBounds(content,base),{x:62+GAP,y:HEADER+GAP,width:1280-62-2*GAP,height:800-HEADER-FOOTER-2*GAP});
+  assert.equal(pageBounds(content,{...base,sidebarMode:'hidden'}).x,GAP);
+  assert.equal(pageBounds(content,{...base,sidebarMode:'expanded',sidePanelOpen:true}).x,198+300+GAP);
+  assert.equal(pageBounds(content,{...base,downloadsOpen:true}).width,1280-62-340-2*GAP);
 });
 
 test('video a schermo intero: la pagina copre tutta la finestra',()=>{

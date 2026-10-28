@@ -71,6 +71,7 @@ function start(){
   registerGameCommands(bus);
   registerProjectCommands(bus);
   registerSettingsCommands(bus);
+  require('./lib/toasts.cjs').setup(bus);
 
   windows.setShortcutHandler((contents,input)=>{
     const command=shortcutCommand(input);

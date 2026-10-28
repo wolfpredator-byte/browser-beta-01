@@ -420,3 +420,52 @@ button.tool{display:inline-flex;align-items:center;justify-content:center;paddin
 /* Sfera JARVIS nei colori VARCO (resta la forma liquida animata della 0.4). */
 .orb-body{background:radial-gradient(circle at 34% 28%,#ffffff 0%,#d9d2ff 18%,#8f80ff 48%,#4b3bd1 75%,#241a6e 100%);box-shadow:0 0 38px rgba(124,108,255,.65),inset 0 0 18px rgba(255,255,255,.25)}
 .thinking-rings i{border-top-color:#c9c0ff}
+
+
+/* ═══ BETA 0.14 — cornice "a riquadro" come Vivaldi ═══════════════════════
+   Lo sfondo VARCO sta dietro a tutta la finestra (sfocato e scurito); barre e
+   pannelli sono vetro semitrasparente; la pagina è un riquadro arrotondato
+   staccato di --gap dai bordi (GAP e PAGE_RADIUS in window-rules.cjs). */
+:root{--gap:8px;--page-radius:10px}
+body{background:#07070e}
+body::before{content:'';position:fixed;inset:-40px;z-index:-1;pointer-events:none;
+  background:url(assets/home-bg.jpg) center/cover no-repeat,#07070e;filter:blur(18px) brightness(.62) saturate(1.2)}
+.window-titlebar,.toolbar{background:rgba(7,7,14,.22)}
+.toolbar{border-bottom-color:transparent}
+#globalSidebar{background:rgba(7,7,14,.26);border-right-color:transparent}
+.tabbar{background:rgba(7,7,14,.26);border-top-color:transparent}
+#sidePanel,.download-drawer{background:rgba(14,13,28,.82);border-color:transparent}
+
+/* Home, Impostazioni e pagina di errore occupano lo stesso riquadro della pagina web. */
+#dashboard,#loadError{top:calc(94px + var(--gap));bottom:calc(43px + var(--gap));
+  left:calc(var(--side-width) + var(--panel-width) + var(--gap));right:var(--gap);
+  border-radius:var(--page-radius);overflow:hidden;box-shadow:0 0 0 1px rgba(160,150,255,.10),0 12px 40px rgba(0,0,0,.35)}
+body[data-panel-open="true"] #loadError{left:calc(var(--side-width) + 300px + var(--gap))}
+body[data-downloads-open="true"] #loadError,body[data-downloads-open="true"] #dashboard{right:calc(340px + var(--gap))}
+#paletteBackdrop{border-radius:var(--page-radius)}
+
+/* Pulsante JARVIS in alto a destra: un'icona come le altre, viola solo quando JARVIS è collegato. */
+.jarvis-mini{color:#c9c7e0}
+.jarvis-mini .i{width:19px;height:19px}
+.jarvis-mini.connected{color:var(--v-accent-2)}
+.jarvis-mini.connected .i{filter:drop-shadow(0 0 6px rgba(124,108,255,.8))}
+.jarvis-mini[data-mode="thinking"] .i,.jarvis-mini[data-mode="speaking"] .i{animation:jarvisPulse 1.2s ease-in-out infinite}
+@keyframes jarvisPulse{50%{opacity:.55}}
+
+/* Linea di caricamento sotto la barra degli indirizzi (mock-up "Slider pagine"). */
+.address-pill{position:relative;overflow:hidden}
+#loadLine{position:absolute;left:0;bottom:0;height:2px;width:0;opacity:0;border-radius:2px;pointer-events:none;
+  background:linear-gradient(90deg,#7c6cff,#b4a8ff 70%,#6fd3ff)}
+#loadLine.loading{opacity:1;width:85%;transition:width 8s cubic-bezier(.1,.7,.2,1),opacity .2s}
+#loadLine.done{opacity:0;width:100%;transition:width .25s ease-out,opacity .5s .35s}
+#loadLine.error{opacity:1;width:100%;background:#ff5a6a;transition:width .25s ease-out}
+#loadLine.error.fade{opacity:0;transition:opacity .6s .8s}
+@media(prefers-reduced-motion:reduce){#loadLine{transition:none!important}}
+
+/* Barre di scorrimento minimal (cornice); per i siti vedi web-session.cjs → SCROLLBAR_CSS. */
+::-webkit-scrollbar{width:10px;height:10px;background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(160,150,255,.28);border-radius:8px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(140,124,255,.75);border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:active{background:#8f80ff;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+.i-check{--i:url(assets/icons/check.svg)}.i-info{--i:url(assets/icons/info.svg)}

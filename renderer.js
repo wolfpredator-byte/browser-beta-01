@@ -357,6 +357,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function renderOrb(){
    const connected=!!state.jarvisConnected;
    $('jarvisMini').dataset.mode=connected?state.orb.mode:'idle';
+   $('jarvisMini').classList.toggle('connected',connected);
    $('heroLogo').hidden=connected;$('orbStage').hidden=!connected;
    const message=document.querySelector('.offline');
    message.hidden=!connected;
@@ -686,7 +687,7 @@ function render(){
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
 $('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca o inserisci un indirizzo web';
-renderZoom();renderFindForTab();renderSiteButton();}
+renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
@@ -951,3 +952,19 @@ function renderLoadError(){
 $('loadErrorRetry').onclick=()=>act('reload');
 $('loadErrorHttp').onclick=()=>{if(state.loadError?.httpUrl)act('navigate',{url:state.loadError.httpUrl});};
 $('loadErrorProject').onclick=()=>act('openSidePanel',{panel:'project'});
+
+// ── Linea di caricamento sotto la barra degli indirizzi (Beta 0.14) ──────
+// Electron non dà la percentuale: la linea avanza fino all'85% mentre la pagina carica,
+// si completa e sfuma quando ha finito, diventa rossa se il caricamento fallisce.
+let lineTab=null,lineState='idle';
+function renderLoadLine(){
+ const t=state.tabs.find(x=>x.active),line=$('loadLine');
+ const next=state.loadError?'error':t?.loading&&!t.isHome?'loading':'idle';
+ const restart=cls=>{line.className='';void line.offsetWidth;line.className=cls;};
+ if(t?.id!==lineTab){lineTab=t?.id;lineState=next;restart(next==='loading'?'loading':'');return;}
+ if(next===lineState)return;
+ if(next==='loading')restart('loading');
+ else if(next==='error'){line.className='error';setTimeout(()=>line.classList.add('fade'),30);}
+ else if(lineState==='loading')line.className='done';
+ lineState=next;
+}
