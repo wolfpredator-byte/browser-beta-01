@@ -32,7 +32,6 @@ body{--side-width:62px}
 body[data-sidebar-mode="expanded"]{--side-width:198px}
 body[data-sidebar-mode="hidden"]{--side-width:0px}
 body[data-sidebar-mode="hidden"] #globalSidebar{display:none!important}
-#loadError{top:101px}
 .download-drawer{top:94px}
 #toggleSidebarVisibility{font-size:18px;padding:7px 10px;flex-shrink:0}
 #globalSidebar .sidebar-top{padding:0 3px 11px}
@@ -231,3 +230,18 @@ pre.json-preview{max-height:300px;margin:8px 0}
 /* kind-…: "tab" da solo prenderebbe lo stile delle schede. */
 .palette-kind.kind-tab{color:#8fc7ff}.palette-kind.kind-command{color:#c9a6ff}.palette-kind.kind-project{color:#8fe39a}.palette-kind.kind-web{color:#f2c94c}
 .palette-foot{display:flex;gap:16px;font-size:11px;color:#888;padding:8px 14px;border-top:1px solid #ffffff12}
+
+/* BETA 0.11.1 — pagina di errore nello spazio della pagina (stessi margini di window-rules.cjs). */
+#loadError{position:fixed;top:94px;bottom:43px;left:var(--side-width);right:0;z-index:3;background:#0a0a0a;color:#eee;border:0;border-radius:0;padding:24px;
+  pointer-events:auto;display:flex;align-items:center;justify-content:center;font-size:14px}
+body[data-panel-open="true"] #loadError{left:calc(var(--side-width) + 300px)}
+body[data-downloads-open="true"] #loadError{right:340px}
+.error-card{max-width:520px;text-align:center}
+.error-icon{font-size:38px;color:#f2c94c;margin-bottom:6px}
+.error-card h2{font-size:21px;font-weight:550;margin:0 0 10px;word-break:break-word}
+.error-card p{color:#bbb;margin:0 0 14px;line-height:1.5}
+.error-card code{display:block;font-size:12px;color:#888;word-break:break-all;margin-bottom:18px}
+.error-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.error-actions button{border-color:#ffffff2d;background:#ffffff0d}
+.error-actions button.primary{background:#fff;color:#111}
+.error-code{font-size:11px!important;color:#666!important;margin-top:16px!important}

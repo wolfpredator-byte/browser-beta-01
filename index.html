@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.11</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.11.1</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.11</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.11.1</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
@@ -16,7 +16,17 @@
   <button id="bookmark" title="Aggiungi ai preferiti">☆</button><button id="showDownloads" title="Download">↓</button>
   <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
 </header>
-<div id="loadError" role="status" hidden></div>
+<!-- Pagina di errore: occupa lo spazio della pagina, che intanto è nascosta. -->
+<section id="loadError" role="alert" hidden>
+ <div class="error-card">
+  <div class="error-icon">⚠</div>
+  <h2 id="loadErrorTitle"></h2>
+  <p id="loadErrorDetail"></p>
+  <code id="loadErrorUrl"></code>
+  <div class="error-actions"><button id="loadErrorRetry" class="primary">↻ Riprova</button><button id="loadErrorHttp" hidden></button><button id="loadErrorProject" hidden>⧉ Comandi del progetto</button></div>
+  <p id="loadErrorCode" class="error-code"></p>
+ </div>
+</section>
 <aside id="globalSidebar" class="sidebar" aria-label="Pannello laterale">
   <div class="sidebar-top"><span class="sidebar-logo">◈</span><span class="sidebar-label">WORKSPACES</span><button id="toggleSidebar" title="Espandi/riduci barra laterale">☰</button></div>
   <div id="workspaces"></div>

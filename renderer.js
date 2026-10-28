@@ -642,7 +642,7 @@ function render(){
    // Click destro: menu nativo con "Apri in una nuova finestra" e "Cambia icona".
    button.oncontextmenu=event=>{event.preventDefault();act('workspaceContextMenu',{name:workspace.name});};
    w.appendChild(button);
- }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';const activeTab=state.tabs.find(t=>t.active);
+ }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
 $('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca sul web o inserisci un indirizzo...';
 renderZoom();renderFindForTab();renderSiteButton();}
@@ -789,3 +789,23 @@ $('paletteInput').onkeydown=e=>{
 // Clic fuori dal riquadro: chiude.
 $('palette').onmousedown=e=>{if(e.target===$('palette')||e.target===$('paletteBackdrop'))closePalette();};
 $('paletteButton').onclick=()=>act('openPalette');
+
+// ── Pagina di errore (Beta 0.11.1) ──────────────────────────────────────
+// Prima era un avviso sopra la pagina, ma le pagine stanno sopra la cornice e lo coprivano.
+// Ora la pagina si nasconde e la cornice disegna l'errore nel suo spazio.
+function renderLoadError(){
+ const e=state.loadError;
+ document.body.dataset.downloadsOpen=state.downloadsOpen?'true':'false';
+ $('loadError').hidden=!e||state.homeActive;
+ if(!e)return;
+ $('loadErrorTitle').textContent=e.title;
+ $('loadErrorDetail').textContent=e.detail;
+ $('loadErrorUrl').textContent=e.url||'';
+ $('loadErrorCode').textContent=e.description?`${e.description}${e.code?` (${e.code})`:''}`:'';
+ const http=$('loadErrorHttp');http.hidden=!e.httpUrl;
+ if(e.httpUrl)http.textContent='Prova con http://';
+ $('loadErrorProject').hidden=!e.local;
+}
+$('loadErrorRetry').onclick=()=>act('reload');
+$('loadErrorHttp').onclick=()=>{if(state.loadError?.httpUrl)act('navigate',{url:state.loadError.httpUrl});};
+$('loadErrorProject').onclick=()=>act('openSidePanel',{panel:'project'});

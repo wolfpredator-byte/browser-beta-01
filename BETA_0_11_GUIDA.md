@@ -1,6 +1,6 @@
 # Browser Beta 0.11 — Palette dei comandi e Impostazioni
 
-Installer: `dist\Personal Browser Setup 0.11.0.exe` (si installa sopra, i dati restano).
+Installer: `dist\Personal Browser Setup 0.11.1.exe` (si installa sopra, i dati restano).
 
 ## Cosa cambia
 
@@ -56,13 +56,13 @@ Dopo aver scritto il file importato, `state.frozen=true` blocca ogni salvataggio
 
 ## Test da fare
 
-- [ ] **T49** — Premi **F1** su una pagina: la pagina si vela, compare la palette. Scrivi parte del titolo di una scheda di **un altro workspace** e premi Invio: si apre la sua finestra, con quella scheda. **📸** della palette.
-- [ ] **T50** — Palette → scrivi `light.gg` → "Apri light.gg" è la prima voce; scrivi una frase → "Cerca «…» sul web" in fondo.
-- [ ] **T51** — In un workspace con progetto: palette → "Avvia «…»" avvia il comando (lo vedi nel pannello Progetto).
-- [ ] **T52** — Impostazioni → motore **DuckDuckGo**; cerca una frase dalla barra degli indirizzi: si apre DuckDuckGo. Rimetti quello che preferisci.
-- [ ] **T53** — Impostazioni → **Esporta…**: salva il file e si apre la cartella. (Facoltativo: **Importa…** lo stesso file; il browser si riavvia uguale a prima.)
-- [ ] **T54** — Impostazioni → **Copia la diagnostica** e incollala in un blocco note: versioni, memoria e impostazioni, senza token.
-- [ ] **T55** — Discord web: **Ctrl+K** apre ancora la ricerca di Discord, non la palette.
+- [x] **T49** — Premi **F1** su una pagina: la pagina si vela, compare la palette. Scrivi parte del titolo di una scheda di **un altro workspace** e premi Invio: si apre la sua finestra, con quella scheda. **📸** della palette.
+- [x] **T50** — Palette → scrivi `light.gg` → "Apri light.gg" è la prima voce; scrivi una frase → "Cerca «…» sul web" in fondo.
+- [x] **T51** — In un workspace con progetto: palette → "Avvia «…»" avvia il comando (lo vedi nel pannello Progetto).
+- [x] **T52** — Impostazioni → motore **DuckDuckGo**; cerca una frase dalla barra degli indirizzi: si apre DuckDuckGo. Rimetti quello che preferisci.
+- [x] **T53** — Impostazioni → **Esporta…**: salva il file e si apre la cartella. (Facoltativo: **Importa…** lo stesso file; il browser si riavvia uguale a prima.)
+- [x] **T54** — Impostazioni → **Copia la diagnostica** e incollala in un blocco note: versioni, memoria e impostazioni, senza token.
+- [x] **T55** — Discord web: **Ctrl+K** apre ancora la ricerca di Discord, non la palette.
 
 **Stato:** 101 test superati (9 nuovi: ricerca della palette, motori di ricerca, scorciatoie, esportazione e importazione).
 
@@ -86,3 +86,21 @@ Installer controllato: contiene i file nuovi e la palette si apre e si chiude ne
 - suggerimenti nella barra degli indirizzi;
 - trascinare schede tra finestre;
 - notifiche nella cornice.
+
+**Risultato dei tuoi test:** tutto funziona. Unico problema: l'avviso "Impossibile aprire https://localhost:3000…" (server spento) veniva coperto e tagliato dalla pagina. Corretto nella 0.11.1.
+
+## 0.11.1 — Pagina di errore
+
+- Se una pagina non si apre, al suo posto compare una **pagina di errore** con:
+  - una spiegazione semplice: "Nessun programma risponde a questo indirizzo: se è un tuo progetto, il server di sviluppo è spento";
+  - l'indirizzo e il codice dell'errore;
+  - i pulsanti **↻ Riprova**, **Prova con http://** (solo per `https://localhost`, perché i server di sviluppo di solito usano http e spesso l'https arriva da un redirect del login) e **⧉ Comandi del progetto** (solo per indirizzi locali).
+- Prima l'avviso stava nella cornice, cioè **sotto** la pagina, che lo copriva. Ora la pagina si nasconde (come per la palette) e la cornice disegna l'errore nel suo spazio. Le spiegazioni sono in `describeLoadError` (`web-rules.cjs`), con test.
+- **Diagnostica:**
+  - un caricamento non riuscito ora compare una volta sola, non tre;
+  - gli avvisi di Node non sono più contati come errori;
+  - accanto a ogni processo delle pagine c'è il sito che contiene, es. `Tab 995 (localhost:3000)`.
+
+  Nella tua diagnostica un processo pagina usava **995 MB**. Se ricapita, la prossima diagnostica dirà di quale sito si tratta.
+
+Provato nell'app: `https://localhost:3000/?auth=success` con il server spento mostra la pagina di errore intera; con un server acceso, "Prova con http://" apre la pagina e l'errore sparisce. 102 test superati.
