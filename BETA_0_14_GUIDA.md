@@ -44,13 +44,15 @@ Installer: `dist\VARCO Setup 0.14.0.exe`.
 
 ## Test da fare
 
-- [ ] **T67** — Apri un sito qualsiasi: angoli arrotondati, sfondo visibile intorno, barre semitrasparenti. **📸** a finestra intera.
-- [ ] **T68** — Home: lo sfondo è il fiordo, nitido. **📸**.
-- [ ] **T69** — Scarica un file: toast con l'avanzamento, poi "Download completato" con Apri / Mostra.
-- [ ] **T70** — Chiudi una scheda (×) e premi **Annulla** nel toast: la scheda torna.
-- [ ] **T71** — ☆ sulla barra: toast "Aggiunto ai preferiti", **Annulla** lo toglie.
-- [ ] **T72** — Apri un sito lento e uno inesistente: linea che avanza e sfuma, poi linea rossa.
-- [ ] **T73** — Icona JARVIS in alto a destra: grigia con JARVIS spento, viola quando è collegato.
+- [x] **T67** — Apri un sito qualsiasi: angoli arrotondati, sfondo visibile intorno, barre semitrasparenti. **📸** a finestra intera.
+- [x] **T68** — Home: lo sfondo è il fiordo, nitido. **📸**.
+- [x] **T69** — Scarica un file: toast con l'avanzamento, poi "Download completato" con Apri / Mostra.
+- [x] **T70** — Chiudi una scheda (×) e premi **Annulla** nel toast: la scheda torna.
+- [x] **T71** — ☆ sulla barra: toast "Aggiunto ai preferiti", **Annulla** lo toglie.
+- [x] **T72** — Apri un sito lento e uno inesistente: linea che avanza e sfuma, poi linea rossa.
+- [x] **T73** — Icona JARVIS in alto a destra: grigia con JARVIS spento, viola quando è collegato.
+
+**Risultato dei tuoi test:** tutto funziona (screenshot di light.gg nel riquadro arrotondato e della Home con il fiordo).
 
 **Stato:** 103 test superati. Provato nell'app (profilo di prova), con catture dello schermo:
 - riquadro arrotondato con lo sfondo intorno; Home con il fiordo;
