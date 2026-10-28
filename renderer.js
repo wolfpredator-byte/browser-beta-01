@@ -439,13 +439,12 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  }
  function renderSettings(){
    const s=state.settings;
-   $('sidePanelTitle').textContent='Impostazioni';
-   const list=$('sidePanelItems');
+   const list=$('settingsBody');
    if(list.contains(document.activeElement)&&document.activeElement.matches('select'))return;
    const key=JSON.stringify([s,settingsUi]);
    if(key===renderedSettings)return;
    renderedSettings=key;
-   const panel=$('sidePanel'),scroll=panel.scrollTop;
+   const panel=$('settingsPage'),scroll=panel.scrollTop;
    list.replaceChildren();
    if(!s)return;
    const row=(label,control)=>el('label',{className:'permission-row'},el('span',{textContent:label}),control);
@@ -489,8 +488,6 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
-   if(mode!=='settings'){renderedSettings=null;settingsUi.status='';}
-   else return renderSettings();
    if(mode!=='site')renderedSite=null;
    else return renderSite();
    if(mode!=='jarvis')renderedJarvis=null;
@@ -552,6 +549,11 @@ function render(){
  document.body.dataset.panelOpen=state.sidePanelOpen?'true':'false';
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
+ // Beta 0.12: la scheda interna può essere la Home o le Impostazioni.
+ const onSettings=state.internalPage==='settings';
+ document.querySelector('.home-content').hidden=onSettings;
+ $('settingsPage').hidden=!onSettings;
+ if(onSettings)renderSettings();else{renderedSettings=null;settingsUi.status='';}
  // Con più finestre dello stesso workspace: "Destiny Builder · 2".
  $('footerWorkspaceName').textContent=(state.activeWorkspace||'Personale')+(state.pane?' · '+(state.pane+1):'');
  renderLayoutInfo();
@@ -607,7 +609,7 @@ function render(){
    if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
    else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
    const title=document.createElement('span');
-   title.textContent=t.isHome?'⌂ Home':(t.title||t.url);
+   title.textContent=t.isHome?(t.page==='settings'?'⚙ Impostazioni':'⌂ Home'):(t.title||t.url);
    title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
    title.onclick=()=>act('activateTab',{id:t.id});
    tab.appendChild(title);
@@ -644,7 +646,7 @@ function render(){
    w.appendChild(button);
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
-$('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca sul web o inserisci un indirizzo...';
+$('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca, scrivi un indirizzo, oppure > per i comandi';
 renderZoom();renderFindForTab();renderSiteButton();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
@@ -661,14 +663,15 @@ $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');
 $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
 $('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
-$('showSettings').onclick=()=>act('toggleSidePanel',{panel:'settings'});
+$('showSettings').onclick=()=>act('openSettings');
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
 window.browserAPI.onUi(message=>{
  if(message?.type==='focusAddress'){closeFind(false);const a=$('address');a.focus();a.select();}
+ else if(message?.type==='closeSuggestions')closeSuggestions();
  else if(message?.type==='openFind')openFind();
- else if(message?.type==='palette')openPalette(message);
+ else if(message?.type==='palette')showSuggestions(message);
  else if(message?.type==='findResult'){
    const found=$('findCount');
    found.textContent=message.matches?`${message.active} di ${message.matches}`:'Nessun risultato';
@@ -722,72 +725,102 @@ function renderLayoutInfo(){
  info.textContent=`Disposizione salvata: ${layout.windows} ${layout.windows===1?'finestra':'finestre'} su ${layout.monitors} monitor · ${when}`;
 }
 
-// ── Palette dei comandi (Beta 0.11): F1 · Ctrl+Shift+P · pulsante ⌘ ──────
-const KIND_LABELS={tab:'Scheda',command:'Comando',workspace:'Workspace',project:'Progetto',game:'Gioco',bookmark:'Preferito',history:'Cronologia',web:'Web'};
-let paletteItems=[],paletteShown=[],paletteIndex=0;
-function openPalette(message){
+// ── Barra degli indirizzi con suggerimenti (Beta 0.12) ──────────────────
+// Prende il posto della palette della 0.11: scrivendo nella barra compaiono pochi
+// suggerimenti (schede, comandi, workspace, preferiti, cronologia). Con ">" all'inizio
+// solo i comandi: F1, Ctrl+Shift+P e il pulsante ⌘ aprono la barra così.
+// Invio senza scegliere nulla fa quello che ha sempre fatto: apre l'indirizzo o la ricerca.
+const KIND_LABELS={tab:'Scheda',command:'Comando',workspace:'Workspace',project:'Progetto',game:'Gioco',bookmark:'Preferito',history:'Cronologia',web:''};
+const COMMAND_KINDS=new Set(['command','project','workspace','game']);
+const MAX_SUGGESTIONS=8;
+let suggestItems=[],suggestShown=[],suggestIndex=0,suggestOpen=false,suggestRequested=false;
+function showSuggestions(message){
+ const input=$('address');
+ suggestItems=message.items||[];suggestRequested=false;
+ if(!message.keepBackdrop){
+   const img=$('paletteBackdrop'),b=message.bounds;
+   img.hidden=!(message.backdrop&&b);
+   if(!img.hidden){img.src=message.backdrop;Object.assign(img.style,{left:b.x+'px',top:b.y+'px',width:b.width+'px',height:b.height+'px'});}
+ }
+ suggestOpen=true;
  closeFind(false);
- paletteItems=message.items||[];
- // Fotografia della pagina nello stesso punto in cui stava la pagina vera.
- const img=$('paletteBackdrop'),b=message.bounds;
- img.hidden=!(message.backdrop&&b);
- if(!img.hidden){img.src=message.backdrop;Object.assign(img.style,{left:b.x+'px',top:b.y+'px',width:b.width+'px',height:b.height+'px'});}
- $('palette').hidden=false;
- const input=$('paletteInput');input.value='';
- renderPalette();
+ if(message.mode==='commands'&&!input.value.startsWith('>'))input.value='>';
+ // Hai cancellato tutto mentre i suggerimenti arrivavano: niente da mostrare.
+ if(!input.value.trim()){closeSuggestions();return;}
  input.focus();
+ const r=$('nav').getBoundingClientRect();
+ Object.assign($('suggest').style,{left:r.left+'px',width:r.width+'px',top:(r.bottom+4)+'px'});
+ renderSuggestions();
 }
-function closePalette(){
- if($('palette').hidden)return Promise.resolve();
- $('palette').hidden=true;$('paletteBackdrop').removeAttribute('src');
+function closeSuggestions(){
+ suggestRequested=false;
+ if(!suggestOpen)return Promise.resolve();
+ suggestOpen=false;
+ $('suggest').hidden=true;
+ const img=$('paletteBackdrop');img.hidden=true;img.removeAttribute('src');
  return act('closePalette');
 }
-/** Il testo scritto come indirizzo o ricerca web, sempre disponibile. */
+/** Il testo scritto, come indirizzo o ricerca: è la scelta predefinita di Invio. */
 function webItem(q){
  const address=/^https?:\/\//i.test(q)||/^localhost\b/i.test(q)||/^[^\s/]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(q);
- return {kind:'web',label:address?'Apri '+q:`Cerca «${q}» sul web`,detail:'nuova scheda',run:{command:'newTab',args:{url:q}},address};
+ return {kind:'web',label:address?q:`Cerca «${q}»`,detail:address?'Apri l’indirizzo':'Ricerca sul web',run:{command:'navigate',args:{url:q}}};
 }
-function renderPalette(){
- const q=$('paletteInput').value.trim();
- paletteShown=window.paletteRules.filterItems(paletteItems,q,60);
- if(q){const web=webItem(q);if(web.address||!paletteShown.length)paletteShown.unshift(web);else paletteShown.push(web);}
- paletteIndex=0;
- const list=$('paletteList');list.replaceChildren();
- paletteShown.forEach((item,index)=>{
-   const icon=item.favicon?el('img',{className:'palette-icon',src:item.favicon,alt:''}):el('span',{className:'palette-icon'});
+function renderSuggestions(){
+ if(!suggestOpen)return;
+ const raw=$('address').value,commandsOnly=raw.startsWith('>');
+ const q=(commandsOnly?raw.slice(1):raw).trim();
+ if(!raw.trim()){closeSuggestions();return;}
+ if(commandsOnly){
+   const pool=suggestItems.filter(i=>COMMAND_KINDS.has(i.kind));
+   suggestShown=q?window.paletteRules.filterItems(pool,q,30):pool.filter(i=>i.kind==='command');
+ }else suggestShown=[webItem(q),...window.paletteRules.filterItems(suggestItems,q,MAX_SUGGESTIONS-1)];
+ suggestIndex=0;
+ const list=$('suggest');list.replaceChildren();
+ suggestShown.forEach((item,index)=>{
+   const icon=item.favicon?el('img',{className:'palette-icon',src:item.favicon,alt:''}):
+     el('span',{className:'palette-icon glyph',textContent:item.kind==='web'?'⌕':item.kind==='command'?'›':''});
    const text=el('span',{className:'palette-text'},el('span',{className:'palette-label',textContent:item.label}),
      ...(item.detail?[el('span',{className:'palette-detail',textContent:item.detail})]:[]));
    const row=el('div',{className:'palette-row',role:'option'},icon,text,
-     ...(item.keys?[el('kbd',{textContent:item.keys})]:[]),el('span',{className:'palette-kind kind-'+item.kind,textContent:KIND_LABELS[item.kind]||''}));
-   row.onmousemove=()=>{if(paletteIndex!==index){paletteIndex=index;highlightPalette(false);}};
-   row.onclick=()=>runPaletteItem(item);
+     ...(item.keys?[el('kbd',{textContent:item.keys})]:[]),
+     ...(KIND_LABELS[item.kind]?[el('span',{className:'palette-kind kind-'+item.kind,textContent:KIND_LABELS[item.kind]})]:[]));
+   row.onmousedown=e=>e.preventDefault(); // la barra non perde il focus
+   row.onmousemove=()=>{if(suggestIndex!==index){suggestIndex=index;highlightSuggestion(false);}};
+   row.onclick=()=>runSuggestion(item);
    list.append(row);
  });
- if(!paletteShown.length)list.append(el('p',{className:'panel-hint',textContent:'Nessun risultato.'}));
- highlightPalette(true);
+ if(!suggestShown.length)list.append(el('p',{className:'panel-hint',textContent:'Nessun comando trovato.'}));
+ list.hidden=false;
+ highlightSuggestion(true);
 }
-function highlightPalette(scroll){
- const rows=$('paletteList').children;
- for(let i=0;i<rows.length;i++)rows[i].classList.toggle('selected',i===paletteIndex);
- if(scroll)rows[paletteIndex]?.scrollIntoView({block:'nearest'});
+function highlightSuggestion(scroll){
+ const rows=$('suggest').querySelectorAll('.palette-row');
+ rows.forEach((row,i)=>row.classList.toggle('selected',i===suggestIndex));
+ if(scroll)rows[suggestIndex]?.scrollIntoView({block:'nearest'});
 }
-async function runPaletteItem(item){
+async function runSuggestion(item){
  if(!item)return;
- await closePalette();
+ const input=$('address');
+ await closeSuggestions();
+ input.value='';input.blur();
  act(item.run.command,item.run.args||{});
 }
-$('paletteInput').oninput=renderPalette;
-$('paletteInput').onkeydown=e=>{
- const move=step=>{e.preventDefault();if(!paletteShown.length)return;paletteIndex=(paletteIndex+step+paletteShown.length)%paletteShown.length;highlightPalette(true);};
+$('address').addEventListener('input',()=>{
+ if(!$('address').value.trim()){closeSuggestions();return;}
+ if(suggestOpen)renderSuggestions();
+ else if(!suggestRequested){suggestRequested=true;act('openPalette',{mode:'address'});}
+});
+$('address').addEventListener('keydown',e=>{
+ if(!suggestOpen){if(e.key==='Escape'){$('address').value='';$('address').blur();}return;}
+ const move=step=>{e.preventDefault();if(!suggestShown.length)return;suggestIndex=(suggestIndex+step+suggestShown.length)%suggestShown.length;highlightSuggestion(true);};
  if(e.key==='ArrowDown')move(1);
  else if(e.key==='ArrowUp')move(-1);
- else if(e.key==='PageDown')move(Math.min(8,paletteShown.length-1-paletteIndex));
- else if(e.key==='PageUp')move(-Math.min(8,paletteIndex));
- else if(e.key==='Enter'){e.preventDefault();runPaletteItem(paletteShown[paletteIndex]);}
- else if(e.key==='Escape'){e.preventDefault();closePalette();}
-};
-// Clic fuori dal riquadro: chiude.
-$('palette').onmousedown=e=>{if(e.target===$('palette')||e.target===$('paletteBackdrop'))closePalette();};
+ else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex]);}
+ else if(e.key==='Escape'){e.preventDefault();$('address').value='';closeSuggestions();$('address').blur();}
+});
+// Clic altrove: i suggerimenti si chiudono (il testo resta nella barra).
+$('address').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('address'))closeSuggestions();},120));
+$('paletteBackdrop').onmousedown=()=>{closeSuggestions();$('address').blur();};
 $('paletteButton').onclick=()=>act('openPalette');
 
 // ── Pagina di errore (Beta 0.11.1) ──────────────────────────────────────

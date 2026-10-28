@@ -210,14 +210,8 @@ pre.json-preview{max-height:300px;margin:8px 0}
 /* BETA 0.11 — palette dei comandi e Impostazioni. */
 .settings-button{margin-top:10px}
 .settings-status{font-size:12px;color:#8fe39a;margin:0 0 8px}
-#palette{position:fixed;inset:0;z-index:1000;background:#0008;display:flex;justify-content:center;align-items:flex-start}
-#palette[hidden]{display:none}
-#paletteBackdrop{position:fixed;filter:blur(6px) brightness(.45);z-index:-1}
+#paletteBackdrop{position:fixed;filter:brightness(.55);z-index:900}
 #paletteBackdrop[hidden]{display:none}
-.palette-box{margin-top:72px;width:min(680px,calc(100vw - 32px));max-height:calc(100vh - 120px);display:flex;flex-direction:column;
-  background:#161618f2;border:1px solid #ffffff26;border-radius:14px;box-shadow:0 24px 60px #000a;overflow:hidden}
-#paletteInput{font:inherit;font-size:15px;color:#fff;background:transparent;border:0;border-bottom:1px solid #ffffff1c;padding:14px 16px;outline:none}
-#paletteList{overflow-y:auto;padding:6px}
 .palette-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;cursor:pointer;color:#ddd}
 .palette-row.selected{background:#ffffff17;color:#fff}
 .palette-icon{flex:0 0 16px;width:16px;height:16px;border-radius:3px}
@@ -229,7 +223,6 @@ pre.json-preview{max-height:300px;margin:8px 0}
 .palette-kind{flex:0 0 auto;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#888}
 /* kind-…: "tab" da solo prenderebbe lo stile delle schede. */
 .palette-kind.kind-tab{color:#8fc7ff}.palette-kind.kind-command{color:#c9a6ff}.palette-kind.kind-project{color:#8fe39a}.palette-kind.kind-web{color:#f2c94c}
-.palette-foot{display:flex;gap:16px;font-size:11px;color:#888;padding:8px 14px;border-top:1px solid #ffffff12}
 
 /* BETA 0.11.1 — pagina di errore nello spazio della pagina (stessi margini di window-rules.cjs). */
 #loadError{position:fixed;top:94px;bottom:43px;left:var(--side-width);right:0;z-index:3;background:#0a0a0a;color:#eee;border:0;border-radius:0;padding:24px;
@@ -245,3 +238,17 @@ body[data-downloads-open="true"] #loadError{right:340px}
 .error-actions button{border-color:#ffffff2d;background:#ffffff0d}
 .error-actions button.primary{background:#fff;color:#111}
 .error-code{font-size:11px!important;color:#666!important;margin-top:16px!important}
+
+/* BETA 0.12 — suggerimenti sotto la barra degli indirizzi e pagina Impostazioni. */
+#suggest{position:fixed;z-index:1000;max-height:min(440px,calc(100vh - 160px));overflow-y:auto;padding:5px;
+  background:#161618f7;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 18px 50px #000b}
+#suggest[hidden]{display:none}
+.palette-icon.glyph{display:flex;align-items:center;justify-content:center;color:#888;font-size:13px}
+#settingsPage{flex:1;overflow:auto;padding:28px max(24px,4vw) 48px}
+#settingsPage[hidden]{display:none}
+.settings-inner{max-width:1000px;margin:0 auto}
+.settings-inner h1{font-size:26px;font-weight:550;margin:0 0 18px;letter-spacing:-.5px}
+#settingsBody{columns:2 420px;column-gap:16px}
+#settingsBody>*{break-inside:avoid}
+#settingsBody .project-section{background:#ffffff08;border:1px solid #ffffff1a;border-radius:14px;padding:4px 16px 12px;margin:0 0 16px}
+.home-content[hidden]{display:none}

@@ -93,3 +93,11 @@ test('pagina di errore: server locale spento, https locale, indirizzo inesistent
   assert.match(describeLoadError(-105,'ERR_NAME_NOT_RESOLVED','https://nonesiste.xyz/').title,/non esiste/);
   assert.equal(describeLoadError(-202,'ERR_CERT_AUTHORITY_INVALID','https://a.it/').title,'Connessione non sicura');
 });
+
+test('Beta 0.12: Home e Impostazioni sono pagine interne distinte nella barra delle schede',()=>{
+  const {toTabSnapshot}=require('../lib/tab-advanced.cjs');
+  assert.equal(toTabSnapshot({id:1,workspace:'A',isHome:true,url:'app://settings'},1).page,'settings');
+  assert.equal(toTabSnapshot({id:2,workspace:'A',isHome:true,url:'app://home'},1).page,'home');
+  const web=toTabSnapshot({id:3,workspace:'A',isHome:false,url:'https://a.it/',view:null},1);
+  assert.equal(web.page,null);assert.equal(web.sleeping,true);
+});

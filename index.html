@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.11.1</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.12</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.11.1</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.12</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
   <button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button>
   <button id="siteButton" hidden aria-label="Permessi e blocco pubblicità del sito">⛉<span id="siteBlocked"></span></button>
-  <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca sul web o inserisci un indirizzo..." autocomplete="off"></form>
+  <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca, scrivi un indirizzo, oppure > per i comandi" autocomplete="off"></form>
   <!-- Ctrl+F: prende il posto della barra degli indirizzi finché è aperta. -->
   <form id="findBar" hidden><span class="find-icon">⌕</span><input id="findInput" aria-label="Trova nella pagina" placeholder="Trova nella pagina" autocomplete="off"><span id="findCount" aria-live="polite"></span><button type="button" id="findPrev" title="Precedente (Shift+Invio)">↑</button><button type="submit" id="findNext" title="Successivo (Invio)">↓</button><button type="button" id="findClose" title="Chiudi (Esc)">×</button></form>
   <button id="zoomLevel" hidden title="Zoom della pagina: clic per tornare al 100% (Ctrl 0)">100%</button>
-  <button id="paletteButton" title="Palette dei comandi (F1 · Ctrl+Shift+P)" aria-label="Palette dei comandi">⌘</button>
+  <button id="paletteButton" title="Comandi (F1 · Ctrl+Shift+P)" aria-label="Comandi">⌘</button>
   <button id="bookmark" title="Aggiungi ai preferiti">☆</button><button id="showDownloads" title="Download">↓</button>
   <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
 </header>
@@ -47,6 +47,8 @@
  <div id="sidePanelItems"></div>
 </section>
 <main id="dashboard">
+ <!-- Pagina Impostazioni (Beta 0.12): una scheda interna come la Home. -->
+ <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><h1>Impostazioni</h1><div id="settingsBody"></div></div></section>
  <section class="home-content">
   <div class="home-center">
    <div class="orb-stage"><div id="jarvisOrb" class="orb idle" role="img" aria-label="JARVIS in standby"><div class="orb-body"></div><div class="thinking-rings"><i></i><i></i><i></i></div></div></div>
@@ -72,14 +74,9 @@
  <button id="openDownloadsFolder">Apri cartella Download</button>
 </section>
 <footer class="tabbar"><button id="workspaceSwitcher" title="Scegli workspace" aria-label="Seleziona workspace">◈ <span id="footerWorkspaceName">Personale</span> ▾</button><div id="tabs"></div><button id="new" title="Nuova scheda Home">＋</button><button id="reopenClosed" title="Riapri ultima scheda chiusa (Ctrl+Shift+T)" aria-label="Riapri ultima scheda chiusa">↶</button><div class="tabbar-spacer"></div></footer>
-<!-- Palette dei comandi (Beta 0.11): copre tutta la finestra; la pagina web intanto è nascosta. -->
-<div id="palette" hidden>
- <img id="paletteBackdrop" alt="">
- <div class="palette-box" role="dialog" aria-label="Palette dei comandi">
-  <input id="paletteInput" placeholder="Cerca comandi, schede, workspace, preferiti… oppure scrivi un indirizzo" autocomplete="off" spellcheck="false" aria-controls="paletteList">
-  <div id="paletteList" role="listbox"></div>
-  <div class="palette-foot"><span>↑↓ scegli</span><span>Invio esegui</span><span>Esc chiudi</span></div>
- </div>
-</div>
+<!-- Suggerimenti della barra degli indirizzi (Beta 0.12). Mentre sono aperti la pagina web
+     è nascosta e al suo posto c'è una sua fotografia: altrimenti coprirebbe l'elenco. -->
+<img id="paletteBackdrop" alt="" hidden>
+<div id="suggest" role="listbox" aria-label="Suggerimenti" hidden></div>
 <script src="palette-rules.js"></script>
 <script src="renderer.js"></script></body></html>
