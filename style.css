@@ -179,6 +179,8 @@ pre.json-preview{max-height:300px;margin:8px 0}
 /* BETA 0.9.1 — icone delle schede, caricamento, ricerca nella pagina, zoom, download. */
 .tab-favicon{width:16px;height:16px;flex:none;margin-right:7px;object-fit:contain}
 .tab-spinner{width:13px;height:13px;flex:none;margin-right:8px;border:2px solid #ffffff30;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+/* "span.tab-spinner" batte ".tab span" (flex:1), che altrimenti stira il cerchio in un'ellisse. */
+.tab span.tab-spinner{flex:0 0 13px;min-width:13px;max-width:13px;box-sizing:border-box;overflow:visible}
 #findBar{flex:1;margin:0 7px;display:flex;align-items:center;gap:4px;background:#ffffff0d;border:1px solid #b4b4b4;border-radius:12px;padding:3px 6px 3px 14px}
 #findBar[hidden],#nav[hidden],#zoomLevel[hidden],#clearDownloads[hidden]{display:none!important}
 #findBar input{flex:1;min-width:0;background:none;border:0;outline:none;color:#fff;padding:8px 4px}

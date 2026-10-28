@@ -51,3 +51,10 @@ La cornice ha una CSP che le vieta di caricare immagini da Internet. Le icone le
 
 **Stato:** 86 test superati. Provato nell'app su un profilo di prova: segnaposto della Home, cerchio di caricamento e icona di GitHub, ricerca "1 di 34" → avanti/indietro → "Nessun risultato" → `Esc`, zoom 120% e ritorno al 100%, download con risposta "Salva" (file in Download, cartella temporanea vuota) e "Annulla" (nessun file), pagina di accesso Google con identità Firefox coerente (intestazioni, `navigator.userAgent`, niente `userAgentData`) e GitHub con identità Chrome. Pacchetto controllato: contiene `page-preload.cjs` e `download-rules.cjs`.
 **Non provato:** l'accesso Google vero (serve il tuo account) e la finestra di stampa.
+
+## 0.9.2 — dopo i test della 0.9.1
+
+- **Cerchio di caricamento schiacciato:** la regola delle prime beta `.tab span{flex:1}` stirava ogni `span` della scheda, compreso il cerchio. Ora `.tab span.tab-spinner` (più specifica) lo tiene a 13×13 px.
+- **Login Google e passkey:** con l'identità Firefox Google mostrava la pagina di accesso, ma provava subito una passkey e Windows rispondeva "Something went wrong". Su `accounts.google.com` (solo lì) `page-preload.cjs` ora nasconde le passkey: `PublicKeyCredential` non esiste e le richieste WebAuthn vengono rifiutate prima di arrivare a Windows. Google usa il flusso classico: email, password, eventuale conferma sul telefono.
+
+**Da provare:** T11 con l'installer 0.9.2. Se l'accesso non riesce, mandami uno **📸** della schermata che compare **dopo** aver inserito l'email (e, se arrivi lì, dopo la password).
