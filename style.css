@@ -175,3 +175,20 @@ pre.json-preview{max-height:300px;margin:8px 0}
 .activity-row code{font:11px Consolas,'Cascadia Mono',monospace;color:#ddd}
 .activity-row span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8fe39a}
 .activity-row.failed span:last-child{color:#f28b82}
+
+/* BETA 0.9.1 — icone delle schede, caricamento, ricerca nella pagina, zoom, download. */
+.tab-favicon{width:16px;height:16px;flex:none;margin-right:7px;object-fit:contain}
+.tab-spinner{width:13px;height:13px;flex:none;margin-right:8px;border:2px solid #ffffff30;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+#findBar{flex:1;margin:0 7px;display:flex;align-items:center;gap:4px;background:#ffffff0d;border:1px solid #b4b4b4;border-radius:12px;padding:3px 6px 3px 14px}
+#findBar[hidden],#nav[hidden],#zoomLevel[hidden],#clearDownloads[hidden]{display:none!important}
+#findBar input{flex:1;min-width:0;background:none;border:0;outline:none;color:#fff;padding:8px 4px}
+#findBar .find-icon{color:#aaa;font-size:17px}
+#findCount{font-size:11px;color:#bbb;white-space:nowrap;padding:0 6px}
+#findCount.none{color:#f28b82}
+#findBar button{padding:5px 9px}
+#zoomLevel{font-size:11px;border:1px solid #ffffff30;padding:5px 9px}
+#showDownloads{position:relative}
+#showDownloads.busy::after{content:'';position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#8fe39a}
+.download-row .inline-buttons{margin-top:7px}
+#clearDownloads{margin-top:12px;border:1px solid #555}
+@media(prefers-reduced-motion:reduce){.tab-spinner{animation:none}}

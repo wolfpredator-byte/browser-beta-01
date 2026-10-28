@@ -1,13 +1,16 @@
 <!doctype html>
-<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.9</title><link rel="stylesheet" href="style.css"></head>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>Personal Browser Beta 0.9.1</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.9</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo">◈ &nbsp; PERSONAL BROWSER <span>BETA 0.9.1</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" title="Nascondi / mostra pannello laterale" aria-label="Nascondi o mostra la barra laterale">▥</button>
   <div class="brand" title="Personal Browser">◈</div>
   <button id="back" title="Indietro">←</button><button id="forward" title="Avanti">→</button><button id="reload" title="Ricarica">↻</button><button id="home" title="Home">⌂</button>
   <form id="nav"><input id="address" aria-label="Indirizzo web o ricerca" placeholder="Cerca sul web o inserisci un indirizzo..." autocomplete="off"></form>
+  <!-- Ctrl+F: prende il posto della barra degli indirizzi finché è aperta. -->
+  <form id="findBar" hidden><span class="find-icon">⌕</span><input id="findInput" aria-label="Trova nella pagina" placeholder="Trova nella pagina" autocomplete="off"><span id="findCount" aria-live="polite"></span><button type="button" id="findPrev" title="Precedente (Shift+Invio)">↑</button><button type="submit" id="findNext" title="Successivo (Invio)">↓</button><button type="button" id="findClose" title="Chiudi (Esc)">×</button></form>
+  <button id="zoomLevel" hidden title="Zoom della pagina: clic per tornare al 100% (Ctrl 0)">100%</button>
   <button id="bookmark" title="Aggiungi ai preferiti">☆</button><button id="showDownloads" title="Download">↓</button>
   <button id="jarvisMini" class="orb-mini" title="Torna alla home JARVIS" aria-label="Homepage JARVIS"><span></span></button>
 </header>
@@ -52,7 +55,7 @@
 <section id="downloadDrawer" class="download-drawer" hidden aria-label="Gestione download">
  <div class="drawer-top"><strong>Download</strong><button id="closeDownloads" title="Chiudi pannello">×</button></div>
  <p class="drawer-note">Scegli la destinazione nella finestra Salva di Windows.</p>
- <div id="downloadList"></div><button id="downloadCurrentFile" title="Forza il download del file attualmente visualizzato">Scarica il file della scheda</button>
+ <div id="downloadList"></div><button id="clearDownloads" hidden>Svuota elenco</button><button id="downloadCurrentFile" title="Forza il download del file attualmente visualizzato">Scarica il file della scheda</button>
  <button id="openDownloadsFolder">Apri cartella Download</button>
 </section>
 <footer class="tabbar"><button id="workspaceSwitcher" title="Scegli workspace" aria-label="Seleziona workspace">◈ <span id="footerWorkspaceName">Personale</span> ▾</button><div id="tabs"></div><button id="new" title="Nuova scheda Home">＋</button><button id="reopenClosed" title="Riapri ultima scheda chiusa (Ctrl+Shift+T)" aria-label="Riapri ultima scheda chiusa">↶</button><div class="tabbar-spacer"></div></footer>

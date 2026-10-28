@@ -55,3 +55,13 @@ test('risorse: domini e URL sono indirizzi, le frasi no',()=>{
   assert.equal(looksLikeAddress(''),false);
   assert.equal(looksLikeAddress(undefined),false);
 });
+
+test('login Google: identità Firefox solo su accounts.google.com',()=>{
+  const {userAgentFor,firefoxHeaders,FIREFOX_UA,isGoogleLogin}=require('../lib/web-rules.cjs');
+  const chrome='Mozilla/5.0 Chrome/142';
+  assert.equal(userAgentFor('https://accounts.google.com/v3/signin/identifier',chrome),FIREFOX_UA);
+  assert.equal(userAgentFor('https://www.youtube.com/',chrome),chrome);
+  assert.equal(isGoogleLogin('https://accounts.google.com.evil.example/'),false);
+  const headers=firefoxHeaders({'User-Agent':chrome,'sec-ch-ua':'"Chromium";v="142"','Sec-CH-UA-Platform':'"Windows"',Accept:'*/*'});
+  assert.deepEqual(headers,{Accept:'*/*','User-Agent':FIREFOX_UA});
+});

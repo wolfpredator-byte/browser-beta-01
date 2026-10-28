@@ -44,3 +44,13 @@ test('i tasti normali e i rilasci restano ai siti',()=>{
   assert.equal(shortcutCommand({type:'keyUp',key:'F12',control:false,shift:false,alt:false}),null);
   assert.equal(shortcutCommand(null),null);
 });
+
+test('Beta 0.9.1: cerca, stampa e zoom',()=>{
+  const key=(key,mods={})=>shortcutCommand({type:'keyDown',key,control:true,shift:false,alt:false,...mods});
+  assert.equal(key('f'),'openFind');
+  assert.equal(key('p'),'print');
+  assert.equal(key('='),'zoomIn');
+  assert.equal(key('+',{shift:true}),'zoomIn'); // tastiera italiana: + con Shift
+  assert.equal(key('-'),'zoomOut');
+  assert.equal(key('0'),'zoomReset');
+});

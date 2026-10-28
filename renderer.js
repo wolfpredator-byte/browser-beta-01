@@ -385,19 +385,32 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    if(!list.childElementCount)list.textContent='Nessun elemento da mostrare.';
  }
  $('closeSidePanel').onclick=()=>act('toggleSidePanel',{panel:state.sidePanelOpen});
+ const DOWNLOAD_STATES={waiting:'In attesa di conferma',progressing:'In corso',completed:'Completato',cancelled:'Annullato',interrupted:'Interrotto'};
  function renderDownloads(){
  $('downloadDrawer').hidden=!state.downloadsOpen;
  const list=$('downloadList');list.replaceChildren();
- for(const item of state.downloads||[]){
+ const downloads=state.downloads||[];
+ for(const item of downloads){
   const row=document.createElement('div');row.className='download-row';
   const title=document.createElement('div');title.className='download-name';title.textContent=item.name;
-  const desc=document.createElement('div');desc.className='download-state';desc.textContent=(item.state==='completed'?'Completato':item.state==='cancelled'?'Annullato':item.state==='interrupted'?'Interrotto':'In corso')+(item.total>0?' · '+Math.min(100,Math.round(100*item.received/item.total))+'%':'');
+  const percent=item.total>0&&item.state!=='completed'?' · '+Math.min(100,Math.round(100*item.received/item.total))+'%':'';
+  const desc=document.createElement('div');desc.className='download-state';desc.textContent=(DOWNLOAD_STATES[item.state]||'In corso')+percent;
   row.append(title,desc);
-  if(item.total>0){const track=document.createElement('progress');track.max=item.total;track.value=item.received;row.appendChild(track);}
+  if(item.error)row.append(el('div',{className:'panel-error',textContent:item.error}));
+  if(item.total>0&&['waiting','progressing'].includes(item.state)){const track=document.createElement('progress');track.max=item.total;track.value=item.received;row.appendChild(track);}
+  // Azioni: apri e mostra a download finito, annulla mentre è in corso.
+  const actions=el('div',{className:'inline-buttons'});
+  if(item.state==='completed'){addButton(actions,'Apri',()=>act('downloadOpen',{id:item.id}));addButton(actions,'Mostra nella cartella',()=>act('downloadShow',{id:item.id}));}
+  else if(['waiting','progressing'].includes(item.state))addButton(actions,'Annulla',()=>act('downloadCancel',{id:item.id}));
+  if(actions.childElementCount)row.append(actions);
   list.appendChild(row);
  }
  if(!list.childElementCount)list.textContent='Nessun download in questa sessione.';
+ $('clearDownloads').hidden=!downloads.some(d=>!['waiting','progressing'].includes(d.state));
+ // Pallino sul pulsante ↓ mentre qualcosa si sta scaricando.
+ $('showDownloads').classList.toggle('busy',downloads.some(d=>['waiting','progressing'].includes(d.state)));
 }
+$('clearDownloads').onclick=()=>act('downloadsClear');
 $('closeDownloads').onclick=()=>act('toggleDownloads');
 $('openDownloadsFolder').onclick=()=>act('showDownloadsFolder');
 $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
@@ -458,6 +471,9 @@ function render(){
      if(event.shiftKey)act('stackTabs',{fromId,targetId:t.id});
      else act('reorderTab',{id:fromId,beforeId:t.id});
    };
+   // Icona del sito, oppure un cerchio che gira mentre la pagina carica.
+   if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
+   else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
    const title=document.createElement('span');
    title.textContent=t.isHome?'⌂ Home':(t.title||t.url);
    title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
@@ -494,7 +510,10 @@ function render(){
    // Click destro: menu nativo con "Apri in una nuova finestra" e "Cambia icona".
    button.oncontextmenu=event=>{event.preventDefault();act('workspaceContextMenu',{name:workspace.name});};
    w.appendChild(button);
- }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';$('address').placeholder=state.tabs.find(t=>t.active)?.url||'Cerca o inserisci un URL...';}
+ }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();const err=$('loadError');err.hidden=!state.loadError;err.textContent=state.loadError||'';const activeTab=state.tabs.find(t=>t.active);
+// Sulla Home niente "app://home": la barra invita a cercare.
+$('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca sul web o inserisci un indirizzo...';
+renderZoom();renderFindForTab();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');
@@ -512,7 +531,52 @@ $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
-window.browserAPI.onUi(message=>{if(message?.type==='focusAddress'){const a=$('address');a.focus();a.select();}});
+window.browserAPI.onUi(message=>{
+ if(message?.type==='focusAddress'){closeFind(false);const a=$('address');a.focus();a.select();}
+ else if(message?.type==='openFind')openFind();
+ else if(message?.type==='findResult'){
+   const found=$('findCount');
+   found.textContent=message.matches?`${message.active} di ${message.matches}`:'Nessun risultato';
+   found.classList.toggle('none',!message.matches);
+ }
+});
+// ── Cerca nella pagina (Ctrl+F) e zoom ─────────────────────────────────
+let findTab=null;
+function openFind(){
+ if(state.homeActive)return;
+ findTab=state.activeTab;
+ $('nav').hidden=true;$('findBar').hidden=false;
+ const input=$('findInput');input.focus();input.select();
+ if(input.value)act('findInPage',{text:input.value,forward:true,findNext:true});
+}
+function closeFind(stop=true){
+ if($('findBar').hidden)return;
+ $('findBar').hidden=true;$('nav').hidden=false;$('findCount').textContent='';
+ if(stop)act('stopFind');
+}
+// Cambiando scheda la ricerca si chiude: apparteneva alla pagina precedente.
+function renderFindForTab(){if(!$('findBar').hidden&&state.activeTab!==findTab)closeFind(false);}
+$('findInput').oninput=()=>{
+ const text=$('findInput').value;
+ if(!text){$('findCount').textContent='';act('stopFind');return;}
+ act('findInPage',{text,forward:true,findNext:true}); // nuova ricerca
+};
+// Risultato successivo/precedente della stessa ricerca (findNext:false, vedi commands.cjs).
+const findStep=forward=>{const text=$('findInput').value;if(text)act('findInPage',{text,forward,findNext:false});};
+$('findBar').onsubmit=e=>{e.preventDefault();findStep(true);};
+$('findPrev').onclick=()=>findStep(false);
+$('findClose').onclick=()=>closeFind();
+$('findInput').onkeydown=e=>{
+ if(e.key==='Escape'){e.preventDefault();closeFind();}
+ else if(e.key==='Enter'&&e.shiftKey){e.preventDefault();findStep(false);}
+};
+function renderZoom(){
+ const button=$('zoomLevel');
+ button.hidden=!state.zoom||state.zoom===100||state.homeActive;
+ button.textContent=state.zoom+'%';
+}
+$('zoomLevel').onclick=()=>act('zoomReset');
+
 // Disposizione delle finestre sui monitor (Beta 0.8): riepilogo nella Home del workspace.
 function renderLayoutInfo(){
  const layout=state.workspaces.find(x=>x.name===state.activeWorkspace)?.layout;
