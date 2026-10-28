@@ -409,11 +409,88 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    button.title=(s.secure?'':'Connessione non protetta · ')+`${s.blocked} elementi bloccati · permessi del sito`;
    $('siteBlocked').textContent=s.blocked>0?(s.blocked>99?'99+':String(s.blocked)):'';
  }
+
+ // ── Pannello Impostazioni (Beta 0.11) ───────────────────────────────────
+ let renderedSettings=null;
+ const settingsUi={status:'',statusError:false};
+ const SLEEP_LABELS=[[0,'Mai'],[15,'Dopo 15 minuti'],[30,'Dopo 30 minuti'],[60,'Dopo 1 ora'],[120,'Dopo 2 ore']];
+ function selectBox(options,value,onchange){
+   const select=el('select',{className:'permission-select'});
+   for(const [v,label] of options)select.append(el('option',{value:String(v),textContent:label,selected:String(v)===String(value)}));
+   select.onchange=()=>{select.blur();onchange(select.value);};
+   return select;
+ }
+ // Azioni che non si possono annullare: il primo clic chiede conferma, il secondo esegue.
+ function confirmButton(label,confirmLabel,fn){
+   const button=addButton(el('span'),label,async()=>{
+     if(!button.dataset.armed){button.dataset.armed='1';button.textContent=confirmLabel;button.classList.add('danger');return;}
+     await fn();
+   });
+   return button;
+ }
+ function settingsStatus(text,isError=false){settingsUi.status=text;settingsUi.statusError=isError;renderedSettings=null;renderSettings();}
+ async function settingsAction(command,okText){
+   const response=await act(command);
+   const r=response?.result;
+   if(!response?.ok)settingsStatus(response?.error||'Operazione non riuscita',true);
+   else if(r?.cancelled)return;
+   else if(r?.ok===false)settingsStatus(r.error||'Operazione non riuscita',true);
+   else if(okText)settingsStatus(typeof okText==='function'?okText(r):okText);
+ }
+ function renderSettings(){
+   const s=state.settings;
+   $('sidePanelTitle').textContent='Impostazioni';
+   const list=$('sidePanelItems');
+   if(list.contains(document.activeElement)&&document.activeElement.matches('select'))return;
+   const key=JSON.stringify([s,settingsUi]);
+   if(key===renderedSettings)return;
+   renderedSettings=key;
+   const panel=$('sidePanel'),scroll=panel.scrollTop;
+   list.replaceChildren();
+   if(!s)return;
+   const row=(label,control)=>el('label',{className:'permission-row'},el('span',{textContent:label}),control);
+   const hint=text=>el('p',{className:'panel-hint',textContent:text});
+   if(settingsUi.status)list.append(el('p',{className:settingsUi.statusError?'panel-error':'settings-status',role:'status',textContent:settingsUi.status}));
+   list.append(
+     section('Ricerca',
+       row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
+       hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
+     section('Avvio e background',
+       checkRow('Resta nell’area di notifica quando chiudo le finestre',s.runInBackground,enabled=>act('setRunInBackground',{enabled})),
+       checkRow('Avvia con Windows (solo l’icona, nessuna finestra)',s.openAtLogin,enabled=>act('setOpenAtLogin',{enabled})),
+       checkRow('Rileva l’avvio dei giochi',s.gameWatcher,enabled=>act('setGameWatcher',{enabled}))),
+     section('Schede',
+       row('Sospendi le schede non guardate',selectBox(SLEEP_LABELS,s.sleepAfterMinutes,v=>act('setSleepMinutes',{minutes:Number(v)}))),
+       hint('Mai sospese: la scheda che guardi, quelle fissate, quelle che suonano e quelle con i DevTools aperti.')),
+     section('Privacy e sicurezza',
+       checkRow('Blocca pubblicità e tracker',s.adblock.enabled,enabled=>act('setAdblockEnabled',{enabled})),
+       hint(`${s.adblock.exceptions} ${s.adblock.exceptions===1?'sito escluso':'siti esclusi'} dal blocco · ${s.sitesWithPermissions} ${s.sitesWithPermissions===1?'sito':'siti'} con permessi salvati. Si gestiscono dallo scudo ⛉ accanto alla barra degli indirizzi.`),
+       el('div',{className:'inline-buttons'},
+         confirmButton(`Cancella la cronologia (${s.historyCount})`,'Conferma: cancella la cronologia',()=>settingsAction('clearHistory','Cronologia cancellata.')),
+         confirmButton('Cancella cookie e dati dei siti','Conferma: esci da tutti i siti',()=>settingsAction('clearSiteData','Cookie, dati dei siti e cache cancellati. Le pagine aperte sono state ricaricate.'))),
+       hint('Cancellare i cookie ti fa uscire da tutti gli account (Google, Discord…).')),
+     section('JARVIS',
+       hint(s.jarvisEnabled?'Server MCP attivo.':'Server MCP spento: nessun programma può comandare il browser.'),
+       projectButtons(['Apri il pannello JARVIS',()=>act('openSidePanel',{panel:'jarvis'})])),
+     section('Dati',
+       projectButtons(['Esporta…',()=>settingsAction('exportData',r=>'Backup salvato: '+r.file)],
+         ['Importa…',()=>settingsAction('importData')],['Apri la cartella dei dati',()=>act('showDataFolder')]),
+       hint('Il backup contiene workspace, preferiti, cronologia, giochi, disposizioni, permessi e impostazioni. Non contiene i segreti dei progetti né le password dei siti.')),
+     section('Informazioni',
+       el('p',{className:'game-meta',textContent:`Personal Browser ${s.versions.app} · Electron ${s.versions.electron} · Chromium ${s.versions.chrome}`}),
+       el('p',{className:s.errors?'panel-error':'game-meta',textContent:s.errors?`${s.errors} ${s.errors===1?'errore registrato':'errori registrati'} in questa sessione.`:'Nessun errore in questa sessione.'}),
+       projectButtons(['Copia la diagnostica',()=>settingsAction('copyDiagnostics','Diagnostica copiata negli appunti: incollala dove ti serve.')]),
+       hint('Versioni, memoria, impostazioni e ultimi errori. Non contiene token né segreti.'))
+   );
+   panel.scrollTop=scroll;
+ }
  // Crea un pannello realmente visibile sui siti (i siti sono WebContentsView).
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
    $('sidePanel').hidden=!mode;
+   if(mode!=='settings'){renderedSettings=null;settingsUi.status='';}
+   else return renderSettings();
    if(mode!=='site')renderedSite=null;
    else return renderSite();
    if(mode!=='jarvis')renderedJarvis=null;
@@ -584,12 +661,14 @@ $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');
 $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
 $('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
+$('showSettings').onclick=()=>act('toggleSidePanel',{panel:'settings'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
 window.browserAPI.onUi(message=>{
  if(message?.type==='focusAddress'){closeFind(false);const a=$('address');a.focus();a.select();}
  else if(message?.type==='openFind')openFind();
+ else if(message?.type==='palette')openPalette(message);
  else if(message?.type==='findResult'){
    const found=$('findCount');
    found.textContent=message.matches?`${message.active} di ${message.matches}`:'Nessun risultato';
@@ -642,3 +721,71 @@ function renderLayoutInfo(){
  const when=new Date(layout.savedAt).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
  info.textContent=`Disposizione salvata: ${layout.windows} ${layout.windows===1?'finestra':'finestre'} su ${layout.monitors} monitor · ${when}`;
 }
+
+// ── Palette dei comandi (Beta 0.11): F1 · Ctrl+Shift+P · pulsante ⌘ ──────
+const KIND_LABELS={tab:'Scheda',command:'Comando',workspace:'Workspace',project:'Progetto',game:'Gioco',bookmark:'Preferito',history:'Cronologia',web:'Web'};
+let paletteItems=[],paletteShown=[],paletteIndex=0;
+function openPalette(message){
+ closeFind(false);
+ paletteItems=message.items||[];
+ // Fotografia della pagina nello stesso punto in cui stava la pagina vera.
+ const img=$('paletteBackdrop'),b=message.bounds;
+ img.hidden=!(message.backdrop&&b);
+ if(!img.hidden){img.src=message.backdrop;Object.assign(img.style,{left:b.x+'px',top:b.y+'px',width:b.width+'px',height:b.height+'px'});}
+ $('palette').hidden=false;
+ const input=$('paletteInput');input.value='';
+ renderPalette();
+ input.focus();
+}
+function closePalette(){
+ if($('palette').hidden)return Promise.resolve();
+ $('palette').hidden=true;$('paletteBackdrop').removeAttribute('src');
+ return act('closePalette');
+}
+/** Il testo scritto come indirizzo o ricerca web, sempre disponibile. */
+function webItem(q){
+ const address=/^https?:\/\//i.test(q)||/^localhost\b/i.test(q)||/^[^\s/]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(q);
+ return {kind:'web',label:address?'Apri '+q:`Cerca «${q}» sul web`,detail:'nuova scheda',run:{command:'newTab',args:{url:q}},address};
+}
+function renderPalette(){
+ const q=$('paletteInput').value.trim();
+ paletteShown=window.paletteRules.filterItems(paletteItems,q,60);
+ if(q){const web=webItem(q);if(web.address||!paletteShown.length)paletteShown.unshift(web);else paletteShown.push(web);}
+ paletteIndex=0;
+ const list=$('paletteList');list.replaceChildren();
+ paletteShown.forEach((item,index)=>{
+   const icon=item.favicon?el('img',{className:'palette-icon',src:item.favicon,alt:''}):el('span',{className:'palette-icon'});
+   const text=el('span',{className:'palette-text'},el('span',{className:'palette-label',textContent:item.label}),
+     ...(item.detail?[el('span',{className:'palette-detail',textContent:item.detail})]:[]));
+   const row=el('div',{className:'palette-row',role:'option'},icon,text,
+     ...(item.keys?[el('kbd',{textContent:item.keys})]:[]),el('span',{className:'palette-kind kind-'+item.kind,textContent:KIND_LABELS[item.kind]||''}));
+   row.onmousemove=()=>{if(paletteIndex!==index){paletteIndex=index;highlightPalette(false);}};
+   row.onclick=()=>runPaletteItem(item);
+   list.append(row);
+ });
+ if(!paletteShown.length)list.append(el('p',{className:'panel-hint',textContent:'Nessun risultato.'}));
+ highlightPalette(true);
+}
+function highlightPalette(scroll){
+ const rows=$('paletteList').children;
+ for(let i=0;i<rows.length;i++)rows[i].classList.toggle('selected',i===paletteIndex);
+ if(scroll)rows[paletteIndex]?.scrollIntoView({block:'nearest'});
+}
+async function runPaletteItem(item){
+ if(!item)return;
+ await closePalette();
+ act(item.run.command,item.run.args||{});
+}
+$('paletteInput').oninput=renderPalette;
+$('paletteInput').onkeydown=e=>{
+ const move=step=>{e.preventDefault();if(!paletteShown.length)return;paletteIndex=(paletteIndex+step+paletteShown.length)%paletteShown.length;highlightPalette(true);};
+ if(e.key==='ArrowDown')move(1);
+ else if(e.key==='ArrowUp')move(-1);
+ else if(e.key==='PageDown')move(Math.min(8,paletteShown.length-1-paletteIndex));
+ else if(e.key==='PageUp')move(-Math.min(8,paletteIndex));
+ else if(e.key==='Enter'){e.preventDefault();runPaletteItem(paletteShown[paletteIndex]);}
+ else if(e.key==='Escape'){e.preventDefault();closePalette();}
+};
+// Clic fuori dal riquadro: chiude.
+$('palette').onmousedown=e=>{if(e.target===$('palette')||e.target===$('paletteBackdrop'))closePalette();};
+$('paletteButton').onclick=()=>act('openPalette');

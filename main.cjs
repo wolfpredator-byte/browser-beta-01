@@ -23,6 +23,10 @@ const {createCommandBus}=require('./lib/command-bus.cjs');
 const {registerCommands}=require('./lib/commands.cjs');
 const {registerGameCommands}=require('./lib/commands-games.cjs');
 const {registerProjectCommands}=require('./lib/commands-projects.cjs');
+const {registerSettingsCommands}=require('./lib/commands-settings.cjs');
+const diagnostics=require('./lib/diagnostics.cjs');
+// Prima di tutto il resto: anche gli errori dell'avvio finiscono nella diagnostica.
+diagnostics.install();
 const {shortcutCommand}=require('./lib/window-rules.cjs');
 const {setupWebSession}=require('./lib/web-session.cjs');
 const {createGameWatcher}=require('./lib/game-watcher.cjs');
@@ -66,6 +70,7 @@ function start(){
   registerCommands(bus);
   registerGameCommands(bus);
   registerProjectCommands(bus);
+  registerSettingsCommands(bus);
 
   windows.setShortcutHandler((contents,input)=>{
     const command=shortcutCommand(input);

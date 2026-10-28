@@ -207,3 +207,27 @@ pre.json-preview{max-height:300px;margin:8px 0}
 .permission-select{background:#1a1a1a;color:#fff;border:1px solid #ffffff2d;border-radius:8px;padding:5px 8px;font:inherit}
 .tab.sleeping:not(.active){opacity:.6}
 .tab.sleeping .tab-favicon{filter:grayscale(1)}
+
+/* BETA 0.11 — palette dei comandi e Impostazioni. */
+.settings-button{margin-top:10px}
+.settings-status{font-size:12px;color:#8fe39a;margin:0 0 8px}
+#palette{position:fixed;inset:0;z-index:1000;background:#0008;display:flex;justify-content:center;align-items:flex-start}
+#palette[hidden]{display:none}
+#paletteBackdrop{position:fixed;filter:blur(6px) brightness(.45);z-index:-1}
+#paletteBackdrop[hidden]{display:none}
+.palette-box{margin-top:72px;width:min(680px,calc(100vw - 32px));max-height:calc(100vh - 120px);display:flex;flex-direction:column;
+  background:#161618f2;border:1px solid #ffffff26;border-radius:14px;box-shadow:0 24px 60px #000a;overflow:hidden}
+#paletteInput{font:inherit;font-size:15px;color:#fff;background:transparent;border:0;border-bottom:1px solid #ffffff1c;padding:14px 16px;outline:none}
+#paletteList{overflow-y:auto;padding:6px}
+.palette-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;cursor:pointer;color:#ddd}
+.palette-row.selected{background:#ffffff17;color:#fff}
+.palette-icon{flex:0 0 16px;width:16px;height:16px;border-radius:3px}
+.palette-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.palette-label,.palette-detail{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.palette-label{font-size:13px}
+.palette-detail{font-size:11px;color:#999}
+.palette-row kbd{font-family:inherit;font-size:11px;color:#bbb;border:1px solid #ffffff2d;border-radius:5px;padding:1px 5px}
+.palette-kind{flex:0 0 auto;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#888}
+/* kind-…: "tab" da solo prenderebbe lo stile delle schede. */
+.palette-kind.kind-tab{color:#8fc7ff}.palette-kind.kind-command{color:#c9a6ff}.palette-kind.kind-project{color:#8fe39a}.palette-kind.kind-web{color:#f2c94c}
+.palette-foot{display:flex;gap:16px;font-size:11px;color:#888;padding:8px 14px;border-top:1px solid #ffffff12}
