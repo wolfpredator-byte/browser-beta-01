@@ -1,6 +1,6 @@
 # VARCO Beta 0.15 — Menu, dialoghi e pannelli
 
-Installer: `dist\VARCO Setup 0.15.0.exe`.
+Installer: `dist\VARCO Setup 0.15.1.exe`.
 
 Dalla cartella `Reference\Da implementare`: mock-up *Page Slider and Context Menus* e *Notification System*.
 
@@ -46,12 +46,12 @@ Dalla cartella `Reference\Da implementare`: mock-up *Page Slider and Context Men
 
 ## Test da fare
 
-- [ ] **T74** — Click destro su un link, su un'immagine, su un testo selezionato, in un campo di testo e sulla pagina vuota: menu VARCO con le voci giuste. **📸** di uno o due.
-- [ ] **T75** — Click destro su una scheda: Disattiva audio (su YouTube), Chiudi altre schede.
+- [x] **T74** — Click destro su un link, su un'immagine, su un testo selezionato, in un campo di testo e sulla pagina vuota: menu VARCO con le voci giuste. **📸** di uno o due.
+- [x] **T75** — Click destro su una scheda: Disattiva audio (su YouTube), Chiudi altre schede.
 - [ ] **T76** — Un sito che chiede le notifiche o il microfono: dialogo VARCO Blocca / Consenti. **📸**.
-- [ ] **T77** — Scarica un file: dialogo VARCO, poi nel pannello Download schede e click destro → Elimina file (con conferma).
-- [ ] **T78** — Centro notifiche: numero sul pulsante, filtri, Cancella tutto.
-- [ ] **T79** — Cambia scheda tra due siti: la pagina scorre. Spegni l'animazione dalle Impostazioni e riprova.
+- [x] **T77** — Scarica un file: dialogo VARCO, poi nel pannello Download schede e click destro → Elimina file (con conferma).
+- [x] **T78** — Centro notifiche: numero sul pulsante, filtri, Cancella tutto.
+- [x] **T79** — Cambia scheda tra due siti: la pagina scorre. Spegni l'animazione dalle Impostazioni e riprova.
 
 **Stato:** 103 test superati. Provato nell'app (profilo di prova), con catture dello schermo:
 - menu di un link sopra Wikipedia; menu della scheda con 15 voci; Esc chiude;
@@ -75,3 +75,28 @@ Installer controllato: nell'eseguibile il menu dei workspace si apre con le sue 
   - ricarica automatica dell'anteprima;
   - stack compatti;
   - vista divisa.
+
+**Risultato dei tuoi test:** tutto funziona (menu della pagina e dei link su light.gg), tranne le richieste di permesso, che non comparivano.
+
+## 0.15.1 — Le richieste di permesso compaiono
+
+**La causa.** Per le notifiche Electron sa dire ai siti solo "concesso" o "negato". Così, per un sito mai deciso, `Notification.permission` valeva **"denied"**. Quasi tutti i siti (YouTube, Discord, giornali…) chiedono il permesso solo se lo stato è "default": vedendo "denied" non chiedevano mai, e il dialogo non compariva.
+
+**La correzione.** Prima che il sito parta, `page-preload.cjs` chiede al browser lo stato vero e lo mostra alla pagina:
+- "default" (e "prompt" per `navigator.permissions`) finché non hai deciso;
+- "granted" o "denied" dopo la tua scelta.
+
+La richiesta vera passa comunque dal dialogo VARCO: un sito non può mandarti notifiche senza un tuo "Consenti".
+
+**Se un sito ancora non chiede:** probabilmente hai già deciso per lui con "Ricorda la scelta". Apri lo scudo accanto alla barra degli indirizzi e rimetti il permesso su "Chiedi".
+
+Anche il testo del dialogo è più naturale: "vuole usare **il** microfono", "**la** fotocamera".
+
+Provato nell'app con una pagina che fa come i siti veri (chiede solo se lo stato è "default"):
+- prima della scelta la pagina vede "default" e "prompt";
+- compare il dialogo "vuole inviarti notifiche"; **Consenti** → la pagina riceve "granted" e la scelta viene salvata;
+- microfono: compare il dialogo; **Blocca** → il sito riceve il rifiuto (`NotAllowedError`).
+
+Nell'eseguibile, un sito mai deciso vede "default". 103 test superati.
+
+- [ ] **T76** (di nuovo) — Un sito che chiede le notifiche (es. un giornale o YouTube dopo il login) o il microfono (Discord web, una chiamata): compare il dialogo VARCO.

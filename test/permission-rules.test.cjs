@@ -38,7 +38,7 @@ test('decisione: un "blocca" basta a negare, servono tutti i "consenti"',()=>{
 });
 
 test('testo della domanda',()=>{
-  assert.equal(describeRequest('https://discord.com',['camera','microphone']),'discord.com vuole usare fotocamera e microfono');
+  assert.equal(describeRequest('https://discord.com',['camera','microphone']),'discord.com vuole usare la fotocamera e il microfono');
   assert.equal(describeRequest('https://www.youtube.com',['notifications']),'www.youtube.com vuole inviarti notifiche');
 });
 
