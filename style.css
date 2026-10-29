@@ -516,3 +516,5 @@ body[style*="--ws-active"] #workspaceSwitcher .i{color:var(--ws-active)}
   border:1px solid var(--v-line);border-radius:12px;padding:12px 14px;outline:none}
 .notes-area:focus{border-color:var(--v-line-strong)}
 .notes-status{margin-top:8px}
+/* 0.17.1: il display:inline-flex dei pulsanti batteva [hidden] (pulsante vuoto nella pagina di errore). */
+.error-actions button[hidden]{display:none}

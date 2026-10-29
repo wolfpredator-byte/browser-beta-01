@@ -146,6 +146,17 @@ else{
   app.whenReady().then(()=>{start();openUrls(urlsIn(process.argv));});
 }
 
+/**
+ * Beta 0.17.1: i dev server in https (es. Next.js --experimental-https) usano un certificato
+ * fatto in casa. Solo per gli indirizzi locali lo accettiamo, come Chrome con
+ * "allow-insecure-localhost"; per tutti gli altri siti il controllo resta quello normale.
+ */
+app.on('certificate-error',(event,_contents,url,_error,_certificate,callback)=>{
+  let host='';try{host=new URL(url).hostname;}catch{}
+  if(['localhost','127.0.0.1','[::1]'].includes(host)){event.preventDefault();callback(true);}
+  else callback(false);
+});
+
 app.on('before-quit',()=>{
   // Registriamo TUTTE le finestre prima che inizino a chiudersi una alla volta.
   if(!state.quitting&&state.windows.length)windows.rememberOpenWindows();

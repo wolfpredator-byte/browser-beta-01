@@ -87,9 +87,11 @@ test('pagina di errore: server locale spento, https locale, indirizzo inesistent
   const local=describeLoadError(-102,'ERR_CONNECTION_REFUSED','https://localhost:3000/?auth=success');
   assert.equal(local.local,true);
   assert.match(local.detail,/server di sviluppo è spento/);
-  assert.equal(local.httpUrl,'http://localhost:3000/?auth=success');
+  assert.equal(local.altUrl,'http://localhost:3000/?auth=success');
   const remote=describeLoadError(-102,'ERR_CONNECTION_REFUSED','https://example.com/');
-  assert.equal(remote.local,false);assert.equal(remote.httpUrl,null);
+  assert.equal(remote.local,false);assert.equal(remote.altUrl,null);
+  const next=describeLoadError(-324,'ERR_EMPTY_RESPONSE','http://localhost:3000/');
+  assert.equal(next.altUrl,'https://localhost:3000/');assert.equal(next.altLabel,'Prova con https://');
   assert.match(describeLoadError(-105,'ERR_NAME_NOT_RESOLVED','https://nonesiste.xyz/').title,/non esiste/);
   assert.equal(describeLoadError(-202,'ERR_CERT_AUTHORITY_INVALID','https://a.it/').title,'Connessione non sicura');
 });

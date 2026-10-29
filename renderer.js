@@ -793,7 +793,7 @@ function render(){
    w.appendChild(button);
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
-$('address').placeholder=activeTab&&!activeTab.isHome?activeTab.url:'Cerca o inserisci un indirizzo web';
+syncAddress(activeTab);
 renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();renderNotifyBadge();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
@@ -802,7 +802,7 @@ else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item'
 $('workspaceSwitcher').onclick=()=>act('showWorkspaceMenu');
 // Questo pulsante è una scorciatoia visuale alla stessa funzione di Ctrl+Shift+T.
 $('reopenClosed').onclick=()=>act('reopenClosedTab');
-$('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();act('navigate',{url:$('address').value});$('address').value='';};$('addWorkspace').onclick=()=>act('toggleSidePanel',{panel:'newWorkspace'});$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>act('toggleSidePanel',{panel:'addResource'});$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
+$('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();const value=$('address').value;addressEdited=false;$('address').blur();if(value.trim())act('navigate',{url:value});};$('addWorkspace').onclick=()=>act('toggleSidePanel',{panel:'newWorkspace'});$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>act('toggleSidePanel',{panel:'addResource'});$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
 $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
@@ -874,6 +874,16 @@ function renderLayoutInfo(){
  info.textContent=`Disposizione salvata: ${layout.windows} ${layout.windows===1?'finestra':'finestre'} su ${layout.monitors} monitor · ${when}`;
 }
 
+// ── Barra degli indirizzi modificabile (Beta 0.17.1) ─────────────────────
+// Prima l'indirizzo era solo il testo d'aiuto: per cambiarlo andava riscritto da capo.
+// Ora la barra contiene l'indirizzo vero; mentre la stai modificando non viene toccata.
+let addressEdited=false;
+function syncAddress(tab=state.tabs.find(t=>t.active)){
+ const input=$('address');
+ if(addressEdited&&document.activeElement===input)return;
+ const value=tab&&!tab.isHome?tab.url:'';
+ if(input.value!==value)input.value=value;
+}
 // ── Barra degli indirizzi con suggerimenti (Beta 0.12) ──────────────────
 // Prende il posto della palette della 0.11: scrivendo nella barra compaiono pochi
 // suggerimenti (schede, comandi, workspace, preferiti, cronologia). Con ">" all'inizio
@@ -961,20 +971,29 @@ async function runSuggestion(item){
  act(item.run.command,item.run.args||{});
 }
 $('address').addEventListener('input',()=>{
+ addressEdited=true;
  if(!$('address').value.trim()){closeSuggestions();return;}
  if(suggestOpen)renderSuggestions();
  else if(!suggestRequested){suggestRequested=true;act('openPalette',{mode:'address'});}
 });
 $('address').addEventListener('keydown',e=>{
- if(!suggestOpen){if(e.key==='Escape'){$('address').value='';$('address').blur();}return;}
+ // Esc senza suggerimenti: torna all'indirizzo della pagina (come in Chrome).
+ if(!suggestOpen){if(e.key==='Escape'){addressEdited=false;syncAddress();$('address').blur();}return;}
  const move=step=>{e.preventDefault();if(!suggestShown.length)return;suggestIndex=(suggestIndex+step+suggestShown.length)%suggestShown.length;highlightSuggestion(true);};
  if(e.key==='ArrowDown')move(1);
  else if(e.key==='ArrowUp')move(-1);
  else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex]);}
- else if(e.key==='Escape'){e.preventDefault();$('address').value='';closeSuggestions();$('address').blur();}
+ else if(e.key==='Escape'){e.preventDefault();closeSuggestions();addressEdited=false;syncAddress();$('address').blur();}
 });
 // Clic altrove: i suggerimenti si chiudono (il testo resta nella barra).
-$('address').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('address'))closeSuggestions();},120));
+$('address').addEventListener('blur',()=>setTimeout(()=>{
+ if(document.activeElement===$('address'))return;
+ closeSuggestions();
+ // Uscendo senza premere Invio, la barra torna a mostrare l'indirizzo della pagina.
+ addressEdited=false;syncAddress();
+},120));
+// Clic nella barra: seleziona tutto l'indirizzo, pronto da modificare o sostituire.
+$('address').addEventListener('focus',()=>{if(!addressEdited)setTimeout(()=>$('address').select());});
 $('paletteBackdrop').onmousedown=()=>{closeSuggestions();$('address').blur();};
 $('paletteButton').onclick=()=>act('openPalette');
 
@@ -1054,12 +1073,12 @@ function renderLoadError(){
  $('loadErrorDetail').textContent=e.detail;
  $('loadErrorUrl').textContent=e.url||'';
  $('loadErrorCode').textContent=e.description?`${e.description}${e.code?` (${e.code})`:''}`:'';
- const http=$('loadErrorHttp');http.hidden=!e.httpUrl;
- if(e.httpUrl)http.textContent='Prova con http://';
+ const alt=$('loadErrorHttp');alt.hidden=!e.altUrl;
+ if(e.altUrl)alt.textContent=e.altLabel;
  $('loadErrorProject').hidden=!e.local;
 }
 $('loadErrorRetry').onclick=()=>act('reload');
-$('loadErrorHttp').onclick=()=>{if(state.loadError?.httpUrl)act('navigate',{url:state.loadError.httpUrl});};
+$('loadErrorHttp').onclick=()=>{if(state.loadError?.altUrl)act('navigate',{url:state.loadError.altUrl});};
 $('loadErrorProject').onclick=()=>act('openSidePanel',{panel:'project'});
 
 // ── Linea di caricamento sotto la barra degli indirizzi (Beta 0.14) ──────

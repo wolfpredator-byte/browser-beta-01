@@ -53,11 +53,11 @@ Dalla tua lista di idee: rinomina e personalizzazione dei workspace, un blocco n
 
 ## Test da fare
 
-- [ ] **T87** — Click destro su un workspace → Rinomina…: cambia nome. Schede, finestre e la sua disposizione salvata ci sono ancora (Ripristina disposizione funziona).
-- [ ] **T88** — Click destro → Colore → un colore a scelta. **📸** della barra laterale e delle schede.
-- [ ] **T89** — Trascina un workspace in cima alla lista.
-- [ ] **T90** — Note: scrivi qualcosa, chiudi e riapri il browser: le note ci sono.
-- [ ] **T91** — Destiny Builder: apri l'anteprima con il server spento (pagina di errore), poi Progetto → ▶ Avvia: appena il server è su, la pagina si ricarica da sola e compare il toast. **📸**.
+- [x] **T87** — Click destro su un workspace → Rinomina…: cambia nome. Schede, finestre e la sua disposizione salvata ci sono ancora (Ripristina disposizione funziona).
+- [x] **T88** — Click destro → Colore → un colore a scelta. **📸** della barra laterale e delle schede.
+- [x] **T89** — Trascina un workspace in cima alla lista.
+- [x] **T90** — Note: scrivi qualcosa, chiudi e riapri il browser: le note ci sono.
+- [ ] **T91** (non passato: server in https, vedi 0.17.1 e T92) — Destiny Builder: apri l'anteprima con il server spento (pagina di errore), poi Progetto → ▶ Avvia: appena il server è su, la pagina si ricarica da sola e compare il toast. **📸**.
 
 **Stato:** 107 test superati (4 nuovi: rinomina, nomi rifiutati, ordine, frasi "pronto"). Provato nell'app (profilo di prova):
 - anteprima con il server spento → pagina di errore dopo circa 2,5 s (Chromium riprova prima di arrendersi) → ▶ Avvia → entro un secondo la scheda mostra la pagina vera, con il toast «Dev server è pronto · Anteprima ricaricata (1 scheda)»;
@@ -73,3 +73,34 @@ Dalla tua lista di idee: rinomina e personalizzazione dei workspace, un blocco n
 
 ## Prossima
 - **0.18:** stack compatti (due schede in una sola icona) e vista divisa (due schede affiancate nella stessa finestra).
+
+**Risultato dei tuoi test:** con Destiny Builder l'anteprima non tornava: il server Next.js gira in **https** (`https://localhost:3000`), mentre il file del progetto dice `http://`. In più la barra degli indirizzi non si poteva modificare.
+
+## 0.17.1 — Indirizzo dal log e barra degli indirizzi modificabile
+
+Installer: `dist\VARCO Setup 0.17.1.exe`.
+
+- **L'anteprima usa l'indirizzo che scrive il server.** VARCO legge dal log la riga `Local: https://localhost:3000` (o qualunque indirizzo locale) e porta lì le schede dell'anteprima.
+  - Se cambia solo il protocollo o la porta, la pagina resta la stessa: `http://localhost:3000/build/123` diventa `https://localhost:3000/build/123`.
+  - Anche il pulsante **Anteprima** del pannello Progetto usa quell'indirizzo finché il server è acceso.
+  - Non serve cambiare `progetto.browser.json`, ma puoi comunque scriverci `https://`.
+- **Certificati dei server locali:** i dev server in https (come il tuo Next.js con `--experimental-https`) usano un certificato fatto in casa. VARCO lo accetta **solo** per `localhost` e `127.0.0.1`, come Chrome con l'opzione per sviluppatori. Per tutti gli altri siti il controllo resta quello normale.
+- **Pagina di errore:**
+  - via il pulsante vuoto accanto a "Riprova" (era un difetto di stile);
+  - se un indirizzo locale in http riceve la connessione chiusa (`ERR_EMPTY_RESPONSE`, tipico di un server in https), compare **Prova con https://**.
+- **Barra degli indirizzi modificabile**, come in Chrome:
+  - mostra l'indirizzo della pagina;
+  - un clic lo seleziona tutto: scrivi per sostituirlo, oppure clicca di nuovo per modificarne un pezzo;
+  - **Invio** apre l'indirizzo modificato;
+  - **Esc**, o un clic altrove, annulla e torna all'indirizzo della pagina;
+  - i suggerimenti compaiono come prima mentre scrivi.
+
+Provato nell'app:
+- `https://example.com/` + `?modificato=1` + Invio apre l'indirizzo modificato; Esc annulla un testo scritto a metà;
+- server https con certificato fatto in casa sulla porta 8766, aperto in `http://localhost:8766/build/123`: pagina di errore `ERR_EMPTY_RESPONSE` con "Prova con https://";
+- quando il log dice `Local: https://localhost:8766` e "Ready", la scheda passa a `https://localhost:8766/build/123` e mostra la pagina, con il toast «Dev server è pronto».
+
+108 test superati (nuovo: indirizzo letto dal log di Next.js, Vite e 0.0.0.0).
+
+- [ ] **T92** — Destiny Builder: pagina dell'anteprima aperta (anche in http e con il server spento) → ▶ Avvia: la scheda passa a `https://localhost:3000` e mostra il sito.
+- [ ] **T93** — Barra degli indirizzi: clic, modifica una parte dell'indirizzo o della ricerca, Invio.

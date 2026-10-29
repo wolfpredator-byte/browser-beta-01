@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {checkName,renameWorkspace,moveWorkspace,WORKSPACE_COLORS}=require('../lib/workspace-rules.cjs');
-const {isReadyLine}=require('../lib/project-rules.cjs');
+const {isReadyLine,localUrlFromLog}=require('../lib/project-rules.cjs');
 
 const sample=()=>({
   activeWorkspace:'Gaming',
@@ -55,4 +55,12 @@ test('anteprima pronta: frasi tipiche dei dev server, indirizzo dell\'anteprima 
   assert.equal(isReadyLine('installing dependencies…',preview,null),false);
   assert.equal(isReadyLine('API pronta ✓',preview,'api pronta'),true);
   assert.equal(isReadyLine('Local: http://localhost:5173',preview,'api pronta'),false); // con "pronto" conta solo quello
+});
+
+test('indirizzo del dev server letto dal log (riga "Local", https, 0.0.0.0)',()=>{
+  const next='▲ Next.js 16.3.8 (Turbopack)\n- Local:        https://localhost:3000\n- Network:      https://192.168.0.11:3000\n✓ Ready in 679ms';
+  assert.equal(localUrlFromLog(next),'https://localhost:3000/');
+  assert.equal(localUrlFromLog('  ➜  Local:   http://localhost:5173/'),'http://localhost:5173/');
+  assert.equal(localUrlFromLog('listening on http://0.0.0.0:8080'),'http://localhost:8080/');
+  assert.equal(localUrlFromLog('compiled successfully'),null);
 });
