@@ -70,3 +70,24 @@ Provato con riavvii veri dell'app:
 109 test superati.
 
 - [ ] **T99** — Affianca due schede, chiudi VARCO (anche dall'area di notifica con «Esci») o riavvia il PC: alla riapertura sono di nuovo affiancate.
+
+## 0.18.2 — Ogni finestra ha la sua barra laterale
+
+Installer: `dist\VARCO Setup 0.18.2.exe`.
+
+**Il problema:** con due finestre aperte, nascondere (o allargare) la barra laterale in una lo faceva anche nell'altra. La larghezza era un'impostazione unica per tutto il browser.
+
+**Ora:**
+- ogni finestra ha la sua barra laterale: nascosta, a icone o con i nomi;
+- ognuna la ricorda alla chiusura, al riavvio e nelle disposizioni salvate sui monitor;
+- una finestra nuova parte dall'ultima scelta che hai fatto.
+
+Gli altri controlli erano già per finestra (pannelli, download, vista divisa) o per scheda (zoom).
+
+Provato nell'app:
+- due finestre ("Gaming" e "Test 0.17"); barra nascosta in Gaming: la finestra Test resta compatta e la sua pagina non si sposta;
+- dopo il riavvio Gaming è ancora nascosta e Test compatta.
+
+109 test superati.
+
+- [ ] **T100** — Due finestre: nascondi la barra laterale in una, l'altra resta com'è. Chiudi e riapri il browser: ognuna ha ancora la sua.
