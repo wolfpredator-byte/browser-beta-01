@@ -518,3 +518,37 @@ body[style*="--ws-active"] #workspaceSwitcher .i{color:var(--ws-active)}
 .notes-status{margin-top:8px}
 /* 0.17.1: il display:inline-flex dei pulsanti batteva [hidden] (pulsante vuoto nella pagina di errore). */
 .error-actions button[hidden]{display:none}
+
+/* ═══ BETA 0.18 — stack compatti e vista divisa ═══ */
+.stack-pill{display:flex;align-items:center;gap:4px;height:30px;max-width:260px;padding:2px 10px 2px 2px;border-radius:9px;
+  background:rgba(255,255,255,.04);border:1px solid var(--v-line);flex:0 0 auto}
+.stack-pill.active{background:rgba(124,108,255,.16);border-color:var(--v-line-strong)}
+body[style*="--ws-active"] .stack-pill.active{border-color:color-mix(in srgb,var(--ws-active) 60%,transparent);background:color-mix(in srgb,var(--ws-active) 16%,transparent)}
+.stack-pill .stack-expand{height:24px;min-width:22px;padding:3px}
+.stack-pill .stack-expand .i{width:13px;height:13px}
+.stack-icons{display:flex;align-items:center}
+.stack-icon{width:24px;height:24px;padding:0;margin-left:-5px;border-radius:7px;display:grid;place-items:center;
+  background:#16152c;border:1px solid var(--v-line);position:relative}
+.stack-icon:first-child{margin-left:0}
+.stack-icon:hover{z-index:2;border-color:var(--v-line-strong);background:#201e3d}
+.stack-icon.active{z-index:3;border-color:var(--v-accent-2);box-shadow:0 0 0 1px rgba(169,155,255,.35)}
+.stack-icon img{width:14px;height:14px;border-radius:3px}
+.stack-icon .i{width:13px;height:13px}
+.stack-icon .tab-spinner{width:12px;height:12px}
+.stack-letter{font-size:11px;font-weight:600;color:#cfcde6}
+.stack-more{font-size:10px;color:var(--v-muted);margin-left:4px}
+.stack-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;font-size:12.5px;margin-left:4px}
+.tab.in-split{box-shadow:inset 3px 0 0 var(--v-accent-2)}
+#splitControls{display:inline-flex;gap:2px;padding:0 4px;border-right:1px solid var(--v-line);margin-right:2px}
+#splitControls[hidden]{display:none}
+#splitLayer{position:fixed;inset:0;pointer-events:none;z-index:2}
+#splitLayer[hidden]{display:none}
+#splitFocus{position:fixed;border-radius:12px;box-shadow:0 0 0 2px var(--v-accent-2),0 0 18px rgba(124,108,255,.35)}
+body[style*="--ws-active"] #splitFocus{box-shadow:0 0 0 2px var(--ws-active),0 0 18px color-mix(in srgb,var(--ws-active) 35%,transparent)}
+#splitDivider{position:fixed;pointer-events:auto;cursor:col-resize;border-radius:4px}
+#splitDivider::after{content:'';position:absolute;left:50%;top:50%;width:3px;height:42px;margin:-21px 0 0 -1.5px;border-radius:2px;background:rgba(200,195,255,.35)}
+#splitDivider:hover::after{background:var(--v-accent-2)}
+.split-ghost{position:fixed;display:none;align-items:center;justify-content:center;padding:20px;text-align:center;
+  border-radius:10px;background:rgba(18,17,35,.92);border:1px solid var(--v-line-strong);color:#cfcde6;font-size:14px;overflow:hidden}
+#splitLayer.dragging .split-ghost{display:flex}
+#splitLayer.dragging #splitDivider::after{background:var(--v-accent-2)}

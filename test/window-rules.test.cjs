@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {pageBounds,isVisibleOnScreens,shortcutCommand,HEADER,FOOTER,GAP}=require('../lib/window-rules.cjs');
+const {pageBounds,isVisibleOnScreens,shortcutCommand,HEADER,FOOTER,GAP,splitRects}=require('../lib/window-rules.cjs');
 
 const content={width:1280,height:800};
 const base={sidebarMode:'compact',sidePanelOpen:false,downloadsOpen:false,fullscreen:false};
@@ -53,4 +53,14 @@ test('Beta 0.9.1: cerca, stampa e zoom',()=>{
   assert.equal(key('+',{shift:true}),'zoomIn'); // tastiera italiana: + con Shift
   assert.equal(key('-'),'zoomOut');
   assert.equal(key('0'),'zoomReset');
+});
+
+test('vista divisa: due riquadri separati dal divisore, quote tra 20% e 80%',()=>{
+  const full={x:70,y:102,width:1208,height:600};
+  const r=splitRects(full,0.5);
+  assert.equal(r.left.x,70);assert.equal(r.left.width+GAP+r.right.width,1208);
+  assert.equal(r.divider.x,r.left.x+r.left.width);assert.equal(r.right.x,r.divider.x+GAP);
+  assert.equal(r.left.height,600);
+  assert.equal(splitRects(full,0.05).left.width,Math.round((1208-GAP)*0.2));
+  assert.equal(splitRects(full,0.99).left.width,Math.round((1208-GAP)*0.8));
 });

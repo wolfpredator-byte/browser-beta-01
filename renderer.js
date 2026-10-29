@@ -672,6 +672,97 @@ $('closeDownloads').onclick=()=>act('toggleDownloads');
 $('openDownloadsFolder').onclick=()=>act('showDownloadsFolder');
 $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 // Homepage lives inside a tab; it is displayed only when that tab is active.
+// ── Stack compatto (Beta 0.18) ───────────────────────────────────────────
+// Uno stack compresso diventa una sola "pillola": le icone delle sue schede una accanto
+// all'altra (clic su un'icona = vai a quella scheda) e il titolo della scheda attiva.
+function compactStack(entry){
+ const pill=el('div',{className:'stack-pill'+(entry.active?' active':'')});
+ const expand=iconButton(pill,'stack-closed','Espandi lo stack «'+entry.group+'»',()=>act('toggleGroup',{group:entry.group}),'stack-expand');
+ expand.setAttribute('aria-expanded','false');
+ const icons=el('span',{className:'stack-icons'});
+ const members=entry.members||[];
+ for(const m of members.slice(0,5)){
+   const b=el('button',{className:'stack-icon'+(m.active?' active':''),title:m.title});
+   if(m.loading)b.append(el('span',{className:'tab-spinner'}));
+   else if(m.favicon)b.append(el('img',{src:m.favicon,alt:''}));
+   else if(m.isHome)b.append(icon('home-tab'));
+   else b.append(el('span',{className:'stack-letter',textContent:(m.title||'?').trim().charAt(0).toUpperCase()}));
+   b.onclick=()=>act('activateTab',{id:m.id});
+   b.oncontextmenu=e=>{e.preventDefault();act('tabContextMenu',{id:m.id});};
+   icons.append(b);
+ }
+ if(members.length>5)icons.append(el('span',{className:'stack-more',textContent:'+'+(members.length-5)}));
+ const current=members.find(m=>m.active);
+ const label=el('span',{className:'stack-label',textContent:current?current.title:entry.group,title:entry.group+' · '+members.length+' schede'});
+ // Clic sul titolo: la scheda attiva dello stack, altrimenti la prima.
+ label.onclick=()=>act('activateTab',{id:(current||members[0]).id});
+ pill.append(icons,label);
+ pill.oncontextmenu=e=>{if(e.target===pill||e.target===label){e.preventDefault();act('tabContextMenu',{id:(current||members[0]).id});}};
+ pill.ondragover=e=>e.preventDefault();
+ pill.ondrop=e=>{
+   e.preventDefault();
+   const fromId=Number(e.dataTransfer.getData('text/plain'));
+   if(Number.isInteger(fromId)&&!entry.tabIds.includes(fromId))act('stackTabs',{fromId,targetId:entry.tabIds[0]});
+ };
+ return pill;
+}
+
+// ── Vista divisa (Beta 0.18) ─────────────────────────────────────────────
+// Le due pagine sono WebContentsView: la cornice disegna solo ciò che sta tra e intorno a loro
+// (contorno del lato attivo, divisore). Durante il trascinamento del divisore le pagine si
+// nascondono e al loro posto compaiono due riquadri col titolo, che seguono il mouse.
+let splitDrag=null;
+function renderSplit(){
+ const s=state.split,layer=$('splitLayer');
+ $('splitControls').hidden=!s;
+ layer.hidden=!s;
+ if(!s)return;
+ const place=(node,r,grow=0)=>Object.assign(node.style,{left:(r.x-grow)+'px',top:(r.y-grow)+'px',width:(r.width+2*grow)+'px',height:(r.height+2*grow)+'px'});
+ if(splitDrag)return; // mentre trascini comanda il mouse
+ place($('splitFocus'),s.rects[s.focused],2);
+ place($('splitDivider'),s.rects.divider);
+ place($('splitGhostLeft'),s.rects.left);place($('splitGhostRight'),s.rects.right);
+ $('splitGhostLeft').textContent=s.titles.left;$('splitGhostRight').textContent=s.titles.right;
+ layer.classList.toggle('dragging',!!s.dragging);
+}
+$('splitDivider').addEventListener('pointerdown',e=>{
+ const s=state.split;if(!s)return;
+ e.preventDefault();
+ $('splitDivider').setPointerCapture(e.pointerId);
+ const left=s.rects.left,right=s.rects.right;
+ splitDrag={x0:left.x,total:right.x+right.width-left.x,percent:Math.round(s.ratio*100)};
+ $('splitLayer').classList.add('dragging');
+ act('splitDragging',{on:true});
+});
+$('splitDivider').addEventListener('pointermove',e=>{
+ if(!splitDrag)return;
+ const s=state.split,gap=s.rects.divider.width;
+ const percent=Math.min(80,Math.max(20,Math.round(100*(e.clientX-splitDrag.x0)/splitDrag.total)));
+ splitDrag.percent=percent;
+ const usable=splitDrag.total-gap,leftWidth=Math.round(usable*percent/100);
+ const place=(node,x,width)=>Object.assign(node.style,{left:x+'px',width:width+'px'});
+ place($('splitGhostLeft'),splitDrag.x0,leftWidth);
+ place($('splitDivider'),splitDrag.x0+leftWidth,gap);
+ place($('splitGhostRight'),splitDrag.x0+leftWidth+gap,usable-leftWidth);
+ $('splitFocus').style.display='none';
+});
+const endSplitDrag=async()=>{
+ if(!splitDrag)return;
+ const percent=splitDrag.percent;splitDrag=null;
+ $('splitFocus').style.display='';
+ await act('setSplitRatio',{percent});
+ act('splitDragging',{on:false});
+};
+$('splitDivider').addEventListener('pointerup',endSplitDrag);
+$('splitDivider').addEventListener('lostpointercapture',endSplitDrag);
+// Sicurezza: il trascinamento finisce anche rilasciando il mouse altrove o se la finestra perde il focus,
+// altrimenti le pagine resterebbero nascoste.
+window.addEventListener('pointerup',endSplitDrag);
+window.addEventListener('blur',endSplitDrag);
+$('splitDivider').addEventListener('dblclick',()=>act('setSplitRatio',{percent:50}));
+$('splitSwap').onclick=()=>act('swapSplit');
+$('splitClose').onclick=()=>act('closeSplit');
+
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.
  document.body.dataset.sidebarMode=state.sidebarMode||'compact';
@@ -696,6 +787,7 @@ function render(){
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
  const tabs=$('tabs');tabs.replaceChildren();
  for(const entry of state.tabStrip||[]){
+   if(entry.kind==='group'&&entry.collapsed){tabs.appendChild(compactStack(entry));continue;}
    if(entry.kind==='group'){
      const group=document.createElement('div');
      group.className='stack-heading'+(entry.collapsed?' collapsed':'')+(entry.active?' contains-active':'');
@@ -722,7 +814,7 @@ function render(){
    const t=entry.tab;
    const tab=document.createElement('div');
    // sleeping: pagina sospesa per risparmiare memoria, si ricarica al clic.
-   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+(t.sleeping?' sleeping':'')+
+   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+(t.sleeping?' sleeping':'')+(t.inSplit?' in-split':'')+
      (entry.inGroup?' stacked':'');
    tab.draggable=true;
    tab.ondragstart=event=>{
@@ -794,7 +886,7 @@ function render(){
  }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
 syncAddress(activeTab);
-renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();renderNotifyBadge();}
+renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();renderNotifyBadge();renderSplit();}
 function renderPanel(){const list=panel==='history'?state.history:panel==='downloads'?state.downloads:state.bookmarks;$('secondaryTitle').textContent=panel==='history'?'Cronologia':panel==='downloads'?'Download':'Preferiti';const el=$('secondary');el.replaceChildren();for(const item of list.slice(0,25)){
 if(panel==='downloads'){const label=item.name+' — '+item.state+(item.total>0?' ('+Math.round(100*item.received/item.total)+'%)':'');addButton(el,label,()=>act('showDownloadsFolder'), 'item');}
 else addButton(el,item.title||item.url,()=>act('resource',{url:item.url}),'item');

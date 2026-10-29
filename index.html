@@ -2,7 +2,7 @@
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'"><title>VARCO</title><link rel="stylesheet" href="style.css"></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo"><span class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.17.1</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo"><span class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.18</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" class="tool" title="Nascondi / mostra la barra laterale" aria-label="Nascondi o mostra la barra laterale"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button>
   <button id="back" class="tool" title="Indietro (Alt+←)" aria-label="Indietro"><span class="i i-back" aria-hidden="true"></span></button><button id="forward" class="tool" title="Avanti (Alt+→)" aria-label="Avanti"><span class="i i-forward" aria-hidden="true"></span></button><button id="reload" class="tool" title="Ricarica (F5)" aria-label="Ricarica"><span class="i i-reload" aria-hidden="true"></span></button>
@@ -16,6 +16,8 @@
    <div id="loadLine" aria-hidden="true"></div>
    <button id="bookmark" class="tool" title="Aggiungi ai preferiti" aria-label="Aggiungi ai preferiti"><span class="i i-bookmark" aria-hidden="true"></span></button>
   </div>
+  <!-- Vista divisa (Beta 0.18): visibile solo quando due schede sono affiancate. -->
+  <span id="splitControls" hidden><button id="splitSwap" class="tool" title="Scambia i lati" aria-label="Scambia i lati"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button><button id="splitClose" class="tool" title="Chiudi vista divisa" aria-label="Chiudi vista divisa"><span class="i i-close" aria-hidden="true"></span></button></span>
   <button id="paletteButton" class="tool" title="Palette dei comandi (F1 · Ctrl+Shift+P)" aria-label="Palette dei comandi"><span class="i i-commands" aria-hidden="true"></span></button>
   <button id="showDownloads" class="tool" title="Download" aria-label="Download"><span class="i i-download" aria-hidden="true"></span></button>
   <button id="jarvisMini" class="tool jarvis-mini" title="JARVIS · torna alla Home" aria-label="JARVIS, torna alla Home"><span class="i i-jarvis" aria-hidden="true"></span></button>
@@ -94,6 +96,8 @@
 <!-- Suggerimenti della barra degli indirizzi (Beta 0.12). Mentre sono aperti la pagina web
      è nascosta e al suo posto c'è una sua fotografia: altrimenti coprirebbe l'elenco. -->
 <img id="paletteBackdrop" alt="" hidden>
+<!-- Vista divisa: contorno del lato attivo, divisore trascinabile, riquadri mostrati mentre trascini. -->
+<div id="splitLayer" hidden><div id="splitFocus"></div><div id="splitGhostLeft" class="split-ghost"></div><div id="splitGhostRight" class="split-ghost"></div><div id="splitDivider" title="Trascina per ridimensionare · doppio clic: metà e metà"></div></div>
 <!-- Palette (Beta 0.12.1): solo una barra di ricerca fluttuante; i risultati compaiono mentre scrivi. -->
 <div id="palette" hidden>
  <div class="palette-float" role="dialog" aria-label="Palette dei comandi">
