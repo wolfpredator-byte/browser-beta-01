@@ -28,11 +28,11 @@ Con questa versione finisce la tua lista di idee: stack più compatti e vista di
 
 ## Test da fare
 
-- [ ] **T94** — Crea uno stack con 2–3 schede e comprimilo: una pillola con le icone. Clic su ciascuna icona. **📸** della barra in basso.
-- [ ] **T95** — Click destro su una scheda → Affianca alla scheda attiva. **📸** della vista divisa.
-- [ ] **T96** — Clicca dentro l'altro lato: il contorno e la barra degli indirizzi passano a lui. Indietro/Avanti agiscono sul lato giusto.
-- [ ] **T97** — Trascina il divisore e fai doppio clic. Poi ⇆ e ×.
-- [ ] **T98** — Con la vista divisa aperta, vai alla Home e torna su una delle due schede: la vista divisa ricompare.
+- [x] **T94** — Crea uno stack con 2–3 schede e comprimilo: una pillola con le icone. Clic su ciascuna icona. **📸** della barra in basso.
+- [x] **T95** — Click destro su una scheda → Affianca alla scheda attiva. **📸** della vista divisa.
+- [x] **T96** — Clicca dentro l'altro lato: il contorno e la barra degli indirizzi passano a lui. Indietro/Avanti agiscono sul lato giusto.
+- [x] **T97** — Trascina il divisore e fai doppio clic. Poi ⇆ e ×.
+- [x] **T98** — Con la vista divisa aperta, vai alla Home e torna su una delle due schede: la vista divisa ricompare.
 
 **Stato:** 109 test superati (nuovo: misure della vista divisa). Provato nell'app, con catture dello schermo:
 - Wikipedia e light.gg affiancate (849 + 849 px);
@@ -44,10 +44,29 @@ Con questa versione finisce la tua lista di idee: stack più compatti e vista di
 
 **Corretto durante le prove:** se il rilascio del mouse non arrivava al divisore, le pagine restavano nascoste. Ora il trascinamento finisce comunque.
 
-**Non fatto:** la vista divisa non viene ricordata alla chiusura del browser (le due schede sì). Dimmi se ti serve.
 
 ## La tua lista di idee
 Con la 0.18 è completa:
 - rinomina e personalizzazione dei workspace, stack compatti, vista divisa;
 - icone e logo, blocco note, ricarica dell'anteprima;
 - palette minimal (barra fluttuante), Impostazioni in una pagina, Home alla chiusura dell'ultima scheda.
+
+**Risultato dei tuoi test:** tutto funziona (DIM e light.gg affiancati). Unica cosa: dopo il riavvio del PC le schede non erano più affiancate.
+
+## 0.18.1 — La vista divisa sopravvive al riavvio
+
+Installer: `dist\VARCO Setup 0.18.1.exe`.
+
+- Le due schede della coppia si ricordano il loro lato (sinistra / destra) e la larghezza.
+- Alla riapertura del browser, o dopo il riavvio del PC, la finestra ricompone la vista divisa come l'avevi lasciata.
+- Se l'avevi chiusa (×), resta chiusa.
+
+**Come funziona:** il lato è scritto sulle schede stesse, non sulla finestra. All'uscita le finestre si chiudono prima che la sessione venga salvata, e un'informazione tenuta solo nella finestra andava persa.
+
+Provato con riavvii veri dell'app:
+- Wikipedia a sinistra e light.gg a destra al 40% → dopo il riavvio stessa coppia, stessi lati, stessa larghezza;
+- vista divisa chiusa → dopo il riavvio non ricompare.
+
+109 test superati.
+
+- [ ] **T99** — Affianca due schede, chiudi VARCO (anche dall'area di notifica con «Esci») o riavvia il PC: alla riapertura sono di nuovo affiancate.
