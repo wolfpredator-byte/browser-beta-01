@@ -1,0 +1,20 @@
+VARCO — Contratto di licenza (uso personale)
+Ultimo aggiornamento: 29 ottobre 2026
+
+1. Utilizzo personale
+VARCO è un software gratuito destinato all'uso personale. Puoi installarlo e usarlo sui tuoi dispositivi.
+
+2. Limitazioni
+Non è consentito distribuire, vendere o rivendicare il software come proprio. Un uso commerciale richiede un'autorizzazione specifica.
+
+3. Dati e privacy
+VARCO non invia i tuoi dati a nessun server. Workspace, preferiti, cronologia e impostazioni restano nel tuo computer (cartella %APPDATA%\personal-workspace-browser). I siti che visiti ricevono i normali dati di navigazione, come in qualsiasi browser; il blocco di pubblicità e tracker riduce quelli inviati a terzi.
+
+4. JARVIS
+Il collegamento con JARVIS è un server locale (127.0.0.1) protetto da un token: nessun programma esterno al tuo PC può usarlo.
+
+5. Componenti di terze parti
+VARCO è costruito con Electron e Chromium (licenze in LICENSES.chromium.html nella cartella di installazione) e usa le liste di blocco di EasyList / uBlock Origin tramite @ghostery/adblocker.
+
+6. Nessuna garanzia
+Il software è fornito "così com'è", senza garanzie di alcun tipo.

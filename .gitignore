@@ -7,3 +7,6 @@ release/
 !.env.example
 *.log
 __pycache__/
+# Copiati da assets/ da scripts/build-setup.cjs
+setup/assets/
+setup/package.json

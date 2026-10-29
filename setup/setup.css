@@ -1,0 +1,95 @@
+/* Installer VARCO: stessi colori e vetro del browser (mock-up "Futuristic Installer Walkthrough"). */
+:root{--accent:#6f5ff5;--accent2:#a99bff;--line:rgba(160,150,255,.22);--text:#e9e8f5;--muted:#9f9cbd}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--text);font:13px/1.45 'Segoe UI Variable','Segoe UI',Arial,sans-serif;user-select:none}
+body{background:#07070e url(assets/home-bg.jpg) center/cover no-repeat;border:1px solid var(--line)}
+body::before{content:'';position:fixed;inset:0;background:linear-gradient(90deg,rgba(7,7,14,.15),rgba(7,7,14,.55) 55%,rgba(7,7,14,.75));pointer-events:none}
+.i{display:inline-block;width:18px;height:18px;background-color:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat;flex:0 0 auto}
+.i-close{--i:url(assets/icons/close.svg)}.i-shield{--i:url(assets/icons/shield.svg)}.i-project{--i:url(assets/icons/project.svg)}
+.i-settings{--i:url(assets/icons/settings.svg)}.i-jarvis{--i:url(assets/icons/jarvis.svg)}.i-download{--i:url(assets/icons/download.svg)}
+.i-check{--i:url(assets/icons/check.svg)}.i-min{-webkit-mask:none;mask:none;height:1.5px;width:11px}
+
+.titlebar{position:relative;z-index:2;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 16px;-webkit-app-region:drag;font-size:12px;color:#cfcde6}
+.window-buttons{display:flex;-webkit-app-region:no-drag}
+.window-buttons button{width:40px;height:30px;border:0;border-radius:8px;background:transparent;color:#cfcde6;display:grid;place-items:center;padding:0}
+.window-buttons button:hover{background:rgba(255,255,255,.08)}
+#close:hover{background:#c42b3a;color:#fff}
+.window-buttons .i{width:14px;height:14px}
+
+main{position:relative;z-index:1;height:calc(100% - 40px)}
+.page{position:absolute;inset:0;display:flex;animation:in .25s ease-out}
+.page[hidden]{display:none}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+
+/* 1. Benvenuto */
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:30px}
+.hero img,.logo{width:170px;height:170px;filter:drop-shadow(0 0 30px rgba(124,108,255,.6));
+  -webkit-mask:radial-gradient(circle,#000 52%,transparent 71%);mask:radial-gradient(circle,#000 52%,transparent 71%)}
+.hero h1,.word{font-weight:300;font-size:40px;letter-spacing:.55em;padding-left:.55em;margin:6px 0 2px}
+.hero p,.motto{font-size:9.5px;letter-spacing:.5em;padding-left:.5em;color:#c3c0e0;margin:0}
+.card{background:rgba(14,13,30,.82);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(18px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.welcome-card{width:440px;margin:14px 22px 22px 0;padding:28px 30px;display:flex;flex-direction:column}
+h2{font-size:22px;font-weight:600;margin:0 0 8px}
+.lead,.sub{color:var(--muted);margin:0 0 18px}
+.features{list-style:none;margin:0;padding:14px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.features li{display:flex;gap:14px;align-items:center}
+.features .fi{flex:0 0 34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;color:var(--accent2)}
+.features strong{display:block;font-weight:600}
+.features small{color:var(--muted)}
+.notice{margin:16px 0 0;padding:10px 12px;border-radius:10px;background:rgba(124,108,255,.12);border:1px solid var(--line);font-size:12px;color:#d6d3f2}
+
+/* 2–4. Passaggi */
+.wizard{margin:14px 22px 22px;background:rgba(14,13,30,.86);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(18px)}
+.steps{width:210px;padding:26px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.steps .s{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;color:var(--muted)}
+.steps .n{width:22px;height:22px;border-radius:50%;border:1.5px solid #5d5a7c;display:grid;place-items:center;font-size:11px}
+.steps .s.done{color:#d6d3f2}.steps .s.done .n{border-color:var(--accent2);color:var(--accent2)}
+.steps .s.now{background:rgba(124,108,255,.18);color:#fff}.steps .s.now .n{background:var(--accent);border-color:var(--accent);color:#fff}
+.steps .n .i{width:12px;height:12px}
+.step-body{flex:1;padding:28px 32px 22px;display:flex;flex-direction:column}
+.step-body>div[data-step]{flex:1;min-height:0;display:flex;flex-direction:column}
+.step-body>div[hidden]{display:none}
+.license{flex:1;min-height:0;overflow:auto;white-space:pre-wrap;font:12px/1.55 inherit;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px;color:#cfcde6;user-select:text}
+.check{display:flex;align-items:center;gap:10px;cursor:pointer}
+.check input{width:17px;height:17px;accent-color:var(--accent);margin:0}
+.path-row{display:flex;gap:10px}
+.path-row input{flex:1;font:inherit;color:var(--text);background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+.path-row input:focus{border-color:var(--accent2)}
+.space{display:flex;flex-direction:column;gap:2px;color:var(--muted);margin:14px 0 18px}
+.info-card{display:flex;gap:16px;align-items:center;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03)}
+.info-card .big{width:30px;height:30px;color:var(--accent2)}
+.info-card small{display:block;color:var(--muted);margin-top:2px}
+.options{display:flex;flex-direction:column;gap:14px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03)}
+.language{display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted)}
+.language select{font:inherit;color:var(--text);background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.hint{color:var(--muted);font-size:12px;margin:12px 0 0}
+.error{color:#ff8794;min-height:18px;margin:8px 0 0}
+.buttons{display:flex;justify-content:flex-end;gap:12px;margin-top:auto;padding-top:16px}
+button{font:inherit;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:10px 22px;cursor:pointer;-webkit-app-region:no-drag}
+button:hover{background:rgba(124,108,255,.16)}
+button.primary{background:var(--accent);border-color:transparent;color:#fff;box-shadow:0 6px 22px rgba(111,95,245,.45)}
+button.primary:hover{background:#7d6eff}
+button:disabled{opacity:.45;cursor:default;box-shadow:none}
+button:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.chev{font-size:15px;line-height:0}
+
+/* 5–6. Installazione e fine */
+.center{flex-direction:column;align-items:center;justify-content:center;padding-bottom:20px}
+.center .logo{width:150px;height:150px}
+.progress-card{width:430px;margin-top:30px}
+.progress-head{display:flex;justify-content:space-between;font-size:15px;margin-bottom:10px}
+.bar{height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#7c6cff,#b4a8ff);transition:width .3s}
+.tasks{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:10px;color:var(--muted)}
+.tasks li{display:flex;align-items:center;gap:10px}
+.tasks .dot{width:18px;height:18px;border-radius:50%;border:1.5px solid #5d5a7c;display:grid;place-items:center}
+.tasks li.done{color:#d6d3f2}.tasks li.done .dot{background:var(--accent);border-color:var(--accent);color:#fff}
+.tasks li.done .dot .i{width:11px;height:11px}
+.tasks li.now{color:#fff}.tasks li.now .dot{border-color:var(--accent2);border-top-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.done h2{margin:26px 0 6px;font-size:24px}
+.done .wide{width:300px;margin-top:12px;padding:12px}
+.done .primary.wide{margin-top:18px;font-size:15px}
+.done .check{margin-top:16px}
+@media(prefers-reduced-motion:reduce){.page,.tasks li.now .dot{animation:none}}
+.window-buttons .i-min{width:11px;height:1.5px}

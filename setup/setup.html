@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="it"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+<title>Installazione di VARCO</title>
+<link rel="stylesheet" href="setup.css">
+</head>
+<body>
+<!-- Barra del titolo (la finestra non ha bordi di Windows): trascinabile, con riduci e chiudi. -->
+<header class="titlebar"><span>Installazione di VARCO</span><div class="window-buttons">
+ <button id="minimize" aria-label="Riduci a icona"><span class="i i-min"></span></button>
+ <button id="close" aria-label="Chiudi"><span class="i i-close"></span></button></div></header>
+
+<main id="app">
+ <!-- 1. Benvenuto: immagine a sinistra, riquadro di vetro a destra -->
+ <section class="page" data-page="welcome">
+  <div class="hero"><img src="assets/app-icon-256.png" alt=""><h1>VARCO</h1><p>YOUR SPACE. BEYOND THE WEB.</p></div>
+  <div class="card welcome-card">
+   <h2>Benvenuto in VARCO</h2>
+   <p class="lead">Il browser pensato per il tuo spazio digitale. Naviga, crea, esplora e mantieni tutto ciò che ti serve in un unico luogo.</p>
+   <ul class="features">
+    <li><span class="fi"><span class="i i-shield"></span></span><div><strong>Navigazione veloce e sicura</strong><small>Blocco di pubblicità e tracker, permessi sito per sito.</small></div></li>
+    <li><span class="fi"><span class="i i-project"></span></span><div><strong>Workspace integrato</strong><small>Collega i tuoi progetti e strumenti.</small></div></li>
+    <li><span class="fi"><span class="i i-settings"></span></span><div><strong>Personalizzabile</strong><small>Adatta l'esperienza al tuo stile.</small></div></li>
+    <li><span class="fi"><span class="i i-jarvis"></span></span><div><strong>Pronto per JARVIS</strong><small>Il tuo assistente, sempre al tuo fianco.</small></div></li>
+   </ul>
+   <p class="notice" id="oldNotice" hidden></p>
+   <div class="buttons"><button data-action="cancel">Annulla</button><button class="primary" data-action="next">Avanti <span class="chev">›</span></button></div>
+  </div>
+ </section>
+
+ <!-- 2–4. Licenza, Destinazione, Opzioni: elenco dei passaggi a sinistra -->
+ <section class="page wizard" data-page="steps" hidden>
+  <nav class="steps" id="steps"></nav>
+  <div class="step-body">
+   <div data-step="license">
+    <h2>Contratto di licenza</h2><p class="sub">Leggi attentamente i termini di utilizzo di VARCO.</p>
+    <pre class="license" id="license"></pre>
+    <label class="check"><input type="checkbox" id="accept"><span>Ho letto e accetto i termini della licenza</span></label>
+   </div>
+   <div data-step="destination" hidden>
+    <h2>Scegli la posizione di installazione</h2><p class="sub">VARCO verrà installato nella seguente cartella.</p>
+    <div class="path-row"><input id="destination" spellcheck="false"><button id="browse">Sfoglia…</button></div>
+    <p class="space"><span id="required"></span><span id="free"></span></p>
+    <div class="info-card"><span class="i i-download big"></span><div><strong>Installazione standard</strong><small>Solo per il tuo utente: niente permessi di amministratore. I tuoi dati (workspace, preferiti, impostazioni) restano dove sono.</small></div></div>
+   </div>
+   <div data-step="options" hidden>
+    <h2>Opzioni di installazione</h2><p class="sub">Personalizza la tua esperienza.</p>
+    <div class="options">
+     <label class="check"><input type="checkbox" id="optDesktop" checked><span>Crea collegamento sul desktop</span></label>
+     <label class="check"><input type="checkbox" id="optStart" checked><span>Aggiungi al menu Start</span></label>
+     <label class="check"><input type="checkbox" id="optDefault"><span>Imposta VARCO come browser predefinito</span></label>
+     <label class="check"><input type="checkbox" id="optJarvis" checked><span>Attiva il collegamento con JARVIS</span></label>
+     <div class="language"><span>Lingua dell'interfaccia</span><select disabled><option>Italiano (Italia)</option></select></div>
+    </div>
+    <p class="hint" id="defaultHint" hidden>Windows chiede di confermare il browser predefinito: alla fine si aprirà la pagina delle Impostazioni con VARCO già in evidenza.</p>
+   </div>
+   <p class="error" id="stepError" role="alert"></p>
+   <div class="buttons"><button data-action="back"><span class="chev">‹</span> Indietro</button><button class="primary" data-action="next" id="nextButton">Avanti <span class="chev">›</span></button></div>
+  </div>
+ </section>
+
+ <!-- 5. Installazione in corso -->
+ <section class="page center" data-page="progress" hidden>
+  <img class="logo" src="assets/app-icon-256.png" alt=""><h1 class="word">VARCO</h1><p class="motto">YOUR SPACE. BEYOND THE WEB.</p>
+  <div class="progress-card">
+   <div class="progress-head"><span id="progressTitle">Installazione in corso…</span><span id="percent">0%</span></div>
+   <div class="bar"><i id="bar"></i></div>
+   <ul class="tasks" id="tasks"></ul>
+  </div>
+ </section>
+
+ <!-- 6. Completato -->
+ <section class="page center done" data-page="done" hidden>
+  <img class="logo" src="assets/app-icon-256.png" alt=""><h1 class="word">VARCO</h1><p class="motto">YOUR SPACE. BEYOND THE WEB.</p>
+  <h2 id="doneTitle">Installazione completata!</h2>
+  <p class="sub" id="doneText">VARCO è stato installato con successo sul tuo computer.</p>
+  <button class="primary wide" data-action="launch">Avvia VARCO</button>
+  <button class="wide" data-action="finish">Chiudi</button>
+  <label class="check"><input type="checkbox" id="launchAfter" checked><span>Avvia VARCO al termine</span></label>
+ </section>
+</main>
+<script src="setup.js"></script>
+</body></html>

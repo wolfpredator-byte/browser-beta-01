@@ -118,10 +118,32 @@ function start(){
 
 // Una sola copia del browser: aprirlo di nuovo (es. dal collegamento mentre è
 // nell'area di notifica) mostra le finestre della copia già attiva.
-if(!app.requestSingleInstanceLock())app.quit();
+/**
+ * Beta 0.16: VARCO come browser predefinito. Windows lo avvia con l'indirizzo come
+ * argomento ("VARCO.exe https://…"): lo apriamo in una nuova scheda della finestra
+ * in primo piano (se il browser era già aperto arriva tramite second-instance).
+ */
+const urlsIn=argv=>argv.filter(arg=>/^https?:\/\//i.test(arg)).slice(0,10);
+function openUrls(urls){
+  if(!urls.length)return false;
+  let w=windows.focusedWindow();
+  if(!w){tabs.openSavedWindows();w=windows.focusedWindow();}
+  if(!w)return false;
+  for(const url of urls)tabs.newTab(url,w.workspace,{pane:w.pane});
+  if(w.win.isMinimized())w.win.restore();
+  w.win.focus();
+  return true;
+}
+
+if(process.argv.includes('--uninstall')){
+  // Disinstallazione avviata da Windows: niente browser, solo la finestra di conferma.
+  require('./lib/uninstall.cjs').run();
+}else if(!app.requestSingleInstanceLock())app.quit();
 else{
-  app.on('second-instance',()=>bus.dispatch('openBrowser',{},{source:'second-instance'}));
-  app.whenReady().then(start);
+  app.on('second-instance',(_event,argv)=>{
+    if(!openUrls(urlsIn(argv)))bus.dispatch('openBrowser',{},{source:'second-instance'});
+  });
+  app.whenReady().then(()=>{start();openUrls(urlsIn(process.argv));});
 }
 
 app.on('before-quit',()=>{

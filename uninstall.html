@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="it"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'">
+<title>Disinstalla VARCO</title>
+<link rel="stylesheet" href="uninstall.css">
+</head>
+<body>
+<header><span>Disinstalla VARCO</span><button id="x" aria-label="Chiudi">×</button></header>
+<main>
+ <img src="assets/app-icon-256.png" alt="">
+ <section id="ask">
+  <h1>Disinstallare VARCO?</h1>
+  <p>Verranno tolti il programma, i collegamenti e le voci di Windows.</p>
+  <label><input type="checkbox" id="data"><span>Elimina anche i miei dati (workspace, preferiti, cronologia, impostazioni)</span></label>
+  <p class="warn" id="running" hidden>VARCO è ancora aperto: chiudilo (anche dall'area di notifica, con «Esci») e riapri la disinstallazione.</p>
+  <div class="buttons"><button id="cancel">Annulla</button><button id="go" class="danger">Disinstalla</button></div>
+ </section>
+ <section id="done" hidden>
+  <h1>VARCO è stato disinstallato</h1>
+  <p id="doneText">Grazie per averlo usato.</p>
+  <div class="buttons"><button id="close" class="primary">Chiudi</button></div>
+ </section>
+</main>
+<script src="uninstall.js"></script>
+</body></html>

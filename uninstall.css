@@ -1,0 +1,19 @@
+html,body{margin:0;height:100%;overflow:hidden;color:#e9e8f5;font:13px/1.45 'Segoe UI Variable','Segoe UI',Arial,sans-serif;user-select:none}
+body{background:radial-gradient(ellipse 80% 50% at 50% 85%,rgba(124,108,255,.25),transparent 70%),linear-gradient(180deg,#0b0a22,#07070e);border:1px solid rgba(160,150,255,.28);box-sizing:border-box}
+header{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;font-size:12px;color:#cfcde6;-webkit-app-region:drag}
+header button{-webkit-app-region:no-drag;border:0;background:transparent;color:#cfcde6;font-size:18px;width:36px;height:28px;border-radius:7px;cursor:pointer}
+header button:hover{background:#c42b3a;color:#fff}
+main{padding:4px 30px 24px;text-align:center}
+img{width:96px;height:96px;filter:drop-shadow(0 0 22px rgba(124,108,255,.55));-webkit-mask:radial-gradient(circle,#000 52%,transparent 71%);mask:radial-gradient(circle,#000 52%,transparent 71%)}
+h1{font-size:19px;font-weight:600;margin:8px 0 6px}
+p{color:#a8a5c4;margin:0 0 14px}
+label{display:flex;gap:10px;align-items:flex-start;text-align:left;margin:4px 6px 12px;color:#cfcde6;cursor:pointer}
+input{accent-color:#6f5ff5;width:16px;height:16px;margin:1px 0 0}
+.warn{color:#ff8794}
+.buttons{display:flex;gap:12px;justify-content:center;margin-top:16px}
+button{font:inherit;color:#e9e8f5;background:rgba(255,255,255,.05);border:1px solid rgba(160,150,255,.26);border-radius:10px;padding:9px 22px;cursor:pointer}
+.buttons button{min-width:140px}
+button:hover{background:rgba(124,108,255,.16)}
+button.danger{background:#d9424f;border-color:transparent;color:#fff}
+button.primary{background:#6f5ff5;border-color:transparent;color:#fff}
+button:disabled{opacity:.45;cursor:default}
