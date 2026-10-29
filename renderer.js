@@ -199,7 +199,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    $('sidePanelTitle').textContent=p?.config?.nome||'Progetto';
    const list=$('sidePanelItems');
    if(list.contains(document.activeElement)&&document.activeElement.matches('input,textarea'))return;
-   const key=JSON.stringify([p,[...projectUi.openLogs],projectUi.editingSecret]);
+   const key=JSON.stringify([p,state.workenv,[...projectUi.openLogs],projectUi.editingSecret]);
    if(key===renderedProject)return;
    renderedProject=key;
    // Conserviamo lo scorrimento del pannello e dei log tra una ricostruzione e l'altra.
@@ -208,6 +208,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    for(const pre of list.querySelectorAll('pre.log'))logScroll[pre.dataset.index]={top:pre.scrollTop,atEnd:pre.scrollTop+pre.clientHeight>=pre.scrollHeight-4};
    list.replaceChildren();
    const error=el('p',{className:'panel-error',role:'alert'});
+   list.append(workEnvSection());
    if(!p||p.status==='none'){
      list.append(el('p',{className:'panel-hint',textContent:'Collega la cartella del progetto: il browser leggerà progetto.browser.json da lì.'}),
        projectButtons(['Collega cartella',()=>act('projectFolder')]));
@@ -317,6 +318,34 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      const saved=logScroll[pre.dataset.index];
      pre.scrollTop=!saved||saved.atEnd?pre.scrollHeight:saved.top;
    }
+ }
+
+ // ── Ambiente di lavoro (Beta 0.19) ───────────────────────────────────────
+ // Programmi da avviare per lavorare al progetto: il companion dei giochi al contrario.
+ let workSuggestions=null;
+ function workEnvSection(){
+   const env=state.workenv||{programs:[],autoStart:false};
+   const box=section('Ambiente di lavoro');
+   if(!env.programs.length)box.append(el('p',{className:'panel-hint',textContent:'Scegli i programmi che usi per questo progetto (VS Code, Visual Studio, Unity…): partono con un clic, o da soli quando apri il workspace.'}));
+   env.programs.forEach(p=>{
+     const row=el('div',{className:'work-row'+(p.missing?' missing':'')},
+       el('div',{className:'command-name',textContent:p.name}),
+       el('div',{className:'game-meta',textContent:p.missing?'File non trovato: '+p.path:p.path,title:p.path}));
+     if(env.hasFolder)row.append(checkRow('Apri la cartella del progetto',p.openFolder,enabled=>act('workSetOpenFolder',{index:p.index,enabled})));
+     row.append(projectButtons(['Togli',()=>act('workRemoveProgram',{index:p.index})]));
+     box.append(row);
+   });
+   const error=el('p',{className:'panel-error',role:'alert'});
+   box.append(projectButtons(
+     ...(env.programs.length?[['▶ Inizia a lavorare',()=>runAndReport('workStart',{},error),'primary']]:[]),
+     ['＋ Programma…',()=>runAndReport('workChooseProgram',{},error)]),error);
+   // Programmi noti trovati su questo PC, non ancora aggiunti.
+   const known=(workSuggestions||[]).filter(s=>!env.programs.some(p=>p.path.toLowerCase()===s.path.toLowerCase()));
+   if(known.length)box.append(el('div',{className:'inline-buttons suggest-row'},el('span',{className:'panel-hint',textContent:'Trovati sul PC:'}),
+     ...known.map(s=>{const b=el('button',{textContent:'＋ '+s.name,title:s.path});b.onclick=()=>act('workAddSuggested',{path:s.path,name:s.name,openFolder:s.openFolder});return b;})));
+   if(workSuggestions===null){workSuggestions=[];act('workSuggestions').then(r=>{workSuggestions=r?.result||[];renderedProject=null;renderProject();});}
+   if(env.programs.length)box.append(checkRow('Avvia da solo quando apro il workspace',env.autoStart,enabled=>act('workSetAutoStart',{enabled})));
+   return box;
  }
 
  // ── Pannello JARVIS (Beta 0.9) ──────────────────────────────────────────
@@ -766,6 +795,7 @@ $('splitClose').onclick=()=>act('closeSplit');
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.
  document.body.dataset.sidebarMode=state.sidebarMode||'compact';
+ document.body.dataset.zen=state.zen?'true':'false';
  // Beta 0.17: il colore del workspace attivo colora la scheda attiva e il selettore in basso.
  const activeColor=state.workspaces.find(x=>x.name===state.activeWorkspace)?.color;
  if(activeColor)document.body.style.setProperty('--ws-active',activeColor);else document.body.style.removeProperty('--ws-active');
@@ -1188,3 +1218,15 @@ function renderLoadLine(){
  else if(lineState==='loading')line.className='done';
  lineState=next;
 }
+
+// ── Orologio in basso a destra e modalità zen (Beta 0.19) ────────────────
+function renderClock(){
+ const now=new Date();
+ $('clockTime').textContent=now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+ $('clockDate').textContent=now.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+ $('clock').title=now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+renderClock();
+// Si aggiorna allo scoccare di ogni minuto.
+setTimeout(()=>{renderClock();setInterval(renderClock,60000);},(60-new Date().getSeconds())*1000+50);
+$('zenButton').onclick=()=>act('toggleZen');

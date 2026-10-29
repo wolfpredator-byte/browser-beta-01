@@ -552,3 +552,20 @@ body[style*="--ws-active"] #splitFocus{box-shadow:0 0 0 2px var(--ws-active),0 0
   border-radius:10px;background:rgba(18,17,35,.92);border:1px solid var(--v-line-strong);color:#cfcde6;font-size:14px;overflow:hidden}
 #splitLayer.dragging .split-ghost{display:flex}
 #splitLayer.dragging #splitDivider::after{background:var(--v-accent-2)}
+
+/* ═══ BETA 0.19 — orologio, modalità zen, ambiente di lavoro ═══ */
+#clock{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;line-height:1.1;padding:0 6px 0 10px;
+  border-left:1px solid var(--v-line);margin-left:4px;cursor:default;user-select:none}
+#clockTime{font-size:13px;font-weight:600;color:var(--v-text);font-variant-numeric:tabular-nums}
+#clockDate{font-size:10px;color:var(--v-muted);text-transform:capitalize}
+#zenButton .i{width:16px;height:16px}
+/* Zen: la cornice sparisce; la pagina (WebContentsView) copre già tutta la finestra. */
+body[data-zen="true"] .window-titlebar,body[data-zen="true"] .toolbar,body[data-zen="true"] #globalSidebar,
+body[data-zen="true"] .tabbar,body[data-zen="true"] #sidePanel,body[data-zen="true"] .download-drawer,body[data-zen="true"] #splitControls{display:none!important}
+body[data-zen="true"] #dashboard,body[data-zen="true"] #loadError{top:0;left:0;right:0;bottom:0;border-radius:0;box-shadow:none}
+.work-row{padding:8px 0;border-bottom:1px solid var(--v-line)}
+.work-row.missing .command-name{color:#ff8794}
+.work-row .check-row{margin:4px 0}
+.suggest-row{align-items:center;flex-wrap:wrap;margin-top:6px}
+.suggest-row .panel-hint{margin:0 4px 0 0}
+#clock{flex:0 0 auto;white-space:nowrap}
