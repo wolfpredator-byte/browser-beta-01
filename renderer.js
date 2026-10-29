@@ -512,8 +512,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function renderSettings(){
    const s=state.settings;
    const list=$('settingsBody');
-   if(list.contains(document.activeElement)&&document.activeElement.matches('select'))return;
-   const key=JSON.stringify([s,settingsUi]);
+   if(list.contains(document.activeElement)&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
+   const key=JSON.stringify([s,settingsUi,state.appearanceSettings]);
    if(key===renderedSettings)return;
    renderedSettings=key;
    const panel=$('settingsPage'),scroll=panel.scrollTop;
@@ -523,9 +523,13 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const hint=text=>el('p',{className:'panel-hint',textContent:text});
    if(settingsUi.status)list.append(el('p',{className:settingsUi.statusError?'panel-error':'settings-status',role:'status',textContent:settingsUi.status}));
    list.append(
+     ...appearanceSections(),
      section('Ricerca',
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
+     section('Browser e file',
+       projectButtons(['Apri le App predefinite di Windows',()=>act('openDefaultApps')]),
+       hint('VARCO compare in "Apri con" per i file che sa mostrare (PDF, immagini, video, codice, modelli 3D…). Per aprirli sempre con VARCO, o per usarlo come browser, sceglilo lì per ogni tipo.')),
      section('Avvio e background',
        checkRow('Resta nell’area di notifica quando chiudo le finestre',s.runInBackground,enabled=>act('setRunInBackground',{enabled})),
        checkRow('Avvia con Windows (solo l’icona, nessuna finestra)',s.openAtLogin,enabled=>act('setOpenAtLogin',{enabled})),
@@ -556,6 +560,121 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    );
    panel.scrollTop=scroll;
  }
+ // ── Personalizzazione (Beta 0.21) ─────────────────────────────────────────
+ // Il processo principale manda le variabili CSS già calcolate (tema, sfondo, testo, angoli):
+ // qui le applichiamo e nascondiamo i pulsanti e i riquadri della Home che hai tolto.
+ let appliedAppearance=null,renderedLinks=null;
+ const HOME_CARD_NODES={hero:()=>[document.querySelector('.hero'),document.querySelector('.wordmark'),document.querySelector('.motto')],
+   search:()=>[$('homeSearch')],links:()=>[$('linksCard')],projects:()=>[$('homeProjects').closest('.card')],
+   quick:()=>[$('homeQuick').closest('.card')],jarvis:()=>[document.querySelector('.jarvis-card')],workspace:()=>[document.querySelector('.workspace-panel')]};
+ function applyAppearance(){
+   const a=state.appearance;
+   if(!a)return;
+   const key=JSON.stringify([a.vars,a.hidden,a.density,a.home]);
+   if(key!==appliedAppearance){
+     appliedAppearance=key;
+     for(const [name,value] of Object.entries(a.vars))document.documentElement.style.setProperty(name,value);
+     document.body.dataset.density=a.density;
+     for(const node of document.querySelectorAll('.user-hidden'))node.classList.remove('user-hidden');
+     for(const id of a.hidden)$(id)?.classList.add('user-hidden');
+     for(const [card,nodes] of Object.entries(HOME_CARD_NODES))if(a.home[card]===false)for(const node of nodes())node?.classList.add('user-hidden');
+     const cards=document.querySelector('.home-cards');
+     cards.classList.toggle('user-hidden',[...cards.children].every(c=>c.classList.contains('user-hidden')));
+     // I riquadri rimasti si allargano a tutta la riga (i link rapidi ne hanno una tutta loro).
+     const visible=[...cards.children].filter(c=>c.id!=='linksCard'&&!c.classList.contains('user-hidden')).length;
+     cards.style.setProperty('--home-cols',String(Math.max(1,visible)));
+   }
+   renderHomeLinks();
+ }
+ // Link rapidi: i siti che usi in questo workspace, sempre a un clic dalla Home.
+ function renderHomeLinks(){
+   const links=state.appearance?.homeLinks||[];
+   const key=JSON.stringify([state.activeWorkspace,links]);
+   if(key===renderedLinks)return;
+   renderedLinks=key;
+   const box=$('homeLinks');
+   const grid=el('div',{className:'home-links'});
+   links.forEach((link,index)=>{
+     const button=el('button',{className:'home-link',title:link.url},
+       el('span',{className:'link-letter',textContent:(link.title[0]||'?').toUpperCase()}),el('span',{textContent:link.title}));
+     const remove=el('span',{className:'link-remove',textContent:'×',title:'Togli dalla Home',role:'button'});
+     remove.onclick=e=>{e.stopPropagation();act('removeHomeLink',{index});};
+     button.append(remove);
+     button.onclick=()=>act('navigate',{url:link.url});
+     grid.append(button);
+   });
+   const input=el('input',{placeholder:'Aggiungi un sito (es. github.com)',maxLength:2000,autocomplete:'off',spellcheck:false});
+   const error=el('p',{className:'panel-error',hidden:true});
+   const form=el('form',{className:'link-form'},input,el('button',{type:'submit',textContent:'Aggiungi'}));
+   form.onsubmit=async e=>{
+     e.preventDefault();
+     if(!input.value.trim())return;
+     const r=await act('addHomeLink',{url:input.value});
+     if(r?.result?.ok===false){error.textContent=r.result.error;error.hidden=false;}
+   };
+   box.replaceChildren(...(links.length?[grid]:[el('p',{className:'muted',textContent:'I siti che usi in questo workspace, a un clic dalla Home.'})]),form,error);
+ }
+ // Cursore: anteprima mentre trascini (con una piccola pausa, per non salvare a ogni pixel).
+ function rangeRow(label,key,value,[min,max],format){
+   const input=el('input',{type:'range',min,max,step:1,value});
+   const out=el('output',{textContent:format(value)});
+   let timer=null;
+   input.oninput=()=>{out.textContent=format(Number(input.value));clearTimeout(timer);timer=setTimeout(()=>act('setAppearanceValue',{key,value:Number(input.value)}),90);};
+   input.onchange=()=>{clearTimeout(timer);act('setAppearanceValue',{key,value:Number(input.value)});input.blur();};
+   return el('label',{className:'range-row'},el('span',{textContent:label}),input,out);
+ }
+ function appearanceSections(){
+   const a=state.appearanceSettings;
+   if(!a)return [];
+   const hint=text=>el('p',{className:'panel-hint',textContent:text});
+   const sub=text=>el('p',{className:'settings-sub',textContent:text});
+   // Tema e colori
+   const grid=el('div',{className:'theme-grid'});
+   for(const t of a.themes){
+     const swatch=el('span',{className:'theme-swatch'});
+     swatch.style.background=`linear-gradient(120deg,${t.bg} 35%,${t.accent})`;
+     const chip=el('button',{className:'theme-chip'+(a.theme===t.id&&!a.accent?' chosen':'')},swatch,el('span',{textContent:t.label}));
+     chip.onclick=()=>act('setTheme',{theme:t.id});
+     grid.append(chip);
+   }
+   const themeAccent=a.themes.find(t=>t.id===a.theme)?.accent||'#7c6cff';
+   const color=el('input',{type:'color',className:'color-input',value:a.accent||themeAccent});
+   let colorTimer=null;
+   color.oninput=()=>{clearTimeout(colorTimer);colorTimer=setTimeout(()=>act('setAccent',{color:color.value}),120);};
+   color.onchange=()=>{clearTimeout(colorTimer);act('setAccent',{color:color.value});color.blur();};
+   const accentRow=el('div',{className:'permission-row'},el('span',{textContent:a.accent?'Colore personalizzato':'Colore d’accento (del tema)'}),
+     el('span',{className:'inline-buttons'},color,...(a.accent?[addButton(el('span'),'Usa quello del tema',()=>act('setAccent',{color:''}))]:[])));
+   // Sfondo
+   const wallNow=a.wallpaper.kind==='image'?a.wallpaperName:a.wallpaper.kind==='none'?'Nessuno (tinta unita)':'Sfondo VARCO';
+   const wallAll=el('div',{className:'permission-row'},el('span',{textContent:'Tutti i workspace: '+wallNow}),
+     projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'all'})],['VARCO',()=>act('setWallpaperKind',{kind:'default'})],['Nessuno',()=>act('setWallpaperKind',{kind:'none'})]));
+   const wallWs=el('div',{className:'permission-row'},el('span',{textContent:`Solo «${a.workspace}»: `+(a.workspaceWallpaper||'come gli altri')}),
+     projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'workspace'})],...(a.workspaceWallpaper?[['Togli',()=>act('clearWorkspaceWallpaper')]]:[])));
+   const L=a.limits;
+   return [
+     section('Tema e colori',grid,accentRow,
+       rangeRow('Opacità delle barre','glass',a.glass,L.glass,v=>v+'%'),
+       hint('Più bassa: barre più trasparenti, si vede di più lo sfondo.')),
+     section('Sfondo',wallAll,wallWs,
+       rangeRow('Sfocatura','blur',a.wallpaper.blur,L.blur,v=>v+' px'),
+       rangeRow('Luminosità','brightness',a.wallpaper.brightness,L.brightness,v=>v+'%'),
+       hint('L’immagine viene copiata nella cartella dei dati di VARCO: puoi spostare o cancellare l’originale.')),
+     section('Interfaccia',
+       el('label',{className:'permission-row'},el('span',{textContent:'Densità'}),selectBox(a.densities.map(d=>[d,d[0].toUpperCase()+d.slice(1)]),a.density,density=>act('setDensity',{density}))),
+       rangeRow('Dimensione del testo','fontScale',a.fontScale,L.fontScale,v=>v+'%'),
+       rangeRow('Angoli delle pagine','radius',a.radius,L.radius,v=>v+' px'),
+       sub('Barra laterale'),
+       el('div',{className:'toggle-grid'},...Object.entries(a.hideable.sidebar).map(([id,label])=>checkRow(label,!a.hidden.includes(id),v=>act('setButtonHidden',{id,hidden:!v})))),
+       sub('Barre in alto e in basso'),
+       el('div',{className:'toggle-grid'},...Object.entries(a.hideable.toolbar).map(([id,label])=>checkRow(label,!a.hidden.includes(id),v=>act('setButtonHidden',{id,hidden:!v})))),
+       hint('I pulsanti nascosti restano raggiungibili dalla palette (F1) e dalle scorciatoie.')),
+     section('Home',
+       el('div',{className:'toggle-grid'},...Object.entries(a.homeCards).map(([card,label])=>checkRow(label,a.home[card],visible=>act('setHomeCard',{card,visible})))),
+       hint('I link rapidi sono diversi per ogni workspace: si aggiungono dal riquadro sulla Home.'),
+       el('div',{className:'inline-buttons'},confirmButton('Ripristina l’aspetto predefinito','Conferma: torna all’aspetto di VARCO',()=>act('resetAppearance'))))
+   ];
+ }
+
  // ── File del progetto (Beta 0.20) ────────────────────────────────────────
  // Albero della cartella collegata al workspace: le cartelle si aprono al clic,
  // i file si aprono nel visualizzatore. Le cartelle pesanti (node_modules, .git…) restano chiuse.
@@ -855,6 +974,7 @@ function render(){
  const activeColor=state.workspaces.find(x=>x.name===state.activeWorkspace)?.color;
  if(activeColor)document.body.style.setProperty('--ws-active',activeColor);else document.body.style.removeProperty('--ws-active');
  document.body.dataset.panelOpen=state.sidePanelOpen?'true':'false';
+ applyAppearance();
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
  // Beta 0.12: la scheda interna può essere la Home o le Impostazioni.

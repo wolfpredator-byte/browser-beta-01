@@ -24,6 +24,7 @@ const {registerCommands}=require('./lib/commands.cjs');
 const {registerGameCommands}=require('./lib/commands-games.cjs');
 const {registerProjectCommands}=require('./lib/commands-projects.cjs');
 const {registerSettingsCommands}=require('./lib/commands-settings.cjs');
+const {registerAppearanceCommands}=require('./lib/commands-appearance.cjs');
 const diagnostics=require('./lib/diagnostics.cjs');
 // Beta 0.20: varco-view:// (visualizzatore di file) va registrato prima di app.ready.
 require('./lib/file-viewer.cjs').registerScheme();
@@ -73,6 +74,7 @@ function start(){
   registerGameCommands(bus);
   registerProjectCommands(bus);
   registerSettingsCommands(bus);
+  registerAppearanceCommands(bus);
   require('./lib/toasts.cjs').setup(bus);
   require('./lib/popup.cjs').setup();
 
@@ -116,6 +118,8 @@ function start(){
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
   if(!autostart.startedInBackground()){require('./lib/splash.cjs').open();tabs.openSavedWindows();}
+  // Beta 0.21: VARCO in "Apri con" e "App predefinite" per i file (solo l'eseguibile installato).
+  setTimeout(()=>require('./lib/file-types.cjs').register().catch(()=>{}),8000);
 }
 
 // Una sola copia del browser: aprirlo di nuovo (es. dal collegamento mentre è

@@ -1,3 +1,4 @@
+:root{--v-accent:#7c6cff;--v-accent-2:#a99bff;--v-accent-rgb:124,108,255;--v-accent-2-rgb:169,155,255}
 /* Menu e dialoghi VARCO: vetro scuro, bordo viola, icone a sinistra e scorciatoie a destra. */
 html,body{margin:0;height:100%;background:transparent;overflow:hidden;font:13px/1.4 'Segoe UI Variable','Segoe UI',Arial,sans-serif;color:#e9e8f5;user-select:none}
 #root{position:fixed;inset:0}
@@ -5,45 +6,45 @@ html,body{margin:0;height:100%;background:transparent;overflow:hidden;font:13px/
 
 /* ── Menu ── */
 .menu{position:fixed;min-width:230px;max-width:340px;padding:5px;border-radius:12px;background:rgba(17,16,33,.97);
-  border:1px solid rgba(160,150,255,.28);box-shadow:0 16px 40px rgba(0,0,0,.55);animation:pop .12s ease-out}
+  border:1px solid rgba(var(--v-accent-2-rgb),.28);box-shadow:0 16px 40px rgba(0,0,0,.55);animation:pop .12s ease-out}
 @keyframes pop{from{opacity:0;transform:scale(.97)}}
 .item{display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:8px;cursor:default;white-space:nowrap;color:#dddbf0}
 .item .icon{flex:0 0 16px;color:#a9a5d6}
 .item .label{flex:1;overflow:hidden;text-overflow:ellipsis}
 .item .keys{color:#7f7c9c;font-size:11px;margin-left:18px}
 .item .more{color:#7f7c9c}
-.item.active,.item:hover{background:rgba(124,108,255,.20);color:#fff}
+.item.active,.item:hover{background:rgba(var(--v-accent-rgb),.20);color:#fff}
 .item.active .icon,.item:hover .icon{color:#cfc8ff}
 .item.disabled{color:#5f5d78;pointer-events:none}
 .item.disabled .icon{color:#4b4964}
 .item.danger,.item.danger .icon{color:#ff7d8a}
 .item.danger.active,.item.danger:hover{background:rgba(255,90,106,.16)}
-.sep{height:1px;margin:5px 8px;background:rgba(160,150,255,.14)}
+.sep{height:1px;margin:5px 8px;background:rgba(var(--v-accent-2-rgb),.14)}
 
 /* ── Dialoghi ── */
 .backdrop{position:fixed;inset:0;background:rgba(5,5,12,.55);display:grid;place-items:center;animation:fade .15s ease-out}
 @keyframes fade{from{opacity:0}}
 .dialog{width:min(430px,calc(100vw - 40px));padding:26px 26px 20px;border-radius:18px;text-align:center;position:relative;
-  background:rgba(18,17,35,.98);border:1px solid rgba(160,150,255,.32);box-shadow:0 24px 70px rgba(0,0,0,.6);animation:pop .16s ease-out}
+  background:rgba(18,17,35,.98);border:1px solid rgba(var(--v-accent-2-rgb),.32);box-shadow:0 24px 70px rgba(0,0,0,.6);animation:pop .16s ease-out}
 .dialog .close{position:absolute;top:12px;right:12px;background:transparent;border:0;padding:6px;color:#8f8daa;border-radius:8px}
 .dialog .close:hover{background:rgba(255,255,255,.06);color:#fff}
 .dialog .badge{width:58px;height:58px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;
-  background:rgba(124,108,255,.18);color:#c9c0ff;box-shadow:0 0 30px rgba(124,108,255,.35)}
+  background:rgba(var(--v-accent-rgb),.18);color:var(--v-accent-2);box-shadow:0 0 30px rgba(var(--v-accent-rgb),.35)}
 .dialog.warning .badge{background:rgba(255,90,106,.16);color:#ff8794;box-shadow:0 0 30px rgba(255,90,106,.3)}
 .dialog .badge .i{width:28px;height:28px}
 .dialog h2{font-size:17px;font-weight:600;margin:0 0 8px}
 .dialog p{color:#a8a5c4;margin:0 0 6px;white-space:pre-line;word-break:break-word}
 .dialog label{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 0;color:#cfcde6}
-.dialog input{accent-color:#7c6cff;width:15px;height:15px}
+.dialog input{accent-color:var(--v-accent);width:15px;height:15px}
 .buttons{display:flex;gap:10px;justify-content:center;margin-top:20px}
 .buttons button{flex:1;max-width:190px}
-button{font:inherit;color:#e9e8f5;background:rgba(255,255,255,.05);border:1px solid rgba(160,150,255,.26);border-radius:10px;padding:9px 16px;cursor:pointer}
-button:hover{background:rgba(124,108,255,.18)}
+button{font:inherit;color:#e9e8f5;background:rgba(255,255,255,.05);border:1px solid rgba(var(--v-accent-2-rgb),.26);border-radius:10px;padding:9px 16px;cursor:pointer}
+button:hover{background:rgba(var(--v-accent-rgb),.18)}
 button.primary{background:#6f5ff5;border-color:transparent;color:#fff;box-shadow:0 4px 18px rgba(111,95,245,.4)}
 button.primary:hover{background:#7d6eff}
 button.danger{background:#d9424f;border-color:transparent;color:#fff}
 button.danger:hover{background:#e8505d}
-button:focus-visible{outline:2px solid #a99bff;outline-offset:2px}
+button:focus-visible{outline:2px solid var(--v-accent-2);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.menu,.dialog,.backdrop{animation:none}}
 .swatch{display:block;width:12px;height:12px;margin:2px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .chosen-mark{color:#cfc8ff;margin-left:12px}
