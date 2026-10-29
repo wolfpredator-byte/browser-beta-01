@@ -556,6 +556,59 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    );
    panel.scrollTop=scroll;
  }
+ // ── File del progetto (Beta 0.20) ────────────────────────────────────────
+ // Albero della cartella collegata al workspace: le cartelle si aprono al clic,
+ // i file si aprono nel visualizzatore. Le cartelle pesanti (node_modules, .git…) restano chiuse.
+ const FILE_ICONS={folder:'folder',code:'commands',markdown:'notes',text:'notes',json:'commands',csv:'tabs',image:'external',
+   video:'tabs',audio:'jarvis',pdf:'notes',docx:'notes',sheet:'tabs',pptx:'tabs',model:'ws-project',zip:'downloads',font:'notes',binary:'ws-default'};
+ let renderedFiles=null;
+ const filesUi={workspace:null,root:null,open:new Set(),cache:new Map(),error:''};
+ async function loadDir(dir){
+   const r=await act('listDir',dir?{path:dir}:{});
+   const res=r?.result;
+   if(!res?.ok){filesUi.error=res?.error||r?.error||'Cartella non leggibile.';return null;}
+   filesUi.cache.set(res.dir,res);
+   return res;
+ }
+ async function renderFiles(force=false){
+   $('sidePanelTitle').textContent='File · '+state.activeWorkspace;
+   const list=$('sidePanelItems');
+   if(filesUi.workspace!==state.activeWorkspace){Object.assign(filesUi,{workspace:state.activeWorkspace,root:null,open:new Set(),cache:new Map(),error:''});}
+   if(renderedFiles===state.activeWorkspace&&!force)return;
+   renderedFiles=state.activeWorkspace;
+   if(!filesUi.root){filesUi.error='';const res=await loadDir(null);filesUi.root=res?.dir||null;}
+   list.replaceChildren();
+   list.append(projectButtons(['Apri un file… (Ctrl+O)',()=>act('openFileDialog')]));
+   if(!filesUi.root){
+     list.append(el('p',{className:'panel-hint',textContent:filesUi.error||'Collega una cartella al workspace.'}),
+       projectButtons(['Collega cartella',()=>act('projectFolder')]),
+       el('p',{className:'panel-hint',textContent:'Puoi anche trascinare un file qualsiasi sulla finestra, o scrivere il suo percorso nella barra degli indirizzi.'}));
+     return;
+   }
+   list.append(el('p',{className:'project-folder',textContent:filesUi.root,title:filesUi.root}));
+   const tree=el('div',{className:'file-tree'});
+   const draw=(dir,depth)=>{
+     const res=filesUi.cache.get(dir);if(!res)return;
+     for(const item of res.items){
+       const row=el('button',{className:'file-row'+(item.dir?' is-dir':'')+(item.heavy?' heavy':''),title:item.path});
+       row.style.paddingLeft=(6+depth*14)+'px';
+       const open=item.dir&&filesUi.open.has(item.path);
+       row.append(el('span',{className:'file-caret',textContent:item.dir?(open?'▾':'▸'):''}),icon(FILE_ICONS[item.kind]||'notes'),el('span',{className:'file-name',textContent:item.name}));
+       row.onclick=async()=>{
+         if(!item.dir){act('openLocalFile',{path:item.path});return;}
+         if(open)filesUi.open.delete(item.path);
+         else{filesUi.open.add(item.path);if(!filesUi.cache.has(item.path))await loadDir(item.path);}
+         renderFiles(true);
+       };
+       tree.append(row);
+       if(open)draw(item.path,depth+1);
+     }
+     if(res.truncated)tree.append(el('p',{className:'panel-hint',textContent:'…e altri file (ne mostro 500).'}));
+   };
+   draw(filesUi.root,0);
+   list.append(tree);
+ }
+
  // ── Note del workspace (Beta 0.17) ───────────────────────────────────────
  // Un blocco note per ogni workspace: si salva da solo mentre scrivi.
  let renderedNotes=null,notesTimer=null;
@@ -627,6 +680,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else return renderNotifications();
    if(mode!=='notes')renderedNotes=null;
    else return renderNotes();
+   if(mode!=='files')renderedFiles=null;
+   else return renderFiles();
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
    if(mode!=='project')renderedProject=null;
@@ -935,6 +990,7 @@ $('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
 $('showSettings').onclick=()=>act('openSettings');
 $('showNotifications').onclick=()=>act('toggleSidePanel',{panel:'notifications'});
 $('showNotes').onclick=()=>act('toggleSidePanel',{panel:'notes'});
+$('showFiles').onclick=()=>act('toggleSidePanel',{panel:'files'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
@@ -1003,7 +1059,9 @@ let addressEdited=false;
 function syncAddress(tab=state.tabs.find(t=>t.active)){
  const input=$('address');
  if(addressEdited&&document.activeElement===input)return;
- const value=tab&&!tab.isHome?tab.url:'';
+ let value=tab&&!tab.isHome?tab.url:'';
+ // Beta 0.20: per un file del visualizzatore mostriamo il suo percorso (si può modificare e riaprire).
+ if(value.startsWith('varco-view://app/viewer.html')){try{value=new URL(value).searchParams.get('p')||value;}catch{}}
  if(input.value!==value)input.value=value;
 }
 // ── Barra degli indirizzi con suggerimenti (Beta 0.12) ──────────────────
@@ -1230,3 +1288,15 @@ renderClock();
 // Si aggiorna allo scoccare di ogni minuto.
 setTimeout(()=>{renderClock();setInterval(renderClock,60000);},(60-new Date().getSeconds())*1000+50);
 $('zenButton').onclick=()=>act('toggleZen');
+
+// ── File trascinati sulla finestra → visualizzatore (Beta 0.20) ──────────
+// (Quelli lasciati sopra una pagina web li intercetta il processo principale.)
+document.addEventListener('dragover',e=>{if(e.dataTransfer?.types?.includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy';}});
+document.addEventListener('drop',e=>{
+ if(!e.dataTransfer?.files?.length)return;
+ e.preventDefault();
+ for(const file of [...e.dataTransfer.files].slice(0,10)){
+   const path=window.browserAPI.pathForFile(file);
+   if(path)act('openLocalFile',{path});
+ }
+});

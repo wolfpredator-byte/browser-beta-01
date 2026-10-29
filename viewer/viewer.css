@@ -1,0 +1,73 @@
+/* Visualizzatore di file VARCO: stessi colori del browser. */
+:root{--bg:#0b0b16;--panel:#13122a;--line:rgba(160,150,255,.16);--text:#e9e8f5;--muted:#9a97b8;--accent:#7c6cff;--accent2:#a99bff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.5 'Segoe UI Variable','Segoe UI',Arial,sans-serif}
+body{display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:rgba(19,18,42,.9);flex:0 0 auto}
+.file{flex:1;min-width:0}
+#fileName{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fileMeta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+button{font:inherit;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:5px 11px;cursor:pointer}
+button:hover{background:rgba(124,108,255,.18)}
+button.on{background:var(--accent);border-color:transparent}
+.badge{font-size:11.5px;color:var(--muted);padding:3px 8px;border:1px solid var(--line);border-radius:7px}
+#content{flex:1;min-height:0;overflow:auto;position:relative}
+#content.fill{overflow:hidden}
+.message{margin:18px;padding:12px 14px;border-radius:10px;background:rgba(124,108,255,.1);border:1px solid var(--line);color:#cfcde6}
+.message.error{background:rgba(255,90,106,.1);color:#ff9aa5}
+/* Codice */
+.code-view{display:flex;min-height:100%;font:12.5px/1.55 'Cascadia Code','Cascadia Mono',Consolas,monospace}
+.gutter{margin:0;padding:14px 10px 14px 14px;text-align:right;color:#5d5a7c;user-select:none;border-right:1px solid var(--line);background:rgba(0,0,0,.18);flex:0 0 auto}
+.code{margin:0;padding:14px 18px;flex:1;min-width:0;tab-size:4}
+.code code.hljs{background:transparent;padding:0}
+.code-view.wrap .gutter{display:none}
+.code-view.wrap .code{white-space:pre-wrap;word-break:break-word}
+/* Markdown, Word */
+.markdown,.paper{max-width:860px;margin:0 auto;padding:28px 34px 60px;font-size:14.5px;line-height:1.65}
+.markdown h1,.markdown h2{border-bottom:1px solid var(--line);padding-bottom:6px}
+.markdown a{color:var(--accent2)}
+.markdown code{font:12.5px 'Cascadia Code',Consolas,monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:5px}
+.markdown pre{background:rgba(0,0,0,.3);padding:12px 14px;border-radius:10px;overflow:auto;border:1px solid var(--line)}
+.markdown pre code{background:none;padding:0}
+.markdown img{max-width:100%}
+.markdown table{border-collapse:collapse}.markdown td,.markdown th{border:1px solid var(--line);padding:5px 9px}
+.markdown blockquote{margin:0;padding:2px 16px;border-left:3px solid var(--accent);color:#cfcde6}
+.paper{background:#fbfbfd;color:#1d1d24;margin:24px auto;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.paper img{max-width:100%}.paper table{border-collapse:collapse}.paper td{border:1px solid #ccc;padding:4px 8px}
+/* Tabelle (CSV, Excel) */
+.table-wrap{overflow:auto;max-height:100%}
+table.grid{border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+.grid th,.grid td{border:1px solid var(--line);padding:4px 9px;text-align:left;max-width:420px;overflow:hidden;text-overflow:ellipsis}
+.grid thead th{position:sticky;top:0;background:#1b1a38;z-index:1}
+.grid .num{color:#5d5a7c;text-align:right;background:#14132b;position:sticky;left:0}
+.sheet-tabs{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+.sheet-tabs .tab{font-size:12px}.sheet-holder{overflow:auto}
+/* Immagini, video, PDF */
+.stage{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px}
+.stage img{max-width:100%;max-height:calc(100vh - 110px);cursor:zoom-in;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.stage.actual img{max-width:none;max-height:none;cursor:zoom-out}
+.checker{background:repeating-conic-gradient(#16152c 0% 25%,#1d1c38 0% 50%) 0 0/20px 20px}
+.stage video{max-width:100%;max-height:calc(100vh - 110px);border-radius:8px;background:#000}
+.stage audio{width:min(560px,90%)}
+embed.pdf{display:block;width:100%;height:100%;border:0}
+/* PowerPoint */
+.deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;padding:18px}
+.slide{position:relative;aspect-ratio:16/9;background:#fbfbfd;color:#1d1d24;border-radius:8px;padding:22px 26px;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.45)}
+.slide h2{margin:0 0 10px;font-size:19px}.slide ul{margin:0;padding-left:20px;font-size:12.5px}
+.slide-num{position:absolute;right:10px;bottom:6px;font-size:11px;color:#888}
+.slide-pics{display:flex;gap:8px;margin-top:10px}.slide-pics img{max-height:90px;max-width:45%;object-fit:contain}
+/* ZIP */
+.zip{display:flex;height:100%}
+.zip-list{width:46%;overflow:auto;border-right:1px solid var(--line)}
+.zip-row{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;border-radius:0;border-bottom:1px solid rgba(160,150,255,.07);text-align:left;padding:5px 12px;font-size:12px}
+.zip-row.on{background:rgba(124,108,255,.18)}
+.zip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.zip-size{color:var(--muted);flex:0 0 auto}
+.zip-preview{flex:1;overflow:auto;padding:12px}.zip-preview img{max-width:100%}
+.zip-text{margin:0;font:12px/1.5 Consolas,monospace;white-space:pre-wrap}
+/* Modelli 3D */
+.model{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,#1c1a3e,#0b0b16 70%)}
+.model canvas{display:block}
+/* Font, esadecimale */
+.font-preview{padding:24px 30px}.font-preview p{margin:0 0 12px;line-height:1.25}
+.hex{margin:0 18px 18px;font:12px/1.5 Consolas,monospace;color:#cfcde6}

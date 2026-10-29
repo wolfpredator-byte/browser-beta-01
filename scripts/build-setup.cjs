@@ -19,6 +19,8 @@ const version=require(path.join(root,'package.json')).version;
 const electronVersion=require(path.join(root,'node_modules','electron','package.json')).version;
 const sh=command=>execSync(command,{cwd:root,stdio:'inherit'});
 
+console.log('\n▸ Librerie del visualizzatore…');
+sh('node scripts/vendor.cjs');
 console.log(`\n▸ VARCO ${version}: impacchetto il browser…`);
 sh('npx electron-builder --win dir');
 

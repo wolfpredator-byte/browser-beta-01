@@ -569,3 +569,13 @@ body[data-zen="true"] #dashboard,body[data-zen="true"] #loadError{top:0;left:0;r
 .suggest-row{align-items:center;flex-wrap:wrap;margin-top:6px}
 .suggest-row .panel-hint{margin:0 4px 0 0}
 #clock{flex:0 0 auto;white-space:nowrap}
+
+/* ═══ BETA 0.20 — pannello File del progetto ═══ */
+.i-folder{--i:url(assets/icons/folder.svg)}
+.file-tree{display:flex;flex-direction:column;margin-top:4px}
+.file-row{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:4px 6px;border-radius:6px;font-size:12.5px;color:#d9d7ee;border:0}
+.file-row .i{width:15px;height:15px;color:#a9a5d6}
+.file-row.is-dir .i{color:var(--v-accent-2)}
+.file-row.heavy{opacity:.55}
+.file-caret{flex:0 0 10px;font-size:10px;color:var(--v-muted)}
+.file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

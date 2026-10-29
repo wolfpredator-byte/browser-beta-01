@@ -25,6 +25,8 @@ const {registerGameCommands}=require('./lib/commands-games.cjs');
 const {registerProjectCommands}=require('./lib/commands-projects.cjs');
 const {registerSettingsCommands}=require('./lib/commands-settings.cjs');
 const diagnostics=require('./lib/diagnostics.cjs');
+// Beta 0.20: varco-view:// (visualizzatore di file) va registrato prima di app.ready.
+require('./lib/file-viewer.cjs').registerScheme();
 // Prima di tutto il resto: anche gli errori dell'avvio finiscono nella diagnostica.
 diagnostics.install();
 const {shortcutCommand}=require('./lib/window-rules.cjs');
@@ -124,12 +126,18 @@ function start(){
  * in primo piano (se il browser era già aperto arriva tramite second-instance).
  */
 const urlsIn=argv=>argv.filter(arg=>/^https?:\/\//i.test(arg)).slice(0,10);
+// Beta 0.20: anche i file ("Apri con → VARCO", o trascinati sull'icona) si aprono nel visualizzatore.
+const filesIn=argv=>argv.slice(1).filter(arg=>!arg.startsWith('-')&&/^[a-zA-Z]:\\|^\\\\/.test(arg)&&
+  !/\.(exe|asar)$/i.test(arg)&&(()=>{try{return require('node:fs').statSync(arg).isFile();}catch{return false;}})()).slice(0,10);
 function openUrls(urls){
   if(!urls.length)return false;
   let w=windows.focusedWindow();
   if(!w){tabs.openSavedWindows();w=windows.focusedWindow();}
   if(!w)return false;
-  for(const url of urls)tabs.newTab(url,w.workspace,{pane:w.pane});
+  for(const url of urls){
+    if(/^https?:/i.test(url))tabs.newTab(url,w.workspace,{pane:w.pane});
+    else require('./lib/file-viewer.cjs').openFile(w,url);
+  }
   if(w.win.isMinimized())w.win.restore();
   w.win.focus();
   return true;
@@ -141,9 +149,9 @@ if(process.argv.includes('--uninstall')){
 }else if(!app.requestSingleInstanceLock())app.quit();
 else{
   app.on('second-instance',(_event,argv)=>{
-    if(!openUrls(urlsIn(argv)))bus.dispatch('openBrowser',{},{source:'second-instance'});
+    if(!openUrls([...urlsIn(argv),...filesIn(argv)]))bus.dispatch('openBrowser',{},{source:'second-instance'});
   });
-  app.whenReady().then(()=>{start();openUrls(urlsIn(process.argv));});
+  app.whenReady().then(()=>{start();openUrls([...urlsIn(process.argv),...filesIn(process.argv)]);});
 }
 
 /**

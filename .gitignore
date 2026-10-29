@@ -11,3 +11,5 @@ __pycache__/
 setup/assets/
 setup/package.json
 setup/package-lock.json
+# Copiati da node_modules da scripts/vendor.cjs
+viewer/vendor/

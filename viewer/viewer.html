@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="it"><head><meta charset="UTF-8">
+<!-- Visualizzatore di file di VARCO (Beta 0.20). Nessuno script esterno: solo questa cartella. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-gh7NRJ7MEWdYUGMcXx0SUMJY93gUi2UqlztG1amlvwA='; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self'; font-src 'self' blob: data:; connect-src 'self'; object-src 'self'; frame-src 'self'; worker-src 'self' blob:">
+<title>File</title>
+<link rel="stylesheet" href="viewer.css">
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head><body>
+<header class="bar"><div class="file"><div id="fileName">…</div><div id="fileMeta"></div></div><div id="tools"></div>
+<button id="openExternal" title="Apri il file nel suo programma (es. VS Code, Word, Blender)">Apri con il programma predefinito</button><button id="showFolder">Mostra nella cartella</button></header>
+<main id="content"><div class="message">Carico il file…</div></main>
+<script type="module" src="viewer.js"></script>
+</body></html>

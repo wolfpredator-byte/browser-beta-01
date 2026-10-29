@@ -63,3 +63,15 @@ if(location.hostname==='accounts.google.com'){
     }catch{}
   }});
 }
+
+/**
+ * Beta 0.20 — pagina del visualizzatore di file (varco-view://app): due pulsanti che
+ * chiedono al browser di aprire il file con il programma predefinito o di mostrarlo
+ * nella cartella. Il browser controlla che la richiesta arrivi davvero da lì.
+ */
+if(location.protocol==='varco-view:'&&location.host==='app'){
+  contextBridge.exposeInMainWorld('varcoViewer',{
+    openExternal:file=>ipcRenderer.invoke('viewer:action','open',file),
+    showInFolder:file=>ipcRenderer.invoke('viewer:action','folder',file)
+  });
+}
