@@ -38,7 +38,10 @@ function openMenu(items,x,y,level,parentRect){
     row.setAttribute('role','menuitem');
     const ic=el('span','icon');
     if(item.checked===true)ic.append(icon('check'));else if(item.icon)ic.append(icon(item.icon));
+    // Voci con un colore (es. colore del workspace): pallino nella colonna dell'icona, spunta in fondo.
+    if(item.color){const dot=el('span','swatch');dot.style.background=item.color;ic.replaceChildren(dot);}
     row.append(ic,el('span','label',item.label));
+    if(item.color&&item.checked===true){const mark=icon('check');mark.classList.add('chosen-mark');row.append(mark);}
     if(item.keys)row.append(el('span','keys',item.keys));
     if(item.submenu)row.append(el('span','more','›'));
     row.onmouseenter=()=>activate(level,index);

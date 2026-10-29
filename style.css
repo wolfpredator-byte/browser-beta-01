@@ -502,3 +502,17 @@ body[data-downloads-open="true"] #loadError,body[data-downloads-open="true"] #da
 #notifyBadge[hidden]{display:none}
 .download-drawer>button{margin:12px 6px 0 0;border:1px solid var(--v-line);background:rgba(255,255,255,.04);font-size:12px}
 .download-drawer>button:hover{background:rgba(124,108,255,.16)}
+
+/* ═══ BETA 0.17 — workspace colorati e note ═══ */
+.i-notes{--i:url(assets/icons/notes.svg)}
+#globalSidebar .workspace-button.colored .workspace-icon{color:var(--ws-color)}
+#globalSidebar .workspace-button.colored.selected{background:color-mix(in srgb,var(--ws-color) 18%,transparent);
+  border-color:color-mix(in srgb,var(--ws-color) 45%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--ws-color) 22%,transparent)}
+#globalSidebar .workspace-button.drop-target{box-shadow:inset 0 2px 0 var(--v-accent-2)}
+body[style*="--ws-active"] .tab.active{border-color:color-mix(in srgb,var(--ws-active) 60%,transparent);background:color-mix(in srgb,var(--ws-active) 16%,transparent)}
+body[style*="--ws-active"] #workspaceSwitcher .i{color:var(--ws-active)}
+.notes-area{display:block;width:100%;height:calc(100vh - 230px);min-height:200px;resize:none;box-sizing:border-box;
+  font:13px/1.55 'Segoe UI Variable','Segoe UI',Arial,sans-serif;color:var(--v-text);background:rgba(0,0,0,.25);
+  border:1px solid var(--v-line);border-radius:12px;padding:12px 14px;outline:none}
+.notes-area:focus{border-color:var(--v-line-strong)}
+.notes-status{margin-top:8px}

@@ -19,7 +19,7 @@ test('un file completo viene letto e normalizzato',()=>{
   const r=parseProjectFile(JSON.stringify(destiny));
   assert.equal(r.ok,true,JSON.stringify(r.errors));
   assert.equal(r.config.anteprima,'http://localhost:5173/');
-  assert.deepEqual(r.config.avvio,[{nome:'npm run dev',comando:'npm run dev'},{nome:'API',comando:'node server.js'}]);
+  assert.deepEqual(r.config.avvio,[{nome:'npm run dev',comando:'npm run dev',pronto:null,ricarica:true},{nome:'API',comando:'node server.js',pronto:null,ricarica:true}]);
   assert.deepEqual(r.config.link.map(l=>l.nome),['https://github.com/me/destiny-builder','Docs Bungie']);
   // 1 minuto non è ammesso: il minimo è 5.
   assert.equal(r.config.monitor[0].intervalloMinuti,5);

@@ -34,7 +34,11 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      max:40,submit:'Crea',command:'addWorkspace',field:'name'},
    addResource:{title:()=>'Risorsa per '+state.activeWorkspace,label:'Indirizzo web',
      placeholder:'Es. light.gg oppure https://github.com/…',max:2048,submit:'Aggiungi',
-     command:'addResource',field:'url'}
+     command:'addResource',field:'url'},
+   // Beta 0.17: rinomina (il workspace scelto arriva dal processo principale come renameTarget).
+   renameWorkspace:{title:()=>`Rinomina «${state.renameTarget||''}»`,label:'Nuovo nome',placeholder:'Es. Destiny Builder',
+     max:40,submit:'Rinomina',command:'renameWorkspace',initial:()=>state.renameTarget||'',
+     args:value=>({name:state.renameTarget||'',newName:value}),key:()=>state.renameTarget}
  };
  // Lo stato arriva più volte al secondo (titoli, caricamenti): il modulo
  // si ricostruisce solo quando cambia, altrimenti perderesti quello che stai scrivendo.
@@ -42,13 +46,15 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function renderForm(mode){
    const def=FORMS[mode];
    $('sidePanelTitle').textContent=def.title();
-   if(renderedForm===mode)return;
-   renderedForm=mode;
+   const formKey=mode+'|'+(def.key?.()||'');
+   if(renderedForm===formKey)return;
+   renderedForm=formKey;
    const list=$('sidePanelItems');list.replaceChildren();
    const form=document.createElement('form');form.className='panel-form';
    const label=document.createElement('label');label.textContent=def.label;label.htmlFor='panelInput';
    const input=document.createElement('input');input.id='panelInput';input.maxLength=def.max;
    input.placeholder=def.placeholder;input.autocomplete='off';
+   if(def.initial){input.value=def.initial();setTimeout(()=>input.select());}
    const error=document.createElement('p');error.className='panel-error';error.setAttribute('role','alert');
    const submit=document.createElement('button');submit.type='submit';submit.textContent=def.submit;
    const hint=document.createElement('p');hint.className='panel-hint';hint.textContent='Invio per confermare · Esc per annullare';
@@ -58,7 +64,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    form.onsubmit=async event=>{
      event.preventDefault();
      error.textContent='';submit.disabled=true;
-     const response=await act(def.command,{[def.field]:input.value});
+     const response=await act(def.command,def.args?def.args(input.value):{[def.field]:input.value});
      submit.disabled=false;
      // Il comando risponde {ok:true} oppure {ok:false,error}: l'errore resta nel modulo.
      if(response?.ok&&response.result?.ok)close();
@@ -521,6 +527,30 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    );
    panel.scrollTop=scroll;
  }
+ // ── Note del workspace (Beta 0.17) ───────────────────────────────────────
+ // Un blocco note per ogni workspace: si salva da solo mentre scrivi.
+ let renderedNotes=null,notesTimer=null;
+ function renderNotes(){
+   $('sidePanelTitle').textContent='Note · '+state.activeWorkspace;
+   const list=$('sidePanelItems');
+   // Non ricostruire mentre scrivi (lo stato arriva di continuo).
+   if(renderedNotes===state.activeWorkspace)return;
+   renderedNotes=state.activeWorkspace;
+   const note=state.notes||{text:'',updatedAt:null};
+   const area=el('textarea',{className:'notes-area',value:note.text,placeholder:'Appunti, cose da fare, idee per questo workspace…',spellcheck:true});
+   area.maxLength=100000;
+   const status=el('p',{className:'panel-hint notes-status',textContent:note.updatedAt?'Salvato '+timeAgo(note.updatedAt):'Si salva da solo mentre scrivi.'});
+   area.oninput=()=>{
+     status.textContent='Sto salvando…';
+     clearTimeout(notesTimer);
+     notesTimer=setTimeout(async()=>{
+       const r=await act('saveNotes',{text:area.value});
+       status.textContent=r?.result?.updatedAt?'Salvato alle '+new Date(r.result.updatedAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):'Note vuote.';
+     },600);
+   };
+   list.replaceChildren(area,status);
+   setTimeout(()=>area.focus());
+ }
  // ── Centro notifiche (Beta 0.15, mock-up "Notification System") ─────────
  const NOTIFY_FILTERS=[['all','Tutte'],['download','Download'],['sito','Sito'],['jarvis','JARVIS'],['sistema','Sistema']];
  const NOTIFY_ICONS={download:'download',success:'check',error:'warning',undo:'tab-reopen',bookmark:'bookmark-filled',info:'info'};
@@ -566,6 +596,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else return renderSite();
    if(mode!=='notifications')renderedNotify=null;
    else return renderNotifications();
+   if(mode!=='notes')renderedNotes=null;
+   else return renderNotes();
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
    if(mode!=='project')renderedProject=null;
@@ -643,6 +675,9 @@ $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.
  document.body.dataset.sidebarMode=state.sidebarMode||'compact';
+ // Beta 0.17: il colore del workspace attivo colora la scheda attiva e il selettore in basso.
+ const activeColor=state.workspaces.find(x=>x.name===state.activeWorkspace)?.color;
+ if(activeColor)document.body.style.setProperty('--ws-active',activeColor);else document.body.style.removeProperty('--ws-active');
  document.body.dataset.panelOpen=state.sidePanelOpen?'true':'false';
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
@@ -741,6 +776,18 @@ function render(){
    const count=document.createElement('span');count.className='workspace-count';count.textContent=String(workspace.count);
    button.append(icon,text,count);
    button.onclick=()=>act('workspace',{name:workspace.name});
+   // Beta 0.17: colore scelto dal menu del workspace (click destro → Colore).
+   if(workspace.color){button.style.setProperty('--ws-color',workspace.color);button.classList.add('colored');}
+   // Trascina un workspace sopra un altro per metterlo prima.
+   button.draggable=true;
+   button.ondragstart=e=>{e.dataTransfer.setData('application/x-varco-workspace',workspace.name);e.dataTransfer.effectAllowed='move';};
+   button.ondragover=e=>{if(e.dataTransfer.types.includes('application/x-varco-workspace')){e.preventDefault();button.classList.add('drop-target');}};
+   button.ondragleave=()=>button.classList.remove('drop-target');
+   button.ondrop=e=>{
+     button.classList.remove('drop-target');
+     const moved=e.dataTransfer.getData('application/x-varco-workspace');
+     if(moved&&moved!==workspace.name){e.preventDefault();act('moveWorkspace',{name:moved,before:workspace.name});}
+   };
    // Click destro: menu nativo con "Apri in una nuova finestra" e "Cambia icona".
    button.oncontextmenu=event=>{event.preventDefault();act('workspaceContextMenu',{name:workspace.name});};
    w.appendChild(button);
@@ -765,6 +812,7 @@ $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
 $('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
 $('showSettings').onclick=()=>act('openSettings');
 $('showNotifications').onclick=()=>act('toggleSidePanel',{panel:'notifications'});
+$('showNotes').onclick=()=>act('toggleSidePanel',{panel:'notes'});
 $('applyLayout').onclick=()=>act('applyLayout');
 $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.browserAPI.onState(next=>{state=next;render();});
 // Ctrl+L dal processo principale: il focus può essere dentro una pagina web.
