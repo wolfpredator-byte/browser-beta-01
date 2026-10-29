@@ -66,13 +66,15 @@ Se VARCO è ancora aperto, la finestra lo dice e non procede.
 
 ## Test da fare
 
-- [ ] **T80** — Avvia `VARCO Setup 0.16.0.exe`. Benvenuto mostra "Trovato: VARCO 0.15.0. Verrà sostituito…". **📸**.
-- [ ] **T81** — Licenza → Destinazione (lascia quella proposta) → Opzioni (spunta "browser predefinito") → Installa. Se chiede di chiudere VARCO, conferma. **📸** dell'avanzamento.
-- [ ] **T82** — Fine: "Aggiornamento completato!" → si apre la pagina App predefinite: scegli VARCO. Avvia VARCO: workspace, schede e preferiti ci sono tutti.
-- [ ] **T83** — In *App installate* c'è **un solo** VARCO (0.16.0). La cartella `Programs\Personal Browser` non c'è più.
-- [ ] **T84** — Da Discord o da un'email clicca un link: si apre in una nuova scheda di VARCO.
-- [ ] **T85** — Collegamento sul desktop e nel menu Start, con l'icona VARCO.
-- [ ] **T86** — Se avevi "Avvia con Windows" acceso, controlla in Impostazioni → Avvio e background: la vecchia voce puntava al programma nella cartella vecchia. Se è spenta, riaccendila.
+- [x] **T80** — Avvia `VARCO Setup 0.16.0.exe`. Benvenuto mostra "Trovato: VARCO 0.15.0. Verrà sostituito…". **📸**.
+- [x] **T81** — Licenza → Destinazione (lascia quella proposta) → Opzioni (spunta "browser predefinito") → Installa. Se chiede di chiudere VARCO, conferma. **📸** dell'avanzamento.
+- [x] **T82** — Fine: "Aggiornamento completato!" → si apre la pagina App predefinite: scegli VARCO. Avvia VARCO: workspace, schede e preferiti ci sono tutti.
+- [x] **T83** — In *App installate* c'è **un solo** VARCO (0.16.0). La cartella `Programs\Personal Browser` non c'è più.
+- [x] **T84** — Da Discord o da un'email clicca un link: si apre in una nuova scheda di VARCO.
+- [x] **T85** — Collegamento sul desktop e nel menu Start, con l'icona VARCO.
+- [x] **T86** — Se avevi "Avvia con Windows" acceso, controlla in Impostazioni → Avvio e background: la vecchia voce puntava al programma nella cartella vecchia. Se è spenta, riaccendila.
+
+**Risultato dei tuoi test:** tutto funziona. Installata sopra la 0.15.0: nel registro c'è un solo VARCO (0.16.0), la cartella `Programs\Personal Browser` non esiste più, il programma è in `Programs\VARCO` e i dati sono al loro posto. Quindi anche la rimozione automatica della versione classica funziona sul PC vero.
 
 **Stato:** 103 test superati. Provato in modalità di prova:
 - tutte e sei le schermate (con le foto);
