@@ -55,7 +55,7 @@ test('migrazione da 0.4: aggiunge i campi nuovi senza perdere i dati',()=>{
   assert.deepEqual(data.openWindows,[]);
   assert.equal(data.closedTabs.length,20);
   assert.equal(data.bookmarks[0].url,'https://dim.gg');
-  assert.deepEqual(data.workspaces[0],{name:'Gaming',resources:[],projectPath:'',workPrograms:[],workAutoStart:false,wallpaper:'',homeLinks:[]});
+  assert.deepEqual(data.workspaces[0],{name:'Gaming',resources:[],projectPath:'',workPrograms:[],workAutoStart:false,wallpaper:'',homeLinks:[],preset:''});
   assert.equal(data.appearance.theme,'varco');
 });
 

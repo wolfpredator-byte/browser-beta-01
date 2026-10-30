@@ -501,8 +501,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    return button;
  }
  function settingsStatus(text,isError=false){settingsUi.status=text;settingsUi.statusError=isError;renderedSettings=null;renderSettings();}
- async function settingsAction(command,okText){
-   const response=await act(command);
+ async function settingsAction(command,okText,args){
+   const response=await act(command,args);
    const r=response?.result;
    if(!response?.ok)settingsStatus(response?.error||'Operazione non riuscita',true);
    else if(r?.cancelled)return;
@@ -570,10 +570,13 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function applyAppearance(){
    const a=state.appearance;
    if(!a)return;
-   const key=JSON.stringify([a.vars,a.hidden,a.density,a.home]);
+   const key=JSON.stringify([a.vars,a.hidden,a.density,a.home,a.logo]);
    if(key!==appliedAppearance){
      appliedAppearance=key;
      for(const [name,value] of Object.entries(a.vars))document.documentElement.style.setProperty(name,value);
+     // Beta 0.22: logo del preset nella Home e nella barra del titolo.
+     if($('heroLogo').getAttribute('src')!==a.logo)$('heroLogo').src=a.logo;
+     $('titlebarLogo').classList.toggle('themed',a.themedLogo);
      document.body.dataset.density=a.density;
      for(const node of document.querySelectorAll('.user-hidden'))node.classList.remove('user-hidden');
      for(const id of a.hidden)$(id)?.classList.add('user-hidden');
@@ -628,33 +631,77 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    if(!a)return [];
    const hint=text=>el('p',{className:'panel-hint',textContent:text});
    const sub=text=>el('p',{className:'settings-sub',textContent:text});
-   // Tema e colori
+   // Preset pronti (Beta 0.22): miniatura dello sfondo, logo e i due colori.
+   const custom=!!(a.accent||a.accent2);
+   const presetGrid=el('div',{className:'preset-grid'});
+   for(const t of a.themes.filter(t=>t.group==='preset')){
+     const card=el('button',{className:'preset-card'+(a.theme===t.id&&!custom?' chosen':''),title:t.label},
+       el('img',{src:t.logo,alt:''}),
+       el('span',{className:'preset-dots'},...[t.accent,t.accent2].filter(Boolean).map(c=>{const dot=el('i');dot.style.background=c;return dot;})),
+       el('span',{className:'preset-label',textContent:t.label}));
+     card.style.backgroundImage=`url(${t.thumb})`;
+     card.style.backgroundColor=t.bg;
+     card.onclick=()=>act('setTheme',{theme:t.id});
+     presetGrid.append(card);
+   }
+   // Tinte: solo colori, lo sfondo resta quello che hai.
    const grid=el('div',{className:'theme-grid'});
-   for(const t of a.themes){
+   for(const t of a.themes.filter(t=>t.group!=='preset')){
      const swatch=el('span',{className:'theme-swatch'});
      swatch.style.background=`linear-gradient(120deg,${t.bg} 35%,${t.accent})`;
-     const chip=el('button',{className:'theme-chip'+(a.theme===t.id&&!a.accent?' chosen':'')},swatch,el('span',{textContent:t.label}));
+     const chip=el('button',{className:'theme-chip'+(a.theme===t.id&&!custom?' chosen':'')},swatch,el('span',{textContent:t.label}));
      chip.onclick=()=>act('setTheme',{theme:t.id});
      grid.append(chip);
    }
-   const themeAccent=a.themes.find(t=>t.id===a.theme)?.accent||'#7c6cff';
-   const color=el('input',{type:'color',className:'color-input',value:a.accent||themeAccent});
-   let colorTimer=null;
-   color.oninput=()=>{clearTimeout(colorTimer);colorTimer=setTimeout(()=>act('setAccent',{color:color.value}),120);};
-   color.onchange=()=>{clearTimeout(colorTimer);act('setAccent',{color:color.value});color.blur();};
-   const accentRow=el('div',{className:'permission-row'},el('span',{textContent:a.accent?'Colore personalizzato':'Colore d’accento (del tema)'}),
-     el('span',{className:'inline-buttons'},color,...(a.accent?[addButton(el('span'),'Usa quello del tema',()=>act('setAccent',{color:''}))]:[])));
+   const theme=a.themes.find(t=>t.id===a.theme);
+   const colorRow=(command,value,fallback,label,customLabel)=>{
+     const color=el('input',{type:'color',className:'color-input',value:value||fallback});
+     let timer=null;
+     color.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>act(command,{color:color.value}),120);};
+     color.onchange=()=>{clearTimeout(timer);act(command,{color:color.value});color.blur();};
+     return el('div',{className:'permission-row'},el('span',{textContent:value?customLabel:label}),
+       el('span',{className:'inline-buttons'},color,...(value?[addButton(el('span'),'Usa quello del tema',()=>act(command,{color:''}))]:[])));
+   };
+   const accentRow=colorRow('setAccent',a.accent,theme?.accent||'#7c6cff','Colore d’accento (del tema)','Colore d’accento personalizzato');
+   const accent2Row=colorRow('setAccent2',a.accent2,theme?.accent2||'#6fd3ff','Secondo colore (del tema)','Secondo colore personalizzato');
+   // I miei preset: salvano colori, sfondo, trasparenza, testo, angoli e densità.
+   const mine=a.presets.map(p=>{
+     const dots=el('span',{className:'preset-dots inline'},...[p.accent||a.themes.find(t=>t.id===p.theme)?.accent,p.accent2||a.themes.find(t=>t.id===p.theme)?.accent2]
+       .filter(Boolean).map(c=>{const dot=el('i');dot.style.background=c;return dot;}));
+     return el('div',{className:'permission-row'},el('span',{className:'preset-name'},dots,el('span',{textContent:p.name})),
+       el('span',{className:'inline-buttons'},
+         addButton(el('span'),'Usa',()=>settingsAction('applyPreset',`Preset «${p.name}» in uso.`,{name:p.name})),
+         addButton(el('span'),'Aggiorna',()=>settingsAction('savePreset',`«${p.name}» aggiornato con l’aspetto attuale.`,{name:p.name})),
+         confirmButton('Elimina','Conferma',()=>settingsAction('deletePreset',`«${p.name}» eliminato.`,{name:p.name}))));
+   });
+   const nameInput=el('input',{type:'text',placeholder:'Nome del preset',maxLength:40,autocomplete:'off',spellcheck:false});
+   const saveForm=el('form',{className:'link-form'},nameInput,el('button',{type:'submit',textContent:'Salva l’aspetto attuale'}));
+   saveForm.onsubmit=e=>{e.preventDefault();const name=nameInput.value.trim();if(name)settingsAction('savePreset',r=>r.updated?`«${name}» aggiornato.`:`Preset «${name}» salvato.`,{name});};
+   // Preset del workspace attivo.
+   const wsOptions=[['','Come gli altri workspace'],...a.themes.map(t=>['theme:'+t.id,t.label]),...a.presets.map(p=>['user:'+p.name,p.name+' (tuo)'])];
+   const wsRow=el('label',{className:'permission-row'},el('span',{textContent:`Preset di «${a.workspace}»`}),
+     selectBox(wsOptions,a.workspacePreset,preset=>act('setWorkspacePreset',{preset})));
    // Sfondo
-   const wallNow=a.wallpaper.kind==='image'?a.wallpaperName:a.wallpaper.kind==='none'?'Nessuno (tinta unita)':'Sfondo VARCO';
+   const wallNow=a.wallpaper.kind==='image'?a.wallpaperName:a.wallpaper.kind==='none'?'Nessuno (tinta unita)':
+     theme?.group==='preset'&&a.theme!=='varco'?'Sfondo del preset '+theme.label:'Sfondo VARCO';
    const wallAll=el('div',{className:'permission-row'},el('span',{textContent:'Tutti i workspace: '+wallNow}),
-     projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'all'})],['VARCO',()=>act('setWallpaperKind',{kind:'default'})],['Nessuno',()=>act('setWallpaperKind',{kind:'none'})]));
+     projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'all'})],[theme?.group==='preset'&&a.theme!=='varco'?'Del preset':'VARCO',()=>act('setWallpaperKind',{kind:'default'})],['Nessuno',()=>act('setWallpaperKind',{kind:'none'})]));
    const wallWs=el('div',{className:'permission-row'},el('span',{textContent:`Solo «${a.workspace}»: `+(a.workspaceWallpaper||'come gli altri')}),
      projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'workspace'})],...(a.workspaceWallpaper?[['Togli',()=>act('clearWorkspaceWallpaper')]]:[])));
    const L=a.limits;
    return [
-     section('Tema e colori',grid,accentRow,
+     section('Preset',presetGrid,
+       hint('Ogni preset porta colori, sfondo, logo e icona della finestra. Scegline uno diverso per un singolo workspace qui sotto.'),wsRow,
+       ...(a.workspacePreset?[hint('Questo workspace ha un suo preset: le scelte qui sotto valgono per gli altri workspace.')]:[])),
+     section('Tema e colori',sub('Tinte (solo colori)'),grid,accentRow,accent2Row,
        rangeRow('Opacità delle barre','glass',a.glass,L.glass,v=>v+'%'),
        hint('Più bassa: barre più trasparenti, si vede di più lo sfondo.')),
+     section('I miei preset',...(mine.length?mine:[hint('Personalizza colori, sfondo e interfaccia, poi salva qui il risultato con un nome.')]),
+       saveForm,
+       el('div',{className:'inline-buttons'},
+         addButton(el('span'),'Importa…',()=>settingsAction('importPresets',r=>`${r.count} preset importati.`)),
+         ...(mine.length?[addButton(el('span'),'Esporta…',()=>settingsAction('exportPresets',r=>`${r.count} preset esportati.`))]:[])),
+       hint(`Al massimo ${a.maxPresets}. Il file esportato contiene anche gli sfondi: puoi passarlo a un altro PC.`)),
      section('Sfondo',wallAll,wallWs,
        rangeRow('Sfocatura','blur',a.wallpaper.blur,L.blur,v=>v+' px'),
        rangeRow('Luminosità','brightness',a.wallpaper.brightness,L.brightness,v=>v+'%'),

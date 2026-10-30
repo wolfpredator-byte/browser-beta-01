@@ -1,4 +1,4 @@
-:root{--v-accent:#7c6cff;--v-accent-2:#a99bff;--v-accent-rgb:124,108,255;--v-accent-2-rgb:169,155,255}
+:root{--v-accent:#7c6cff;--v-accent-2:#a99bff;--v-accent-rgb:124,108,255;--v-accent-2-rgb:169,155,255;--v-accent-alt:#6fd3ff}
 /* Toast VARCO: vetro scuro, bordo viola, icona in un quadrato colorato (mock-up "Notification System"). */
 html,body{margin:0;background:transparent;overflow:hidden;font:13px/1.4 'Segoe UI Variable','Segoe UI',Arial,sans-serif;color:#e9e8f5;user-select:none}
 #stack{display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:2px}
@@ -18,7 +18,7 @@ html,body{margin:0;background:transparent;overflow:hidden;font:13px/1.4 'Segoe U
 .title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .text{color:#a8a5c4;font-size:12px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .bar{height:4px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--v-accent),var(--v-accent-2));transition:width .3s}
+.bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--v-accent),var(--v-accent-alt));transition:width .3s}
 .bar.unknown i{width:35%;animation:slide 1.2s ease-in-out infinite}
 @keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
 .actions{display:flex;gap:6px;margin-top:9px}

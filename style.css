@@ -287,7 +287,7 @@ body[data-downloads-open="true"] #loadError{right:340px}
 /* Tema VARCO: vetro scuro, accento viola. Sovrascrive i colori delle beta precedenti
    senza cambiare le misure (devono restare quelle di window-rules.cjs). */
 :root{--v-bg:#07070e;--v-bg2:#0b0b16;--v-glass:rgba(24,23,44,.55);--v-glass-strong:rgba(18,17,34,.92);
-  --v-line:rgba(150,140,255,.16);--v-line-strong:rgba(160,150,255,.32);--v-accent:#7c6cff;--v-accent-2:#a99bff;--v-accent-rgb:124,108,255;--v-accent-2-rgb:169,155,255;--v-bg-rgb:7,7,14;--v-bar-alpha:.26;--v-ui-scale:1;
+  --v-line:rgba(150,140,255,.16);--v-line-strong:rgba(160,150,255,.32);--v-accent:#7c6cff;--v-accent-2:#a99bff;--v-accent-rgb:124,108,255;--v-accent-2-rgb:169,155,255;--v-accent-alt:#6fd3ff;--v-accent-alt-rgb:111,211,255;--v-bg-rgb:7,7,14;--v-bar-alpha:.26;--v-ui-scale:1;
   --v-wallpaper:url(assets/home-bg.jpg);--v-wall-blur:18px;--v-wall-brightness:.62;
   --v-text:#e9e8f5;--v-muted:#8f8daa;color:var(--v-text);background:var(--v-bg)}
 body{background:var(--v-bg)}
@@ -301,6 +301,8 @@ button.tool{display:inline-flex;align-items:center;justify-content:center;paddin
 /* Barra del titolo: logo + VARCO spaziato, come nel mock-up. */
 .window-titlebar{background:var(--v-bg);color:var(--v-text);gap:8px}
 .window-titlebar .titlebar-logo{width:15px;height:15px;color:var(--v-accent-2)}
+/* Beta 0.22: con un preset il logo della barra del titolo è la sua immagine, non la sagoma colorata. */
+.window-titlebar .titlebar-logo.themed{width:17px;height:17px;-webkit-mask:none;mask:none;background:var(--v-logo-small) center/contain no-repeat}
 .window-titlebar .wordmark-small{font-size:11px;letter-spacing:.42em;color:var(--v-text);font-weight:500}
 .window-titlebar .titlebar-beta{font-size:9px;color:var(--v-muted);letter-spacing:.08em}
 
@@ -457,7 +459,7 @@ body[data-downloads-open="true"] #loadError,body[data-downloads-open="true"] #da
 /* Linea di caricamento sotto la barra degli indirizzi (mock-up "Slider pagine"). */
 .address-pill{position:relative;overflow:hidden}
 #loadLine{position:absolute;left:0;bottom:0;height:2px;width:0;opacity:0;border-radius:2px;pointer-events:none;
-  background:linear-gradient(90deg,var(--v-accent),var(--v-accent-2) 70%,#6fd3ff)}
+  background:linear-gradient(90deg,var(--v-accent),var(--v-accent-2) 55%,var(--v-accent-alt))}
 #loadLine.loading{opacity:1;width:85%;transition:width 8s cubic-bezier(.1,.7,.2,1),opacity .2s}
 #loadLine.done{opacity:0;width:100%;transition:width .25s ease-out,opacity .5s .35s}
 #loadLine.error{opacity:1;width:100%;background:#ff5a6a;transition:width .25s ease-out}
@@ -487,7 +489,7 @@ body[data-downloads-open="true"] #loadError,body[data-downloads-open="true"] #da
 .download-name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .download-state{font-size:11px;color:var(--v-muted)}
 .download-bar{height:4px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}
-.download-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--v-accent),var(--v-accent-2));border-radius:3px}
+.download-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--v-accent),var(--v-accent-alt));border-radius:3px}
 .download-action{opacity:.7}.download-action:hover{opacity:1}
 .download-action.danger{color:#ff8794}
 .download-action .i{width:16px;height:16px}
@@ -611,6 +613,19 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .theme-chip{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:8px;border:1px solid var(--v-line);border-radius:12px;text-align:left}
 .theme-chip.chosen{border-color:var(--v-accent);box-shadow:0 0 0 1px var(--v-accent)}
 .theme-swatch{width:100%;height:30px;border-radius:8px}
+/* Beta 0.22: preset con miniatura dello sfondo, logo al centro e i due colori. */
+.preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:6px 0 10px}
+.preset-card{position:relative;aspect-ratio:16/10;padding:0;border:1px solid var(--v-line);border-radius:12px;overflow:hidden;
+  background:center/cover no-repeat;transition:transform .15s,border-color .15s}
+.preset-card:hover{transform:translateY(-2px);border-color:var(--v-line-strong)}
+.preset-card.chosen{border-color:var(--v-accent);box-shadow:0 0 0 1px var(--v-accent),0 0 18px rgba(var(--v-accent-rgb),.35)}
+.preset-card img{position:absolute;left:50%;top:44%;width:48px;height:48px;transform:translate(-50%,-50%);filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
+.preset-label{position:absolute;left:0;right:0;bottom:0;padding:18px 9px 6px;font-size:12px;font-weight:600;text-align:left;color:#fff;
+  background:linear-gradient(transparent,rgba(0,0,0,.78))}
+.preset-dots{position:absolute;top:7px;right:7px;display:flex;gap:4px}
+.preset-dots i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.preset-dots.inline{position:static}
+.preset-name{display:flex;align-items:center;gap:8px;min-width:0}
 .range-row{display:grid;grid-template-columns:minmax(130px,1fr) 2fr 48px;align-items:center;gap:10px;margin:6px 0}
 .range-row input[type=range]{accent-color:var(--v-accent);width:100%}
 .range-row output{color:var(--v-muted);font-size:12px;text-align:right}
