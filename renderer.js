@@ -927,6 +927,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else return renderNotes();
    if(mode!=='files')renderedFiles=null;
    else return renderFiles();
+   if(mode!=='tabs')tabManager=null;
+   else return renderTabManager();
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
    if(mode!=='project')renderedProject=null;
@@ -1000,6 +1002,82 @@ $('clearDownloads').onclick=()=>act('downloadsClear');
 $('closeDownloads').onclick=()=>act('toggleDownloads');
 $('openDownloadsFolder').onclick=()=>act('showDownloadsFolder');
 $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
+// ── Gestore delle schede (Beta 0.24) ─────────────────────────────────────
+// Pannello Schede: ricerca, schede raggruppate per sito, anche di tutti i workspace.
+// L'intestazione (ricerca) resta; si ridisegna solo l'elenco, così non perdi ciò che scrivi.
+const tabUi={query:'',all:false};
+let tabManager=null,scrolledToTab=null;
+const siteOfUrl=url=>{try{const u=new URL(url);return /^https?:$/.test(u.protocol)?u.hostname.replace(/^www\./,''):'';}catch{return '';}};
+const pageKeyOf=url=>{try{const u=new URL(url);u.hash='';return u.href.replace(/\/$/,'');}catch{return url||'';}};
+function renderTabManager(){
+ $('sidePanelTitle').textContent='Schede';
+ const list=$('sidePanelItems');
+ if(!tabManager||!list.contains(tabManager.root)){
+  const input=el('input',{type:'search',className:'tab-search',placeholder:'Cerca per titolo o indirizzo…',value:tabUi.query,autocomplete:'off',spellcheck:false});
+  input.oninput=()=>{tabUi.query=input.value;drawTabManager();};
+  input.onkeydown=e=>{
+   if(e.key==='Enter'){e.preventDefault();tabManager.results.querySelector('.tab-row-main')?.click();}
+   if(e.key==='Escape'){e.preventDefault();act('openTabManager');}
+  };
+  const scope=el('div',{className:'segmented'});
+  for(const [label,all] of [['Questo workspace',false],['Tutti',true]]){
+   const b=el('button',{type:'button',textContent:label});
+   b.onclick=()=>{tabUi.all=all;drawTabManager();};
+   scope.append(b);
+  }
+  const tools=el('div',{className:'tab-tools'}),results=el('div',{className:'tab-results'});
+  const root=el('div',{className:'tab-manager'},input,scope,tools,results);
+  list.replaceChildren(root);
+  tabManager={root,input,scope,tools,results};
+  setTimeout(()=>input.focus(),0);
+ }
+ drawTabManager();
+}
+function drawTabManager(){
+ const m=tabManager;if(!m)return;
+ const pool=(state.allTabs||[]).filter(t=>!t.isHome&&(tabUi.all||t.workspace===state.activeWorkspace));
+ const q=tabUi.query.trim().toLowerCase();
+ const shown=pool.filter(t=>!q||(t.title||'').toLowerCase().includes(q)||(t.url||'').toLowerCase().includes(q));
+ [...m.scope.children].forEach((b,i)=>b.classList.toggle('chosen',(i===1)===tabUi.all));
+ // Doppie: stessa pagina più volte nello stesso workspace (il conto lo rifà main con le stesse regole).
+ const seen=new Set();let doubles=0;
+ for(const t of pool){const key=t.workspace+'\n'+pageKeyOf(t.url);if(seen.has(key))doubles++;else seen.add(key);}
+ const tool=(label,fn,title,disabled=false)=>{const b=el('button',{type:'button',textContent:label,title,disabled});b.onclick=fn;return b;};
+ m.tools.replaceChildren(
+  el('span',{className:'tab-total',textContent:q?`${shown.length} di ${pool.length} schede`:`${pool.length} ${pool.length===1?'scheda':'schede'}`}),
+  tool('Raggruppa per sito',()=>act('groupTabsBySite'),'Le schede dello stesso sito diventano uno stack (in questa finestra)'),
+  tool(doubles?`Chiudi doppie (${doubles})`:'Nessuna doppia',()=>act('closeDuplicateTabs',{all:tabUi.all}),'Stessa pagina aperta più volte: ne resta una',!doubles),
+  checkRow('Raggruppa da solo quando sono tante',!!state.autoGroupTabs,enabled=>act('setAutoGroupTabs',{enabled})));
+ // Raggruppate per sito, i siti con più schede prima.
+ const sites=new Map();
+ for(const t of shown){const s=siteOfUrl(t.url)||'altro';if(!sites.has(s))sites.set(s,[]);sites.get(s).push(t);}
+ const blocks=[...sites].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0]));
+ m.results.replaceChildren(...blocks.map(([site,list])=>{
+  const head=el('div',{className:'tab-site'},
+   list[0].favicon?el('img',{src:list[0].favicon,alt:''}):icon('external'),
+   el('span',{className:'tab-site-name',textContent:site==='altro'?'Altre pagine':site}),
+   el('span',{className:'tab-site-count',textContent:String(list.length)}));
+  if(list.length>1){
+   const close=el('button',{type:'button',className:'tab-site-close',textContent:'Chiudi tutte',title:`Chiude le ${list.length} schede di ${site}`});
+   close.onclick=()=>{
+    if(!close.dataset.armed){close.dataset.armed='1';close.textContent='Conferma';close.classList.add('danger');return;}
+    act('closeTabs',{ids:list.map(t=>t.id).join(',')});
+   };
+   head.append(close);
+  }
+  return el('div',{className:'tab-site-block'},head,...list.map(t=>{
+   const meta=[tabUi.all&&t.workspace!==state.activeWorkspace?t.workspace:'',t.pane?'finestra '+(t.pane+1):'',
+     t.group?'stack '+t.group:'',t.pinned?'fissata':'',t.sleeping?'sospesa':''].filter(Boolean).join(' · ');
+   const main=el('button',{type:'button',className:'tab-row-main',title:t.url},
+    el('span',{className:'tab-row-title',textContent:t.title||t.url}),
+    ...(meta?[el('span',{className:'tab-row-meta',textContent:meta})]:[]));
+   main.onclick=()=>act('focusTab',{id:t.id});
+   const close=iconButton(el('span'),'close','Chiudi',()=>act('closeTabs',{ids:String(t.id)}),'tab-row-close');
+   return el('div',{className:'tab-row'+(t.active?' active':t.shown?' shown':'')+(t.sleeping?' sleeping':'')},main,close);
+  }));
+ }));
+ if(!shown.length)m.results.append(el('p',{className:'panel-hint',textContent:q?'Nessuna scheda trovata.':'Nessuna scheda aperta.'}));
+}
 // Homepage lives inside a tab; it is displayed only when that tab is active.
 // ── Stack compatto (Beta 0.18) ───────────────────────────────────────────
 // Uno stack compresso diventa una sola "pillola": le icone delle sue schede una accanto
@@ -1100,6 +1178,7 @@ function render(){
  const activeColor=state.workspaces.find(x=>x.name===state.activeWorkspace)?.color;
  if(activeColor)document.body.style.setProperty('--ws-active',activeColor);else document.body.style.removeProperty('--ws-active');
  document.body.dataset.panelOpen=state.sidePanelOpen?'true':'false';
+ document.body.dataset.panelName=state.sidePanelOpen||'';
  applyAppearance();
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
  $('dashboard').hidden=!state.homeActive;
@@ -1177,6 +1256,16 @@ function render(){
    iconButton(tab,'close','Chiudi scheda',()=>act('closeTab',{id:t.id}),'tab-close');
    tabs.appendChild(tab);
  }
+ // Beta 0.24: contatore delle schede e scheda attiva sempre in vista (solo quando cambia,
+ // così non ti riporta indietro mentre scorri la barra).
+ const tabTotal=(state.tabs||[]).filter(t=>!t.isHome).length;
+ $('tabCountNumber').textContent=String(tabTotal);
+ $('tabCount').title=`${tabTotal} ${tabTotal===1?'scheda':'schede'} · cerca tra le schede (Ctrl+Shift+A)`;
+ const activeTabId=(state.tabs||[]).find(t=>t.active)?.id;
+ if(activeTabId!==scrolledToTab){
+   scrolledToTab=activeTabId;
+   tabs.querySelector('.tab.active,.stack-pill.active')?.scrollIntoView({block:'nearest',inline:'nearest'});
+ }
  // Ciascun workspace è un pulsante con icona 20px e nome separato.
  const w=$('workspaces');w.replaceChildren();
  for(const workspace of state.workspaces){
@@ -1228,6 +1317,14 @@ $('reopenClosed').onclick=()=>act('reopenClosedTab');
 $('new').onclick=()=>act('newTab');$('back').onclick=()=>act('back');$('forward').onclick=()=>act('forward');$('reload').onclick=()=>act('reload');$('home').onclick=()=>act('home');$('bookmark').onclick=()=>act('bookmark');$('nav').onsubmit=e=>{e.preventDefault();const value=$('address').value;addressEdited=false;$('address').blur();if(value.trim())act('navigate',{url:value});};$('addWorkspace').onclick=()=>act('toggleSidePanel',{panel:'newWorkspace'});$('chooseFolder').onclick=()=>act('projectFolder');$('openFolder').onclick=()=>act('openFolder');$('addResource').onclick=()=>act('toggleSidePanel',{panel:'addResource'});$('showDownloads').onclick=()=>act('toggleDownloads');$('sideDownloads').onclick=()=>act('toggleDownloads');$('showHistory').onclick=()=>act('toggleSidePanel',{panel:'history'});
 $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
+$('tabCount').onclick=()=>act('openTabManager');
+// Beta 0.24: con tante schede la barra scorre anche con la rotellina (su e giù = sinistra e destra).
+$('tabs').addEventListener('wheel',event=>{
+ const strip=$('tabs');
+ if(strip.scrollWidth<=strip.clientWidth||Math.abs(event.deltaX)>Math.abs(event.deltaY))return;
+ strip.scrollLeft+=event.deltaY;
+ event.preventDefault();
+},{passive:false});
 $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
 $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');

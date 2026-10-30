@@ -47,6 +47,7 @@ test('scorciatoie: F1 e Ctrl+Shift+P aprono la palette, Ctrl+, le impostazioni, 
   const key=(key,mods={})=>shortcutCommand({type:'keyDown',key,control:false,shift:false,alt:false,...mods});
   assert.equal(key('F1'),'openPalette');
   assert.equal(key('P',{control:true,shift:true}),'openPalette');
+  assert.equal(key('A',{control:true,shift:true}),'openTabManager'); // Beta 0.24
   assert.equal(key('p',{control:true}),'print');
   assert.equal(key(',',{control:true}),'openSettings');
   assert.equal(key('k',{control:true}),null);

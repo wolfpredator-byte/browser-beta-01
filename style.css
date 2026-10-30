@@ -101,7 +101,11 @@ body[data-panel-open="true"]{--panel-width:300px}
 .tab.stacked{max-width:175px;border-color:#ffffff24}
 #reopenClosed{flex:none;padding:4px 7px;font-size:20px;min-width:28px}
 #reopenClosed:disabled{opacity:.32;cursor:default}
-.tabbar #tabs{max-width:calc(100% - 230px)}
+.tabbar #tabs{max-width:calc(100% - 270px)}
+/* Beta 0.24: contatore delle schede, apre il gestore. */
+#tabCount{flex:none;display:flex;align-items:center;gap:4px;height:28px;padding:3px 7px;font-size:11px;font-variant-numeric:tabular-nums;color:var(--v-accent-2)}
+#tabCount .i{width:15px;height:15px}
+body[data-panel-name="tabs"] #tabCount{background:rgba(var(--v-accent-rgb),.18)}
 
 /* BETA 0.5 — workspace già aperto in un'altra finestra: icona attenuata e punto. */
 #globalSidebar .workspace-button.elsewhere .workspace-icon{opacity:.55}
@@ -647,3 +651,31 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 12px}
 .settings-sub{font-size:11px;letter-spacing:1px;color:var(--v-muted);margin:12px 0 4px;text-transform:uppercase}
 .update-notes{max-height:160px;overflow:auto;margin:6px 0;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25);white-space:pre-wrap;font:12px/1.5 inherit}
+/* Beta 0.24: gestore delle schede (pannello Schede). */
+.tab-manager{display:flex;flex-direction:column;gap:8px}
+.tab-search{width:100%;padding:8px 11px;border:1px solid var(--v-line);border-radius:10px;background:rgba(0,0,0,.25);color:inherit;outline:none}
+.tab-search:focus{border-color:var(--v-accent)}
+.segmented{display:flex;gap:4px;padding:3px;border:1px solid var(--v-line);border-radius:10px}
+.segmented button{flex:1;padding:5px 8px;font-size:12px;border-radius:7px}
+.segmented button.chosen{background:rgba(var(--v-accent-rgb),.22);color:#fff}
+.tab-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.tab-tools>button{padding:4px 9px;font-size:12px;border:1px solid var(--v-line);border-radius:8px;background:rgba(var(--v-accent-rgb),.10)}
+.tab-tools>button:disabled{opacity:.45;cursor:default}
+.tab-tools .tab-total{flex-basis:100%;font-size:11px;opacity:.65}
+.tab-tools .check-row{flex-basis:100%;margin:0;font-size:12px}
+.tab-site-block{margin-top:6px}
+.tab-site{display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:11px;letter-spacing:.02em;opacity:.85}
+.tab-site img,.tab-site .i{width:14px;height:14px;border-radius:3px}
+.tab-site-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.tab-site-count{padding:0 6px;border-radius:999px;background:rgba(var(--v-accent-rgb),.2);font-variant-numeric:tabular-nums}
+.tab-site-close{padding:2px 7px;font-size:11px}
+.tab-row{display:flex;align-items:center;border-radius:8px}
+.tab-row:hover{background:rgba(var(--v-accent-rgb),.12)}
+.tab-row.active{background:rgba(var(--v-accent-rgb),.2)}
+.tab-row.shown .tab-row-title{color:var(--v-accent-2)}
+.tab-row.sleeping{opacity:.6}
+.tab-row-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 8px;border:0;background:none;text-align:left}
+.tab-row-title{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.tab-row-meta{font-size:10.5px;opacity:.55}
+.tab-row-close{opacity:0;flex:none}
+.tab-row:hover .tab-row-close{opacity:1}
