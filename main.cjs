@@ -96,6 +96,7 @@ function start(){
   });
 
   tray.createTray((name,args={})=>bus.dispatch(name,args,{source:'tray'}));
+  require('./lib/system-icons.cjs').sync(); // Beta 0.23: icone del preset in Windows
 
   state.gameWatcher=createGameWatcher({
     games:()=>state.data.games,

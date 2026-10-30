@@ -35,8 +35,11 @@ Installer: `dist\VARCO Setup 0.23.0.exe`.
 - **＋ Cartella…** aggiunge una cartella tua (per esempio `D:\Giochi` o `C:\Tools`). Ogni sottocartella diventa un programma, e VARCO ne sceglie l'eseguibile principale. Le cartelle valgono sia per i giochi sia per i programmi.
 - **Aggiorna** ripete la ricerca. Il risultato resta in memoria 2 minuti.
 
-## Piccole cose
-- La schermata di caricamento all'avvio usa logo e colori del preset in uso.
+## Icone di Windows che seguono il preset (dalle tue prove)
+- **Barra delle applicazioni, menu Start e desktop:** quando scegli un preset per tutti i workspace, VARCO aggiorna l'icona dei suoi collegamenti (menu Start, desktop, VARCO fissato sulla barra) e la finestra riceve l'icona del suo preset. Tornando al preset VARCO, torna l'icona originale.
+- **Area di notifica:** al posto della sagoma bianca c'è il logo del preset.
+- Windows a volte tiene le icone in memoria per qualche secondo; se un'icona fissata sulla barra resta vecchia, si aggiorna al prossimo avvio di VARCO.
+- La schermata di caricamento all'avvio usa logo e colori del preset, ma resta a schermo solo finché la finestra è pronta: di solito meno di un secondo, quindi è normale vederla appena.
 
 ## Modalità insegnamento
 - **Perché non electron-updater:** il nostro installer è personalizzato (un'app Electron "portable"), non NSIS. Quindi l'aggiornamento lo fa lui stesso, con l'opzione `--update <cartella> --pid <processo>`:
@@ -47,12 +50,14 @@ Installer: `dist\VARCO Setup 0.23.0.exe`.
 
   Se qualcosa va storto, il motivo è in `%TEMP%\varco-update.log`.
 - **Eseguibile principale di una cartella:** vince il nome più simile alla cartella, poi il file più grande e meno profondo. Installer, crash reporter, anti-cheat e redistribuibili sono esclusi. Per i giochi Unreal sceglie `…-Win64-Shipping.exe`, che è il vero processo del gioco.
+- **Perché l'icona della finestra non bastava:** Windows raggruppa le finestre per "AppUserModelID" e, se esiste un collegamento con lo stesso ID (quello del menu Start), mostra l'icona del collegamento. Per questo VARCO aggiorna i collegamenti. Usa un `.ico` copiato nella cartella dei dati, perché Windows non sa leggere dentro `app.asar`. Nei `.ico` le dimensioni piccole sono bitmap: Esplora risorse legge il PNG solo per la 256 px.
 - **Steam** scrive le sue librerie in `libraryfolders.vdf` e un `appmanifest_*.acf` per ogni gioco, in un formato suo (KeyValues) che VARCO legge senza librerie esterne.
 
 **Stato:** 133 test superati, di cui 11 nuovi: eliminazione dei workspace, scelta dell'eseguibile, file di Steam ed Epic, versioni e release. Provato:
 - **aggiornamento completo**, con un VARCO impacchettato in una cartella di prova e una finta release "0.23.1" servita in locale (registro sotto una chiave di prova). Controllo automatico dopo 30 secondi, download con impronta verificata, notifica, VARCO aperto finché l'installer è pronto, file sostituiti, voce in "App installate" aggiornata e VARCO riaperto col suo profilo;
 - **ricerca sul tuo PC:** 5 giochi Steam (Destiny 2 → `destiny2.exe`, Elden Ring → `eldenring.exe`, The Finals → `Discovery.exe`…) e 140 programmi dal menu Start;
-- **eliminazione di un workspace** con la sua scheda: dati puliti, finestra passata a un altro workspace.
+- **eliminazione di un workspace** con la sua scheda: dati puliti, finestra passata a un altro workspace;
+- **icone:** con VARCO impacchettato e collegamenti di prova, scegliendo Vice City i collegamenti prendono la sua icona (Windows la mostra correttamente, come Cyber Protocol ed Ember). Tornando a VARCO torna quella dell'eseguibile.
 
 **Corretto durante le prove:**
 - l'installer impiega circa 2 minuti a scompattarsi: prima VARCO spariva subito e sembrava rotto, ora aspetta l'installer;
@@ -66,5 +71,5 @@ Installer: `dist\VARCO Setup 0.23.0.exe`.
 - [ ] **T130** — ＋ Cartella… con una tua cartella di giochi o programmi: compaiono le sue sottocartelle.
 - [ ] **T131** — Progetto → Ambiente di lavoro → Dai programmi installati…: aggiungi VS Code (o un altro) dall'elenco.
 - [ ] **T132** — Impostazioni → Aggiornamenti: "VARCO 0.23.0 è l'ultima versione" (dopo la release su GitHub). **📸**
-- [ ] **T133** — Con un preset attivo, riavvia VARCO: la schermata di caricamento ha il logo del preset.
+- [ ] **T133** — Scegli Vice City: dopo qualche secondo cambiano l'icona nella barra delle applicazioni, nel menu Start, sul desktop e nell'area di notifica. Torna a VARCO: tornano quelle di prima. **📸**
 - [ ] **T134** — Quando uscirà la 0.24: arriva la notifica, premi Riavvia e aggiorna e VARCO si riapre aggiornato.
