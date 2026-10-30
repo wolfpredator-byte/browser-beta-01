@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {checkName,renameWorkspace,moveWorkspace,WORKSPACE_COLORS}=require('../lib/workspace-rules.cjs');
+const {checkName,renameWorkspace,deleteWorkspace,moveWorkspace,WORKSPACE_COLORS}=require('../lib/workspace-rules.cjs');
 const {isReadyLine,localUrlFromLog}=require('../lib/project-rules.cjs');
 
 const sample=()=>({
@@ -63,4 +63,27 @@ test('indirizzo del dev server letto dal log (riga "Local", https, 0.0.0.0)',()=
   assert.equal(localUrlFromLog('  ➜  Local:   http://localhost:5173/'),'http://localhost:5173/');
   assert.equal(localUrlFromLog('listening on http://0.0.0.0:8080'),'http://localhost:8080/');
   assert.equal(localUrlFromLog('compiled successfully'),null);
+});
+
+test('elimina: toglie il workspace da tutti i dati, gli altri restano intatti',()=>{
+  const data=sample();
+  data.sessionTabs.push({workspace:'Personale',url:'https://a.it'});
+  assert.deepEqual(deleteWorkspace(data,'Gaming'),{ok:true,active:'Personale'});
+  assert.deepEqual(data.workspaces.map(w=>w.name),['Personale','Destiny Builder']);
+  assert.deepEqual(data.sessionTabs,[{workspace:'Personale',url:'https://a.it'}]);
+  assert.deepEqual(data.closedTabs,[]);
+  assert.deepEqual(data.openWindows,[]);
+  assert.equal(data.games[0].workspace,''); // il gioco resta, senza workspace
+  assert.deepEqual([data.layouts,data.collapsedStacks,data.notes],[{},{},{}]);
+  assert.deepEqual(data.workspaceLastActive,{'Gaming 2':'https://x.it'}); // "Gaming 2" è un altro nome
+});
+
+test('elimina: l\'ultimo workspace o uno inesistente non si eliminano',()=>{
+  const data=sample();
+  assert.equal(deleteWorkspace(data,'Boh').ok,false);
+  deleteWorkspace(data,'Gaming');deleteWorkspace(data,'Personale');
+  const last=deleteWorkspace(data,'Destiny Builder');
+  assert.equal(last.ok,false);
+  assert.match(last.error,/unico/);
+  assert.equal(data.workspaces.length,1);
 });

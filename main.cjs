@@ -120,6 +120,7 @@ function start(){
   if(!autostart.startedInBackground()){require('./lib/splash.cjs').open();tabs.openSavedWindows();}
   // Beta 0.21: VARCO in "Apri con" e "App predefinite" per i file (solo l'eseguibile installato).
   setTimeout(()=>require('./lib/file-types.cjs').register().catch(()=>{}),8000);
+  require('./lib/updater.cjs').start(); // Beta 0.23: aggiornamenti da GitHub
 }
 
 // Una sola copia del browser: aprirlo di nuovo (es. dal collegamento mentre è

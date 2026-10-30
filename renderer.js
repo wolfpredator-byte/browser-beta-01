@@ -83,6 +83,46 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const box=el('input',{type:'checkbox',checked});box.onchange=()=>onchange(box.checked);
    return el('label',{className:'check-row'},box,el('span',{textContent:text}));
  }
+ // ── Giochi e programmi installati (Beta 0.23) ───────────────────────────
+ // Elenco trovato sul PC (Steam, Epic, menu Start, cartelle tue) con ricerca: niente più percorsi a memoria.
+ // Lo stato sta fuori dal riquadro, così sopravvive quando il pannello si ricostruisce.
+ const pickerUi={games:{query:'',items:null,folders:[],pending:null,error:''},apps:{query:'',items:null,folders:[],pending:null,error:'',open:false}};
+ function appPicker(kind,onPick){
+   const ui=pickerUi[kind];
+   const list=el('div',{className:'app-picker-list'});
+   const folders=el('div',{className:'app-picker-folders'});
+   const search=el('input',{type:'text',value:ui.query,placeholder:kind==='games'?'Cerca un gioco…':'Cerca un programma…',autocomplete:'off',spellcheck:false});
+   const load=refresh=>{
+     ui.pending=act('scanApps',{kind,refresh}).then(r=>{ui.items=r?.result?.items||[];ui.folders=r?.result?.folders||[];ui.pending=null;});
+     draw();ui.pending.then(draw);
+   };
+   const button=(label,fn,title='')=>{const b=el('button',{type:'button',textContent:label,title});b.onclick=fn;return b;};
+   function draw(){
+     const q=ui.query.trim().toLowerCase();
+     const items=(ui.items||[]).filter(i=>!q||i.name.toLowerCase().includes(q)||i.path.toLowerCase().includes(q));
+     list.replaceChildren(...(ui.pending?[el('p',{className:'panel-hint',textContent:'Cerco sul PC…'})]:
+       items.length?items.slice(0,200).map(item=>{
+         const b=el('button',{type:'button',className:'app-picker-item',title:item.path},
+           el('span',{className:'app-name',textContent:item.name}),el('span',{className:'app-source',textContent:item.source}));
+         b.onclick=()=>onPick(item);return b;
+       }):[el('p',{className:'panel-hint',textContent:q?'Nessun risultato.':'Non ho trovato niente: aggiungi una cartella qui sotto.'})]));
+     folders.replaceChildren(
+       el('span',{className:'panel-hint',textContent:kind==='games'?'Steam ed Epic Games li trovo da solo. Altre cartelle:':'Il menu Start lo leggo da solo. Altre cartelle:'}),
+       ...ui.folders.map(dir=>el('span',{className:'folder-chip',title:dir},el('span',{textContent:dir}),
+         button('×',async()=>{await act('removeScanFolder',{path:dir});load(true);},'Togli la cartella'))),
+       button('＋ Cartella…',async()=>{
+         const r=await act('addScanFolder');
+         ui.error=r?.result?.ok===false?r.result.error:'';
+         if(r?.result?.ok&&!r.result.cancelled)load(true);else draw();
+       }),
+       button('Aggiorna',()=>load(true),'Cerca di nuovo'),
+       ...(ui.error?[el('p',{className:'panel-error',textContent:ui.error})]:[]));
+   }
+   search.oninput=()=>{ui.query=search.value;draw();};
+   if(ui.items===null&&!ui.pending)load(false);
+   else{draw();ui.pending?.then(draw);}
+   return el('div',{className:'app-picker'},search,list,folders);
+ }
  function renderGames(){
    $('sidePanelTitle').textContent=gamesView.mode==='edit'?(gamesView.id?'Modifica gioco':'Nuovo gioco'):'Giochi';
    if(gamesView.mode==='edit'){
@@ -129,6 +169,17 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      processes.replaceChildren(el('option',{value:'',textContent:'Scegli un programma aperto…'}),
        ...(r?.result?.names||[]).map(n=>el('option',{value:n,textContent:n})));
      processes.hidden=false;processes.focus();
+   });
+   // Beta 0.23: scegli dai giochi installati; il nome si compila da solo se è vuoto.
+   let picker=null;
+   addButton(exeTools,'Giochi installati…',()=>{
+     if(picker){picker.remove();picker=null;return;}
+     picker=appPicker('games',item=>{
+       exe.value=item.path.split(/[\\/]/).pop();
+       if(!name.value.trim())name.value=item.name;
+       picker.remove();picker=null;
+     });
+     exeTools.after(picker);
    });
    const workspace=el('select');
    for(const w of state.workspaces)workspace.append(el('option',{value:w.name,textContent:w.name,selected:w.name===game.workspace}));
@@ -338,7 +389,15 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const error=el('p',{className:'panel-error',role:'alert'});
    box.append(projectButtons(
      ...(env.programs.length?[['▶ Inizia a lavorare',()=>runAndReport('workStart',{},error),'primary']]:[]),
-     ['＋ Programma…',()=>runAndReport('workChooseProgram',{},error)]),error);
+     ['＋ Programma…',()=>runAndReport('workChooseProgram',{},error)],
+     // Beta 0.23: dai programmi installati, con ricerca.
+     [pickerUi.apps.open?'Chiudi l’elenco':'＋ Dai programmi installati…',()=>{pickerUi.apps.open=!pickerUi.apps.open;renderedProject=null;renderProject();}]),error);
+   if(pickerUi.apps.open)box.append(appPicker('apps',async item=>{
+     pickerUi.apps.open=false;
+     const file=item.path.split(/[\\/]/).pop();
+     await runAndReport('workAddSuggested',{path:item.path,name:item.name,openFolder:/code|cursor|devenv|rider|idea/i.test(file)},error);
+     renderedProject=null;renderProject();
+   }));
    // Programmi noti trovati su questo PC, non ancora aggiunti.
    const known=(workSuggestions||[]).filter(s=>!env.programs.some(p=>p.path.toLowerCase()===s.path.toLowerCase()));
    if(known.length)box.append(el('div',{className:'inline-buttons suggest-row'},el('span',{className:'panel-hint',textContent:'Trovati sul PC:'}),
@@ -509,11 +568,29 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else if(r?.ok===false)settingsStatus(r.error||'Operazione non riuscita',true);
    else if(okText)settingsStatus(typeof okText==='function'?okText(r):okText);
  }
+ // Aggiornamenti (Beta 0.23): stato, controllo manuale e "Riavvia e aggiorna".
+ function updateSection(row,hint){
+   const u=state.update;
+   if(!u)return el('span');
+   const when=u.checkedAt?' · controllato '+timeAgo(u.checkedAt):'';
+   const text={idle:`VARCO ${u.current}`,checking:'Controllo…',latest:`VARCO ${u.current} è l’ultima versione${when}`,
+     downloading:`Scarico VARCO ${u.version}… ${u.percent}%`,ready:`VARCO ${u.version} è pronto da installare`,
+     error:`Controllo non riuscito: ${u.error}`}[u.state]||'';
+   if(!u.supported)return section('Aggiornamenti',hint(`VARCO ${u.current}. Gli aggiornamenti automatici funzionano con VARCO installato, non avviato da npm start.`));
+   return section('Aggiornamenti',
+     el('p',{className:u.state==='error'?'panel-error':'game-meta',textContent:text}),
+     ...(u.state==='ready'&&u.notes?[el('pre',{className:'update-notes',textContent:u.notes})]:[]),
+     projectButtons(...(u.state==='ready'?[['Riavvia e aggiorna',()=>act('installUpdate'),'primary']]:[]),
+       ...(['checking','downloading'].includes(u.state)?[]:[['Controlla ora',()=>settingsAction('checkUpdates')]]),
+       ...(u.page?[['Novità della versione',()=>act('navigate',{url:u.page})]]:[])),
+     checkRow('Controlla e scarica da solo gli aggiornamenti',u.auto,enabled=>act('setAutoUpdate',{enabled})),
+     hint('VARCO guarda le versioni pubblicate su GitHub all’avvio e ogni 6 ore. Si installa solo quando premi «Riavvia e aggiorna»: schede e dati restano.'));
+ }
  function renderSettings(){
    const s=state.settings;
    const list=$('settingsBody');
    if(list.contains(document.activeElement)&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
-   const key=JSON.stringify([s,settingsUi,state.appearanceSettings]);
+   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update]);
    if(key===renderedSettings)return;
    renderedSettings=key;
    const panel=$('settingsPage'),scroll=panel.scrollTop;
@@ -527,6 +604,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Ricerca',
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
+     updateSection(row,hint),
      section('Browser e file',
        projectButtons(['Apri le App predefinite di Windows',()=>act('openDefaultApps')]),
        hint('VARCO compare in "Apri con" per i file che sa mostrare (PDF, immagini, video, codice, modelli 3D…). Per aprirli sempre con VARCO, o per usarlo come browser, sceglilo lì per ogni tipo.')),

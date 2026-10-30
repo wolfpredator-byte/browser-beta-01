@@ -567,6 +567,20 @@ body[style*="--ws-active"] #splitFocus{box-shadow:0 0 0 2px var(--ws-active),0 0
 body[data-zen="true"] .window-titlebar,body[data-zen="true"] .toolbar,body[data-zen="true"] #globalSidebar,
 body[data-zen="true"] .tabbar,body[data-zen="true"] #sidePanel,body[data-zen="true"] .download-drawer,body[data-zen="true"] #splitControls{display:none!important}
 body[data-zen="true"] #dashboard,body[data-zen="true"] #loadError{top:0;left:0;right:0;bottom:0;border-radius:0;box-shadow:none}
+/* Beta 0.23: elenco dei giochi e programmi installati. */
+.app-picker{display:flex;flex-direction:column;gap:8px;margin:8px 0;padding:10px;border:1px solid var(--v-line);border-radius:12px;background:rgba(var(--v-bg-rgb),.45)}
+.app-picker-list{display:flex;flex-direction:column;max-height:260px;overflow:auto;margin:0 -4px}
+.app-picker-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 8px;border:0;border-radius:8px;background:none;text-align:left}
+.app-picker-item:hover{background:rgba(var(--v-accent-rgb),.16)}
+.app-picker-item .app-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-picker-item .app-source{flex:0 0 auto;font-size:11px;opacity:.6}
+.app-picker-folders{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.app-picker-folders .panel-hint{flex-basis:100%;margin:0;white-space:normal}
+.app-picker-folders>button{padding:4px 10px;border:1px solid var(--v-line);border-radius:8px;background:rgba(var(--v-accent-rgb),.12);font-size:12px}
+.app-picker-folders>button:hover{border-color:var(--v-line-strong)}
+.folder-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:2px 4px 2px 9px;border:1px solid var(--v-line);border-radius:999px;font-size:12px}
+.folder-chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.folder-chip button{padding:0 6px;border:0;background:none}
 .work-row{padding:8px 0;border-bottom:1px solid var(--v-line)}
 .work-row.missing .command-name{color:#ff8794}
 .work-row .check-row{margin:4px 0}
@@ -632,3 +646,4 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .color-input{width:44px;height:30px;padding:0;border:1px solid var(--v-line);border-radius:8px;background:none;cursor:pointer}
 .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 12px}
 .settings-sub{font-size:11px;letter-spacing:1px;color:var(--v-muted);margin:12px 0 4px;text-transform:uppercase}
+.update-notes{max-height:160px;overflow:auto;margin:6px 0;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25);white-space:pre-wrap;font:12px/1.5 inherit}

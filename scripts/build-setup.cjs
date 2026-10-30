@@ -40,7 +40,7 @@ const config={
   appId:'local.personal-workspace-browser.setup',productName:'VARCO',executableName:'VARCO Setup',
   copyright:'Uso personale',electronVersion,electronDist:path.join(root,'node_modules','electron','dist'),
   directories:{output:path.join(root,'dist','setup-build'),app:setupDir},
-  files:['setup-main.cjs','setup-preload.cjs','setup.html','setup.css','setup.js','licenza.txt','assets/**/*','package.json'],
+  files:['setup-main.cjs','setup-preload.cjs','setup.html','setup.css','setup.js','update.html','update.css','update.js','licenza.txt','assets/**/*','package.json'],
   // L'app vera del browser viaggia dentro l'installer.
   extraResources:[{from:path.join(root,'dist','win-unpacked','resources','app.asar'),to:'payload/app.asar'}],
   win:{target:'portable',icon:path.join(root,'assets','app-icon.ico')},

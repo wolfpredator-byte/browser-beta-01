@@ -245,7 +245,60 @@ function setupIpc(){
   });
 }
 
+// ── Aggiornamento (Beta 0.23) ───────────────────────────────────────────
+/**
+ * Avviato da VARCO stesso (lib/updater.cjs): "VARCO Setup X.exe" --update "<cartella di VARCO>" --pid <processo>.
+ * Niente procedura guidata: aspetta che VARCO si chiuda, sostituisce i file, aggiorna la voce
+ * in "App installate" e lo riapre. Mostra solo una piccola finestra con l'avanzamento.
+ */
+function updateTarget(){
+  const index=process.argv.indexOf('--update');
+  const dir=index>0?process.argv[index+1]:'';
+  if(!dir)return null;
+  const destination=path.resolve(dir);
+  // Solo una cartella che contiene già VARCO: l'aggiornamento non installa altrove.
+  const looksRight=fs.existsSync(path.join(destination,'VARCO.exe'))&&fs.existsSync(path.join(destination,'resources','app.asar'));
+  return looksRight?destination:null;
+}
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+/** Il VARCO che ha chiesto l'aggiornamento è ancora aperto? */
+function callerAlive(){
+  const index=process.argv.indexOf('--pid');
+  const pid=index>0?Number(process.argv[index+1]):0;
+  if(!Number.isInteger(pid)||pid<=0)return false;
+  try{process.kill(pid,0);return true;}catch{return false;}
+}
+async function runUpdate(destination){
+  const exe=path.join(destination,'VARCO.exe');
+  try{
+    send('setup:progress',{step:'remove',percent:2});
+    // VARCO si sta chiudendo da solo: gli diamo fino a 20 secondi, poi lo chiudiamo noi.
+    for(let i=0;i<40&&(callerAlive()||await varcoRunning());i++)await sleep(500);
+    if(await varcoRunning()){await run('taskkill',['/IM','VARCO.exe','/T','/F']);await sleep(1000);}
+    const size=await copyFiles(destination);
+    send('setup:progress',{step:'config',percent:92});
+    await registerUninstall(destination,size);
+    send('setup:progress',{step:'finish',percent:100});
+  }catch(error){
+    dialog.showErrorBox('Aggiornamento di VARCO non riuscito',`${error.message||error}\n\nVARCO si riapre con la versione di prima. Puoi installare la nuova a mano con questo stesso file.`);
+  }
+  // Gli argomenti che VARCO aveva (es. --user-data-dir) tornano nel nuovo avvio.
+  const relaunch=process.argv.flatMap((arg,i,all)=>arg==='--relaunch-arg'&&/^--user-data-dir=/.test(all[i+1]||'')?[all[i+1]]:[]);
+  if(fs.existsSync(exe))spawn(exe,relaunch,{detached:true,stdio:'ignore'}).unref();
+  setTimeout(()=>app.quit(),400);
+}
+
 app.whenReady().then(()=>{
+  const updateDir=updateTarget();
+  if(updateDir){
+    win=new BrowserWindow({width:420,height:150,resizable:false,maximizable:false,minimizable:false,frame:false,show:false,
+      backgroundColor:'#07070e',title:'Aggiornamento di VARCO',icon:path.join(__dirname,'assets','app-icon-256.png'),
+      webPreferences:{preload:path.join(__dirname,'setup-preload.cjs'),sandbox:true,contextIsolation:true,nodeIntegration:false}});
+    win.once('ready-to-show',()=>win.show());
+    win.loadFile(path.join(__dirname,'update.html'),{query:{version}});
+    win.webContents.once('did-finish-load',()=>runUpdate(updateDir));
+    return;
+  }
   setupIpc();
   win=new BrowserWindow({width:1000,height:640,resizable:false,maximizable:false,frame:false,show:false,
     backgroundColor:'#07070e',title:'Installazione di VARCO',icon:path.join(__dirname,'assets','app-icon-256.png'),
