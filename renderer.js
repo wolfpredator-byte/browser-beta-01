@@ -569,6 +569,48 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else if(okText)settingsStatus(typeof okText==='function'?okText(r):okText);
  }
  // Aggiornamenti (Beta 0.23): stato, controllo manuale e "Riavvia e aggiorna".
+ // Password (Beta 0.25): elenco con ricerca, mostra/copia/elimina, siti esclusi, importazione.
+ // Una password mostrata resta visibile 30 secondi, e mai dopo che esci dalle Impostazioni.
+ const pwUi={query:'',shown:{}};
+ function passwordSection(hint){
+   const p=state.passwords;
+   if(!p)return el('span');
+   if(!p.available)return section('Password',hint('La cifratura di Windows non è disponibile: VARCO non salva password su questo PC.'));
+   const search=el('input',{type:'text',className:'tab-search',placeholder:'Cerca sito o nome utente…',value:pwUi.query,autocomplete:'off',spellcheck:false});
+   const box=el('div',{className:'pw-list'});
+   const button=(label,fn,cls='')=>{const b=el('button',{type:'button',textContent:label,className:cls});b.onclick=fn;return b;};
+   const draw=()=>{
+     const q=pwUi.query.trim().toLowerCase();
+     const shown=p.entries.filter(e=>!q||e.host.toLowerCase().includes(q)||e.username.toLowerCase().includes(q));
+     box.replaceChildren(...shown.map(e=>{
+       const secret=pwUi.shown[e.id];
+       const remove=confirmButton('Elimina','Conferma',()=>settingsAction('passwordDelete',`Password di ${e.host} eliminata.`,{id:e.id}));
+       return el('div',{className:'pw-row'},
+         el('div',{className:'pw-site'},el('span',{className:'pw-host',textContent:e.host,title:e.origin}),el('span',{className:'pw-user',textContent:e.username||'(senza nome utente)'})),
+         el('code',{className:'pw-secret',textContent:secret??'••••••••'}),
+         el('span',{className:'inline-buttons'},
+           button(secret?'Nascondi':'Mostra',async()=>{
+             if(secret){delete pwUi.shown[e.id];draw();return;}
+             const r=await act('passwordReveal',{id:e.id});
+             if(r?.result?.ok){pwUi.shown[e.id]=r.result.password;draw();setTimeout(()=>{delete pwUi.shown[e.id];draw();},30000);}
+           }),
+           button('Copia',()=>settingsAction('passwordCopy','Copiata: resta negli appunti 30 secondi.',{id:e.id})),remove));
+     }));
+     if(!shown.length)box.append(hint(q?'Nessuna password trovata.':'Ancora nessuna password: VARCO te le propone dopo un accesso.'));
+   };
+   search.oninput=()=>{pwUi.query=search.value;draw();};
+   draw();
+   return section('Password',
+     checkRow('Proponi di salvare le password dopo un accesso',p.enabled,enabled=>act('setPasswordSaving',{enabled})),
+     ...(p.entries.length?[el('p',{className:'game-meta',textContent:`${p.entries.length} ${p.entries.length===1?'password salvata':'password salvate'}`}),search]:[]),
+     box,
+     ...(p.never.length?[el('p',{className:'settings-sub',textContent:'Mai salvare per'}),
+       el('div',{className:'tab-tools'},...p.never.map(n=>el('span',{className:'folder-chip',title:n.origin},el('span',{textContent:n.host}),
+         button('×',()=>act('passwordNeverRemove',{origin:n.origin})))))]:[]),
+     projectButtons(['Importa da Chrome, Edge o Firefox (CSV)…',()=>settingsAction('passwordImport',
+       r=>`Importate ${r.added} nuove e ${r.updated} aggiornate${r.skipped?` (${r.skipped} righe saltate)`:''}.`)]),
+     hint('Cifrate con la protezione dati di Windows: solo il tuo account può leggerle. Le pagine ricevono una password solo quando scegli un account dall’elenco sotto il campo. Per esportare da Chrome: Impostazioni → Password → Esporta password.'));
+ }
  function updateSection(row,hint){
    const u=state.update;
    if(!u)return el('span');
@@ -591,7 +633,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const s=state.settings;
    const list=$('settingsBody');
    if(list.contains(document.activeElement)&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
-   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update]);
+   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords]);
    if(key===renderedSettings)return;
    renderedSettings=key;
    const panel=$('settingsPage'),scroll=panel.scrollTop;
@@ -606,6 +648,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
      updateSection(row,hint),
+     passwordSection(hint),
      section('Browser e file',
        projectButtons(['Apri le App predefinite di Windows',()=>act('openDefaultApps')]),
        hint('VARCO compare in "Apri con" per i file che sa mostrare (PDF, immagini, video, codice, modelli 3D…). Per aprirli sempre con VARCO, o per usarlo come browser, sceglilo lì per ogni tipo.')),
@@ -1186,7 +1229,7 @@ function render(){
  const onSettings=state.internalPage==='settings';
  document.querySelector('.home-content').hidden=onSettings;
  $('settingsPage').hidden=!onSettings;
- if(onSettings)renderSettings();else{renderedSettings=null;settingsUi.status='';}
+ if(onSettings)renderSettings();else{renderedSettings=null;settingsUi.status='';pwUi.shown={};}
  // Con più finestre dello stesso workspace: "Destiny Builder · 2".
  $('footerWorkspaceName').textContent=(state.activeWorkspace||'Personale')+(state.pane?' · '+(state.pane+1):'');
  renderLayoutInfo();

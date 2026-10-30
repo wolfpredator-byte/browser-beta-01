@@ -687,3 +687,11 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .tabbar #tabs.more-left{-webkit-mask-image:linear-gradient(90deg,transparent,#000 48px);mask-image:linear-gradient(90deg,transparent,#000 48px)}
 .tabbar #tabs.more-right{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent)}
 .tabbar #tabs.more-left.more-right{-webkit-mask-image:linear-gradient(90deg,transparent,#000 48px,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,transparent,#000 48px,#000 calc(100% - 48px),transparent)}
+/* Beta 0.25: password nelle Impostazioni. */
+.pw-list{display:flex;flex-direction:column;max-height:420px;overflow:auto;margin:6px 0}
+.pw-row{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--v-line)}
+.pw-site{flex:1 1 140px;min-width:100px;display:flex;flex-direction:column}
+.pw-host{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pw-user{font-size:12px;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pw-secret{flex:0 1 110px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;opacity:.85}
+.pw-row .inline-buttons button{padding:4px 9px;font-size:12px}
