@@ -575,13 +575,14 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const when=u.checkedAt?' · controllato '+timeAgo(u.checkedAt):'';
    const text={idle:`VARCO ${u.current}`,checking:'Controllo…',latest:`VARCO ${u.current} è l’ultima versione${when}`,
      downloading:`Scarico VARCO ${u.version}… ${u.percent}%`,ready:`VARCO ${u.version} è pronto da installare`,
+     installing:`Preparo l’installazione di VARCO ${u.version}: VARCO si chiude da solo fra poco`,
      error:`Controllo non riuscito: ${u.error}`}[u.state]||'';
    if(!u.supported)return section('Aggiornamenti',hint(`VARCO ${u.current}. Gli aggiornamenti automatici funzionano con VARCO installato, non avviato da npm start.`));
    return section('Aggiornamenti',
      el('p',{className:u.state==='error'?'panel-error':'game-meta',textContent:text}),
      ...(u.state==='ready'&&u.notes?[el('pre',{className:'update-notes',textContent:u.notes})]:[]),
      projectButtons(...(u.state==='ready'?[['Riavvia e aggiorna',()=>act('installUpdate'),'primary']]:[]),
-       ...(['checking','downloading'].includes(u.state)?[]:[['Controlla ora',()=>settingsAction('checkUpdates')]]),
+       ...(['checking','downloading','installing'].includes(u.state)?[]:[['Controlla ora',()=>settingsAction('checkUpdates')]]),
        ...(u.page?[['Novità della versione',()=>act('navigate',{url:u.page})]]:[])),
      checkRow('Controlla e scarica da solo gli aggiornamenti',u.auto,enabled=>act('setAutoUpdate',{enabled})),
      hint('VARCO guarda le versioni pubblicate su GitHub all’avvio e ogni 6 ore. Si installa solo quando premi «Riavvia e aggiorna»: schede e dati restano.'));

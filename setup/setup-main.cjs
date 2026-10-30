@@ -261,6 +261,10 @@ function updateTarget(){
   return looksRight?destination:null;
 }
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+/** Registro dell'aggiornamento in %TEMP%\varco-update.log: se qualcosa va storto, lì c'è il perché. */
+function updateLog(...parts){
+  try{fs.appendFileSync(path.join(app.getPath('temp'),'varco-update.log'),`${new Date().toISOString()} ${parts.join(' ')}\n`);}catch{}
+}
 /** Il VARCO che ha chiesto l'aggiornamento è ancora aperto? */
 function callerAlive(){
   const index=process.argv.indexOf('--pid');
@@ -274,12 +278,15 @@ async function runUpdate(destination){
     send('setup:progress',{step:'remove',percent:2});
     // VARCO si sta chiudendo da solo: gli diamo fino a 20 secondi, poi lo chiudiamo noi.
     for(let i=0;i<40&&(callerAlive()||await varcoRunning());i++)await sleep(500);
-    if(await varcoRunning()){await run('taskkill',['/IM','VARCO.exe','/T','/F']);await sleep(1000);}
+    if(await varcoRunning()){updateLog('VARCO ancora aperto: lo chiudo');await run('taskkill',['/IM','VARCO.exe','/T','/F']);await sleep(1000);}
+    updateLog('copio in',destination);
     const size=await copyFiles(destination);
     send('setup:progress',{step:'config',percent:92});
     await registerUninstall(destination,size);
     send('setup:progress',{step:'finish',percent:100});
+    updateLog('fatto,',Math.round(size/1048576),'MB');
   }catch(error){
+    updateLog('errore:',error.stack||error);
     dialog.showErrorBox('Aggiornamento di VARCO non riuscito',`${error.message||error}\n\nVARCO si riapre con la versione di prima. Puoi installare la nuova a mano con questo stesso file.`);
   }
   // Gli argomenti che VARCO aveva (es. --user-data-dir) tornano nel nuovo avvio.
@@ -288,15 +295,27 @@ async function runUpdate(destination){
   setTimeout(()=>app.quit(),400);
 }
 
+if(process.argv.includes('--update')){
+  updateLog('avvio',version,JSON.stringify(process.argv.slice(1)));
+  process.on('uncaughtException',error=>updateLog('eccezione:',error.stack||error));
+  app.on('quit',(_e,code)=>updateLog('uscita',code));
+}
 app.whenReady().then(()=>{
   const updateDir=updateTarget();
+  if(process.argv.includes('--update'))updateLog('cartella',updateDir||'NON VALIDA');
   if(updateDir){
     win=new BrowserWindow({width:420,height:150,resizable:false,maximizable:false,minimizable:false,frame:false,show:false,
       backgroundColor:'#07070e',title:'Aggiornamento di VARCO',icon:path.join(__dirname,'assets','app-icon-256.png'),
       webPreferences:{preload:path.join(__dirname,'setup-preload.cjs'),sandbox:true,contextIsolation:true,nodeIntegration:false}});
     win.once('ready-to-show',()=>win.show());
     win.loadFile(path.join(__dirname,'update.html'),{query:{version}});
-    win.webContents.once('did-finish-load',()=>runUpdate(updateDir));
+    win.webContents.once('did-finish-load',()=>{
+      // VARCO aspetta questo file per chiudersi (vedi lib/updater.cjs).
+      const index=process.argv.indexOf('--ready-file');
+      const readyFile=index>0?process.argv[index+1]:'';
+      if(readyFile&&/installer-ready$/.test(readyFile))try{fs.writeFileSync(readyFile,String(process.pid));}catch{}
+      runUpdate(updateDir);
+    });
     return;
   }
   setupIpc();
