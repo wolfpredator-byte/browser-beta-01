@@ -679,3 +679,11 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .tab-row-meta{font-size:10.5px;opacity:.55}
 .tab-row-close{opacity:0;flex:none}
 .tab-row:hover .tab-row-close{opacity:1}
+/* Beta 0.24.1: niente barre di scorrimento nella barra delle schede. Si scorre portando il mouse
+   verso un bordo (renderer.js), con la rotellina o trascinando una scheda verso il bordo.
+   La sfumatura sul bordo dice che da quel lato ci sono altre schede. */
+.tabbar #tabs{overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.tabbar #tabs::-webkit-scrollbar{display:none}
+.tabbar #tabs.more-left{-webkit-mask-image:linear-gradient(90deg,transparent,#000 48px);mask-image:linear-gradient(90deg,transparent,#000 48px)}
+.tabbar #tabs.more-right{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent)}
+.tabbar #tabs.more-left.more-right{-webkit-mask-image:linear-gradient(90deg,transparent,#000 48px,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,transparent,#000 48px,#000 calc(100% - 48px),transparent)}

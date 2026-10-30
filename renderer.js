@@ -1266,6 +1266,7 @@ function render(){
    scrolledToTab=activeTabId;
    tabs.querySelector('.tab.active,.stack-pill.active')?.scrollIntoView({block:'nearest',inline:'nearest'});
  }
+ updateTabFades();
  // Ciascun workspace è un pulsante con icona 20px e nome separato.
  const w=$('workspaces');w.replaceChildren();
  for(const workspace of state.workspaces){
@@ -1325,6 +1326,38 @@ $('tabs').addEventListener('wheel',event=>{
  strip.scrollLeft+=event.deltaY;
  event.preventDefault();
 },{passive:false});
+// Beta 0.24.1: niente barra di scorrimento. Avvicinando il mouse a un bordo della striscia
+// le schede scorrono da sole, più veloci quanto più sei vicino al bordo (anche trascinando una scheda).
+const EDGE_ZONE=56,EDGE_SPEED=14; // px dal bordo · px per fotogramma al massimo
+let edgeSpeed=0,edgeFrame=0;
+function updateTabFades(){
+ const strip=$('tabs'),max=strip.scrollWidth-strip.clientWidth;
+ strip.classList.toggle('more-left',max>1&&strip.scrollLeft>1);
+ strip.classList.toggle('more-right',max>1&&strip.scrollLeft<max-1);
+}
+function edgeStep(){
+ const strip=$('tabs');
+ if(!edgeSpeed){edgeFrame=0;return;}
+ const before=strip.scrollLeft;
+ strip.scrollLeft+=edgeSpeed;
+ if(strip.scrollLeft===before){edgeSpeed=0;edgeFrame=0;return;} // arrivati in fondo
+ edgeFrame=requestAnimationFrame(edgeStep);
+}
+function edgeFromPointer(event){
+ const strip=$('tabs');
+ if(strip.scrollWidth<=strip.clientWidth){edgeSpeed=0;return;}
+ const box=strip.getBoundingClientRect();
+ const zone=Math.min(EDGE_ZONE,box.width/4),x=event.clientX-box.left;
+ // Spinta da 0 (inizio della zona) a 1 (sul bordo), con una curva morbida.
+ const push=x<zone?-(1-x/zone):x>box.width-zone?1-(box.width-x)/zone:0;
+ edgeSpeed=Math.sign(push)*Math.ceil(EDGE_SPEED*push*push);
+ if(edgeSpeed&&!edgeFrame)edgeFrame=requestAnimationFrame(edgeStep);
+}
+$('tabs').addEventListener('mousemove',edgeFromPointer);
+$('tabs').addEventListener('dragover',edgeFromPointer);
+for(const name of ['mouseleave','dragleave','drop','dragend'])$('tabs').addEventListener(name,()=>{edgeSpeed=0;});
+$('tabs').addEventListener('scroll',updateTabFades,{passive:true});
+window.addEventListener('resize',updateTabFades);
 $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
 $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');

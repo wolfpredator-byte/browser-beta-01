@@ -18,6 +18,18 @@ Installer: `dist\VARCO Setup 0.24.0.exe`. È anche la prima versione che arriva 
 - Il contatore si può nascondere da Impostazioni → Interfaccia → Barre.
 - Anche dalla palette (F1): "Cerca tra le schede", "Raggruppa le schede per sito", "Chiudi le schede doppie".
 
+## 0.24.1 — Barra delle schede senza barre di scorrimento (dalle tue prove)
+Installer: `dist\VARCO Setup 0.24.1.exe`.
+
+Con tante schede o con la finestra stretta comparivano le barre di scorrimento. Ora non ci sono più:
+- **avvicina il mouse al bordo sinistro o destro** della barra: le schede scorrono da sole, più veloci quanto più sei vicino al bordo. Al centro si fermano;
+- funziona anche **trascinando una scheda** verso il bordo, per spostarla lontano;
+- una **sfumatura** sul bordo indica che da quel lato ci sono altre schede;
+- la rotellina continua a funzionare.
+
+- [ ] **T142** — Stringi la finestra con molte schede: nessuna barra di scorrimento. Porta il mouse al bordo destro, poi al sinistro: la barra scorre. **📸**
+- [ ] **T143** — Trascina una scheda verso il bordo destro: la barra scorre e puoi lasciarla più in là.
+
 ## Modalità insegnamento
 - **Nome dello stack:** dal dominio si prende la parte principale (`github.com` → Github, `docs.google.com` → Google Docs, `bbc.co.uk` → Bbc). Se due siti danno lo stesso nome (`example.com` ed `example.org`), lo stack prende il nome completo. Così non finiscono insieme.
 - **Stessa pagina:** l'indirizzo senza il frammento `#…` e senza la barra finale. `pagina#capitolo` e `pagina/` sono doppie di `pagina`.
