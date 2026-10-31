@@ -72,6 +72,7 @@ function start(){
   app.setAppUserModelId(app.isPackaged?'local.personal-workspace-browser':process.execPath);
   state.store=createStore(path.join(app.getPath('userData'),'browser-data.json'));
   state.data=state.store.load();
+  require('./lib/web-rules.cjs').setCustomBangs(state.data.settings.bangs); // Beta 0.28: scorciatoie di ricerca tue
   setupWebSession();
   registerCommands(bus);
   registerGameCommands(bus);

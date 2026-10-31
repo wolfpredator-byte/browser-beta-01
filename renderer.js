@@ -662,6 +662,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Ricerca',
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
+     bangSection(hint),
      updateSection(row,hint),
      passwordSection(hint),
      extensionSection(hint),
@@ -800,6 +801,23 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    input.oninput=()=>{out.textContent=format(Number(input.value));clearTimeout(timer);timer=setTimeout(()=>act('setAppearanceValue',{key,value:Number(input.value)}),90);};
    input.onchange=()=>{clearTimeout(timer);act('setAppearanceValue',{key,value:Number(input.value)});input.blur();};
    return el('label',{className:'range-row'},el('span',{textContent:label}),input,out);
+ }
+ // Scorciatoie di ricerca (Beta 0.28): "!yt gatti" cerca su YouTube. Quelle pronte più le tue.
+ function bangSection(hint){
+   const b=state.bangSettings;if(!b)return el('span');
+   const chip=(item,removable)=>el('span',{className:'folder-chip',title:item.url||item.label},
+     el('span',{textContent:'!'+item.key+' · '+item.label}),
+     ...(removable?[(()=>{const x=el('button',{type:'button',textContent:'×',title:'Togli'});x.onclick=()=>act('removeBang',{key:item.key});return x;})()]:[]));
+   const key=el('input',{type:'text',placeholder:'chiave (es. lg)',maxLength:12,autocomplete:'off',spellcheck:false,className:'bang-key'});
+   const label=el('input',{type:'text',placeholder:'nome (es. light.gg)',maxLength:30,autocomplete:'off',spellcheck:false});
+   const url=el('input',{type:'text',placeholder:'https://…?q=%s',maxLength:500,autocomplete:'off',spellcheck:false});
+   const form=el('form',{className:'bang-form'},key,label,url,el('button',{type:'submit',textContent:'Aggiungi'}));
+   form.onsubmit=e=>{e.preventDefault();settingsAction('addBang',`Scorciatoia !${key.value.replace(/^!/,'')} aggiunta.`,{key:key.value,label:label.value,url:url.value});};
+   return section('Scorciatoie di ricerca',
+     hint('Scrivi nella barra degli indirizzi «!yt gatti» (o «gatti !yt») per cercare direttamente su quel sito.'),
+     el('div',{className:'tab-tools'},...b.builtIn.map(x=>chip(x,false)),...b.custom.map(x=>chip(x,true))),
+     form,
+     hint('Le tue: una chiave di lettere o numeri e l’indirizzo di ricerca del sito con %s al posto del testo cercato.'));
  }
  // Disposizione (Beta 0.28): combinazioni pronte con un piccolo schema, poi le scelte libere.
  const LAYOUT_PRESETS={classico:['Classico','bottom','left',true],'schede-alto':['Schede in alto','top','left',true],
@@ -1895,7 +1913,16 @@ function closeSuggestions(){
  return act('closePalette');
 }
 /** Il testo scritto, come indirizzo o ricerca: è la scelta predefinita di Invio. */
+// Beta 0.28: "!yt gatti" o "gatti !yt" → {key, query} (i nomi arrivano da state.bangs).
+function bangOf(q){
+ let m=/^!([a-z0-9]{1,12})\s+(.+)$/i.exec(q);
+ if(m)return {key:m[1].toLowerCase(),query:m[2]};
+ m=/^(.+?)\s+!([a-z0-9]{1,12})$/i.exec(q);
+ return m?{key:m[2].toLowerCase(),query:m[1]}:null;
+}
 function webItem(q){
+ const bang=bangOf(q),bangLabel=bang&&state.bangs?.[bang.key];
+ if(bangLabel)return {kind:'web',label:`Cerca «${bang.query}» su ${bangLabel}`,detail:'Scorciatoia !'+bang.key,run:{command:'navigate',args:{url:q}}};
  const address=/^https?:\/\//i.test(q)||/^localhost\b/i.test(q)||/^[^\s/]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(q);
  return {kind:'web',label:address?q:`Cerca «${q}»`,detail:address?'Apri l’indirizzo':'Ricerca sul web',run:{command:'navigate',args:{url:q}}};
 }

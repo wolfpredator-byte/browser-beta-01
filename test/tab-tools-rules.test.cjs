@@ -36,3 +36,16 @@ test('raggruppa per sito: solo schede libere, almeno `min`', ()=>{
   assert.equal(sites[0].tabs.length,3);
   assert.ok(sites.some(s=>s.label==='VARCO'));
 });
+
+test('scorciatoie di ricerca: davanti o in fondo, quelle tue solo https con %s', ()=>{
+  const r=require('../lib/web-rules.cjs');
+  assert.equal(r.bangFor('!yt gatti neri').url,'https://www.youtube.com/results?search_query=gatti%20neri');
+  assert.equal(r.bangFor('gatti !w').label,'Wikipedia');
+  assert.equal(r.bangFor('!zz ciao'),null);
+  assert.equal(r.bangFor('!yt'),null);
+  assert.equal(r.safeUrl('!gh electron'),'https://github.com/search?q=electron');
+  assert.deepEqual(r.normalizeBangs([{key:'!LG',label:'light.gg',url:'https://www.light.gg/db/search/?q=%s'},{key:'x',url:'http://a.it/%s'},{key:'y',url:'https://a.it/'}]).map(b=>b.key),['lg']);
+  r.setCustomBangs([{key:'lg',label:'light.gg',url:'https://www.light.gg/db/search/?q=%s'}]);
+  assert.equal(r.safeUrl('ace of spades !lg'),'https://www.light.gg/db/search/?q=ace%20of%20spades');
+  r.setCustomBangs([]);
+});
