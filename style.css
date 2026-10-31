@@ -746,3 +746,39 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px rgba(var(--v-accent
 @keyframes v-strip-in{from{opacity:0;transform:translateY(8px) scale(.9)}}
 .strip-enter{animation:v-strip-in var(--dur-3) var(--ease-spring)}
 .strip-ghost{list-style:none}
+/* Cambio di tema o di workspace: i colori sfumano (solo per mezzo secondo, poi tornano reattivi). */
+body.theming *,body.theming *::before{transition:background-color var(--dur-3) var(--ease-in-out),color var(--dur-3) var(--ease-in-out),
+  border-color var(--dur-3) var(--ease-in-out),box-shadow var(--dur-3) var(--ease-in-out),fill var(--dur-3)!important}
+@keyframes v-wall-in{from{opacity:0}}
+body.wall-in::before{animation:v-wall-in calc(var(--dur-3) * 2) var(--ease-out)}
+/* La Home entra a scaglioni: logo, nome, motto, ricerca, poi i riquadri. */
+@keyframes v-rise{from{opacity:0;transform:translateY(14px)}}
+.home-enter .hero,.home-enter .wordmark,.home-enter .motto,.home-enter .home-search,.home-enter .home-cards>*,.home-enter .workspace-panel{
+  animation:v-rise var(--dur-3) var(--ease-out) both}
+.home-enter .wordmark{animation-delay:40ms}.home-enter .motto{animation-delay:70ms}.home-enter .home-search{animation-delay:100ms}
+.home-enter .home-cards>*:nth-child(1){animation-delay:140ms}.home-enter .home-cards>*:nth-child(2){animation-delay:170ms}
+.home-enter .home-cards>*:nth-child(3){animation-delay:200ms}.home-enter .home-cards>*:nth-child(4){animation-delay:230ms}
+.home-enter .workspace-panel{animation-delay:260ms}
+/* Impostazioni: anche loro entrano piano. */
+@keyframes v-settle{from{opacity:0;transform:translateY(8px)}}
+#settingsPage.settings-enter #settingsBody>*{animation:v-settle var(--dur-3) var(--ease-out) both}
+/* Impostazioni: indice e ricerca restano in cima mentre scorri. */
+.settings-nav{position:sticky;top:-28px;z-index:3;display:flex;flex-direction:column;gap:10px;margin:0 -12px 18px;padding:12px;
+  border-radius:var(--r-lg);background:rgba(var(--v-bg-rgb),.72);backdrop-filter:blur(18px);border:1px solid var(--v-line)}
+#settingsSearch{width:100%;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--v-line);background:rgba(0,0,0,.25);color:inherit;font-size:var(--fs-md);outline:none}
+#settingsSearch:focus{border-color:var(--v-accent)}
+#settingsIndex{display:flex;flex-wrap:wrap;gap:6px}
+.settings-chip{padding:4px 11px;font-size:var(--fs-xs);border:1px solid var(--v-line);border-radius:999px;background:rgba(var(--v-accent-rgb),.08)}
+.settings-chip:hover{border-color:var(--v-line-strong);background:rgba(var(--v-accent-rgb),.2)}
+.settings-chip[hidden],#settingsBody section[hidden]{display:none}
+@keyframes v-flash{0%{box-shadow:0 0 0 2px var(--v-accent)}100%{box-shadow:0 0 0 2px transparent}}
+#settingsBody section.flash{animation:v-flash 1.2s var(--ease-out)}
+/* Barra laterale in gruppi: etichetta con la barra espansa, una linea sottile con le sole icone. */
+.side-group{height:1px;margin:8px 14px;background:var(--v-line);font-size:0;overflow:hidden}
+body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;background:none;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.45}
+/* Schede più pulite: "⋯" solo al passaggio del mouse (sopra la fine del titolo, senza spostare nulla), × attenuata. */
+.tab{position:relative}
+.tab .tab-more{position:absolute;right:30px;top:50%;transform:translateY(-50%);opacity:0;pointer-events:none;
+  background:rgba(var(--v-bg-rgb),.92);box-shadow:-10px 0 10px rgba(var(--v-bg-rgb),.92)}
+.tab:hover .tab-more,.tab:focus-within .tab-more{opacity:1;pointer-events:auto}
+.tab:not(.active):not(:hover) .tab-close{opacity:.35}

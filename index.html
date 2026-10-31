@@ -2,7 +2,7 @@
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: crx:; object-src 'none'"><title>VARCO</title><link rel="stylesheet" href="style.css"><script src="viewer/vendor/frame/browser-action-element.js"></script></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.26</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.27</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" class="tool" title="Nascondi / mostra la barra laterale" aria-label="Nascondi o mostra la barra laterale"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button>
   <button id="back" class="tool" title="Indietro (Alt+←)" aria-label="Indietro"><span class="i i-back" aria-hidden="true"></span></button><button id="forward" class="tool" title="Avanti (Alt+→)" aria-label="Avanti"><span class="i i-forward" aria-hidden="true"></span></button><button id="reload" class="tool" title="Ricarica (F5)" aria-label="Ricarica"><span class="i i-reload" aria-hidden="true"></span></button>
@@ -41,15 +41,19 @@
   <div id="workspaces"></div>
   <button id="addWorkspace" class="sideButton" title="Nuovo workspace"><span class="tool-icon"><span class="i i-workspace-add" aria-hidden="true"></span></span><span class="tool-label">Nuovo spazio</span></button>
   <div class="side-sep"></div>
+  <!-- Beta 0.27: strumenti divisi in gruppi (le etichette si vedono con la barra espansa). -->
+  <div class="side-group" aria-hidden="true">Navigazione</div>
   <button id="showBookmarks" class="sideButton" title="Preferiti"><span class="tool-icon"><span class="i i-bookmarks" aria-hidden="true"></span></span><span class="tool-label">Preferiti</span></button>
   <button id="showHistory" class="sideButton" title="Cronologia"><span class="tool-icon"><span class="i i-history" aria-hidden="true"></span></span><span class="tool-label">Cronologia</span></button>
   <button id="showTabs" class="sideButton" title="Schede aperte"><span class="tool-icon"><span class="i i-tabs" aria-hidden="true"></span></span><span class="tool-label">Schede</span></button>
   <button id="sideDownloads" class="sideButton" title="Download"><span class="tool-icon"><span class="i i-downloads" aria-hidden="true"></span></span><span class="tool-label">Download</span></button>
-  <button id="showGames" class="sideButton" title="Giochi (companion)"><span class="tool-icon"><span class="i i-games" aria-hidden="true"></span></span><span class="tool-label">Giochi</span></button>
+  <div class="side-group" aria-hidden="true">Lavoro</div>
   <button id="showProject" class="sideButton" title="Progetto del workspace"><span class="tool-icon"><span class="i i-project" aria-hidden="true"></span></span><span class="tool-label">Progetto</span></button>
-  <button id="showJarvis" class="sideButton" title="JARVIS (server MCP)"><span class="tool-icon"><span class="i i-jarvis-panel" aria-hidden="true"></span></span><span class="tool-label">JARVIS</span></button>
   <button id="showFiles" class="sideButton" title="File del progetto (Ctrl+O per aprire un file)"><span class="tool-icon"><span class="i i-folder" aria-hidden="true"></span></span><span class="tool-label">File</span></button>
   <button id="showNotes" class="sideButton" title="Note del workspace"><span class="tool-icon"><span class="i i-notes" aria-hidden="true"></span></span><span class="tool-label">Note</span></button>
+  <button id="showJarvis" class="sideButton" title="JARVIS (server MCP)"><span class="tool-icon"><span class="i i-jarvis-panel" aria-hidden="true"></span></span><span class="tool-label">JARVIS</span></button>
+  <div class="side-group" aria-hidden="true">Altro</div>
+  <button id="showGames" class="sideButton" title="Giochi (companion)"><span class="tool-icon"><span class="i i-games" aria-hidden="true"></span></span><span class="tool-label">Giochi</span></button>
   <button id="showNotifications" class="sideButton" title="Centro notifiche"><span class="tool-icon"><span class="i i-info" aria-hidden="true"></span><span id="notifyBadge" hidden></span></span><span class="tool-label">Notifiche</span></button>
   <button id="showSettings" class="sideButton settings-button" title="Impostazioni (Ctrl+,)"><span class="tool-icon"><span class="i i-settings" aria-hidden="true"></span></span><span class="tool-label">Impostazioni</span></button>
  </aside>
@@ -60,7 +64,7 @@
 </section>
 <main id="dashboard">
  <!-- Pagina Impostazioni (Beta 0.12): una scheda interna come la Home. -->
- <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><h1>Impostazioni</h1><div id="settingsBody"></div></div></section>
+ <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><h1>Impostazioni</h1><div class="settings-nav"><input id="settingsSearch" type="search" placeholder="Cerca nelle impostazioni… (es. password, sfondo, schede)" autocomplete="off" spellcheck="false"><div id="settingsIndex"></div></div><p id="settingsEmpty" class="panel-hint" hidden>Nessuna impostazione trovata.</p><div id="settingsBody"></div></div></section>
  <section class="home-content">
   <div class="home-center">
    <!-- Logo VARCO; quando JARVIS è collegato al suo posto compare la sfera animata. -->

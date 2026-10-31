@@ -697,7 +697,36 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        hint('Versioni, memoria, impostazioni e ultimi errori. Non contiene token né segreti.'))
    );
    panel.scrollTop=scroll;
+   decorateSettings();
  }
+ // Beta 0.27: indice delle sezioni (un clic ci porta) e ricerca dentro le Impostazioni.
+ function decorateSettings(){
+   const sections=[...$('settingsBody').children].filter(n=>n.matches('section'));
+   $('settingsIndex').replaceChildren(...sections.map(sec=>{
+     const chip=el('button',{type:'button',className:'settings-chip',textContent:sec.querySelector('h4')?.textContent||''});
+     chip.onclick=()=>{
+       $('settingsSearch').value='';filterSettings();
+       sec.scrollIntoView({behavior:document.body.dataset.motion==='off'?'auto':'smooth',block:'start'});
+       sec.classList.remove('flash');void sec.offsetWidth;sec.classList.add('flash');
+     };
+     return chip;
+   }));
+   filterSettings();
+ }
+ function filterSettings(){
+   const q=$('settingsSearch').value.trim().toLowerCase();
+   const sections=[...$('settingsBody').children].filter(n=>n.matches('section'));
+   const chips=[...$('settingsIndex').children];
+   let shown=0;
+   sections.forEach((sec,i)=>{
+     const match=!q||sec.innerText.toLowerCase().includes(q);
+     sec.hidden=!match;if(chips[i])chips[i].hidden=!match;
+     if(match)shown++;
+   });
+   $('settingsEmpty').hidden=!q||shown>0;
+ }
+ $('settingsSearch').oninput=filterSettings;
+ $('settingsSearch').onkeydown=e=>{if(e.key==='Escape'){$('settingsSearch').value='';filterSettings();}};
  // ── Personalizzazione (Beta 0.21) ─────────────────────────────────────────
  // Il processo principale manda le variabili CSS già calcolate (tema, sfondo, testo, angoli):
  // qui le applichiamo e nascondiamo i pulsanti e i riquadri della Home che hai tolto.
@@ -711,6 +740,13 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    document.body.dataset.motion=a.motion||'auto'; // Beta 0.27: Impostazioni → Animazioni
    const key=JSON.stringify([a.vars,a.hidden,a.density,a.home,a.logo]);
    if(key!==appliedAppearance){
+     // Beta 0.27: cambiando tema o workspace i colori sfumano e lo sfondo nuovo entra in dissolvenza.
+     const wallChanged=appliedAppearance!==null&&document.documentElement.style.getPropertyValue('--v-wallpaper')!==a.vars['--v-wallpaper'];
+     if(appliedAppearance!==null){
+       document.body.classList.add('theming');
+       clearTimeout(themingTimer);themingTimer=setTimeout(()=>document.body.classList.remove('theming'),520);
+     }
+     if(wallChanged){document.body.classList.remove('wall-in');void document.body.offsetWidth;document.body.classList.add('wall-in');}
      appliedAppearance=key;
      for(const [name,value] of Object.entries(a.vars))document.documentElement.style.setProperty(name,value);
      // Beta 0.22: logo del preset nella Home e nella barra del titolo.
@@ -1075,7 +1111,7 @@ $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 // Pannello Schede: ricerca, schede raggruppate per sito, anche di tutti i workspace.
 // L'intestazione (ricerca) resta; si ridisegna solo l'elenco, così non perdi ciò che scrivi.
 const tabUi={query:'',all:false};
-let tabManager=null,scrolledToTab=null,panelCloseTimer=null;
+let tabManager=null,scrolledToTab=null,panelCloseTimer=null,themingTimer=null,shownHome=null;
 const siteOfUrl=url=>{try{const u=new URL(url);return /^https?:$/.test(u.protocol)?u.hostname.replace(/^www\./,''):'';}catch{return '';}};
 const pageKeyOf=url=>{try{const u=new URL(url);u.hash='';return u.href.replace(/\/$/,'');}catch{return url||'';}};
 function renderTabManager(){
@@ -1345,6 +1381,19 @@ function render(){
  document.body.dataset.panelName=state.sidePanelOpen||'';
  applyAppearance();
  $('globalSidebar').hidden=state.sidebarMode==='hidden';
+ // Beta 0.27: la Home (o un altro workspace sulla Home) entra con logo, ricerca e riquadri uno dopo l'altro.
+ const homeKey=state.homeActive?state.activeWorkspace+':'+state.internalPage:null;
+ if(homeKey&&homeKey!==shownHome&&state.internalPage==='home'){
+   const home=document.querySelector('.home-content');
+   home.classList.remove('home-enter');void home.offsetWidth;home.classList.add('home-enter');
+   setTimeout(()=>home.classList.remove('home-enter'),800);
+ }
+ if(homeKey&&homeKey!==shownHome&&state.internalPage==='settings'){
+   const page=$('settingsPage');
+   page.classList.remove('settings-enter');void page.offsetWidth;page.classList.add('settings-enter');
+   setTimeout(()=>page.classList.remove('settings-enter'),600);
+ }
+ shownHome=homeKey;
  $('dashboard').hidden=!state.homeActive;
  // Beta 0.12: la scheda interna può essere la Home o le Impostazioni.
  const onSettings=state.internalPage==='settings';
