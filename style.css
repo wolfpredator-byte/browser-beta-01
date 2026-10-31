@@ -797,3 +797,20 @@ body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;
 #glanceHost{font-size:var(--fs-xs);opacity:.6}
 #glanceBar>button:not(.tool){padding:5px 11px;font-size:var(--fs-sm);border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.14)}
 #glanceBar>button:not(.tool):hover{background:rgba(var(--v-accent-rgb),.3)}
+/* Pannelli web: pulsanti con l'icona del sito e i messaggi non letti, barra sopra la colonna. */
+.web-panel-button .tool-icon{position:relative}
+.web-panel-button img{width:20px;height:20px;border-radius:5px}
+.web-panel-letter{display:grid;place-items:center;width:20px;height:20px;border-radius:6px;background:rgba(var(--v-accent-rgb),.35);font-size:11px;font-weight:700}
+.web-panel-badge{position:absolute;top:-6px;right:-8px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;display:grid;place-items:center;
+  background:var(--v-accent);color:#fff;font-size:9.5px;font-weight:700;box-shadow:0 0 0 2px rgba(var(--v-bg-rgb),1);animation:v-pop-in var(--dur-2) var(--ease-spring)}
+#webPanelHead{position:fixed;z-index:20;display:flex;align-items:center;gap:6px;height:34px;padding:0 4px 0 10px;border-radius:var(--r-md);
+  background:rgba(var(--v-bg-rgb),.82);backdrop-filter:blur(16px);border:1px solid var(--v-line);box-shadow:var(--shadow-1)}
+#webPanelHead[hidden]{display:none}
+#webPanelHead.enter{animation:v-drawer-in var(--dur-2) var(--ease-out)}
+#webPanelIcon{width:16px;height:16px;border-radius:4px}
+#webPanelTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-sm)}
+#webPanelHead .tool{width:28px;height:28px;padding:5px}
+.web-panel-suggest{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:10px 0}
+.web-panel-suggest button{padding:9px 10px;border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.08);text-align:left}
+.web-panel-suggest button:hover:not(:disabled){background:rgba(var(--v-accent-rgb),.22);border-color:var(--v-line-strong)}
+.web-panel-suggest button:disabled{opacity:.4}

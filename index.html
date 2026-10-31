@@ -55,6 +55,10 @@
   <div class="side-group" aria-hidden="true">Altro</div>
   <button id="showGames" class="sideButton" title="Giochi (companion)"><span class="tool-icon"><span class="i i-games" aria-hidden="true"></span></span><span class="tool-label">Giochi</span></button>
   <button id="showNotifications" class="sideButton" title="Centro notifiche"><span class="tool-icon"><span class="i i-info" aria-hidden="true"></span><span id="notifyBadge" hidden></span></span><span class="tool-label">Notifiche</span></button>
+  <!-- Beta 0.27: pannelli web (pulsanti disegnati da renderer.js). -->
+  <div class="side-group" aria-hidden="true">Pannelli</div>
+  <div id="webPanels"></div>
+  <button id="addWebPanel" class="sideButton" title="Aggiungi un pannello web (WhatsApp, Discord, Spotify…)"><span class="tool-icon"><span class="i i-workspace-add" aria-hidden="true"></span></span><span class="tool-label">Aggiungi pannello</span></button>
   <button id="showSettings" class="sideButton settings-button" title="Impostazioni (Ctrl+,)"><span class="tool-icon"><span class="i i-settings" aria-hidden="true"></span></span><span class="tool-label">Impostazioni</span></button>
  </aside>
 <!-- Pannello browser indipendente da Home e dalle pagine remote. -->
@@ -109,6 +113,11 @@
 <div id="splitLayer" hidden><div id="splitFocus"></div><div id="splitGhostLeft" class="split-ghost"></div><div id="splitGhostRight" class="split-ghost"></div><div id="splitDivider" title="Trascina per ridimensionare · doppio clic: metà e metà"></div></div>
 <!-- Palette (Beta 0.12.1): solo una barra di ricerca fluttuante; i risultati compaiono mentre scrivi. -->
 <!-- Beta 0.27: anteprima dei link (Shift+clic). La pagina dell'anteprima la disegna lib/glance.cjs sopra il riquadro. -->
+<!-- Beta 0.27: barra del pannello web aperto (la pagina la mette lib/webpanels.cjs sotto la barra). -->
+<div id="webPanelHead" hidden><img id="webPanelIcon" alt=""><strong id="webPanelTitle"></strong>
+ <button id="webPanelReload" class="tool" title="Ricarica" aria-label="Ricarica il pannello"><span class="i i-reload" aria-hidden="true"></span></button>
+ <button id="webPanelTab" class="tool" title="Apri in una scheda" aria-label="Apri in una scheda"><span class="i i-external" aria-hidden="true"></span></button>
+ <button id="webPanelClose" class="tool" title="Chiudi il pannello" aria-label="Chiudi il pannello"><span class="i i-close" aria-hidden="true"></span></button></div>
 <div id="glance" hidden>
  <img id="glanceBackdrop" alt="">
  <div id="glanceCard"></div>

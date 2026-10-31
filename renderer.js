@@ -1034,6 +1034,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else return renderFiles();
    if(mode!=='tabs')tabManager=null;
    else return renderTabManager();
+   if(mode==='addWebPanel')return renderAddWebPanel();
+   renderedAddPanel=false;
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
    if(mode!=='project')renderedProject=null;
@@ -1278,6 +1280,63 @@ function renderTabStrip(strip,entries){
  }
  setTimeout(()=>{for(const node of nodes)node.classList.remove('strip-enter');},ms+50);
 }
+// ── Pannelli web (Beta 0.27) ─────────────────────────────────────────────
+// Pulsanti nella barra laterale (icona del sito, messaggi non letti) e barra del pannello aperto.
+let renderedWebPanels=null;
+function renderWebPanels(){
+ const panels=state.webPanels||[],open=state.webPanelOpen;
+ const key=JSON.stringify([panels,open?.id]);
+ if(key!==renderedWebPanels){
+   renderedWebPanels=key;
+   $('webPanels').replaceChildren(...panels.map(p=>{
+     const b=el('button',{className:'sideButton web-panel-button'+(open?.id===p.id?' selected':''),title:p.title+' — clic destro per le opzioni'});
+     const iconBox=el('span',{className:'tool-icon'},p.favicon?el('img',{src:p.favicon,alt:''}):el('span',{className:'web-panel-letter',textContent:(p.title[0]||'?').toUpperCase()}));
+     if(p.unread)iconBox.append(el('span',{className:'web-panel-badge',textContent:p.unread>99?'99+':String(p.unread)}));
+     b.append(iconBox,el('span',{className:'tool-label',textContent:p.title}));
+     b.onclick=()=>act('webPanelToggle',{id:p.id});
+     b.oncontextmenu=e=>{e.preventDefault();act('webPanelMenu',{id:p.id});};
+     return b;
+   }));
+ }
+ const head=$('webPanelHead');
+ const visible=!!open&&!open.hidden;
+ if(!visible){head.hidden=true;return;}
+ const wasHidden=head.hidden;
+ head.hidden=false;
+ if(wasHidden){head.classList.remove('enter');void head.offsetWidth;head.classList.add('enter');}
+ const r=open.rect;
+ Object.assign(head.style,{left:r.x+'px',top:(r.y-40)+'px',width:r.width+'px'});
+ const panel=panels.find(p=>p.id===open.id);
+ $('webPanelIcon').hidden=!panel?.favicon;if(panel?.favicon)$('webPanelIcon').src=panel.favicon;
+ $('webPanelTitle').textContent=open.title||panel?.title||'';
+}
+$('webPanelReload').onclick=()=>act('webPanelReload');
+$('webPanelTab').onclick=()=>act('webPanelOpenInTab');
+$('webPanelClose').onclick=()=>act('webPanelClose');
+$('addWebPanel').onclick=()=>act('toggleSidePanel',{panel:'addWebPanel'});
+const WEB_PANEL_SUGGESTIONS=[['WhatsApp','https://web.whatsapp.com/'],['Discord','https://discord.com/app'],['Telegram','https://web.telegram.org/'],
+ ['Spotify','https://open.spotify.com/'],['YouTube Music','https://music.youtube.com/'],['ChatGPT','https://chatgpt.com/'],['Claude','https://claude.ai/'],
+ ['Gmail','https://mail.google.com/'],['Google Calendar','https://calendar.google.com/'],['Notion','https://www.notion.so/']];
+let renderedAddPanel=false;
+function renderAddWebPanel(){
+ $('sidePanelTitle').textContent='Nuovo pannello web';
+ const list=$('sidePanelItems');
+ if(renderedAddPanel&&list.querySelector('.web-panel-form'))return;
+ renderedAddPanel=true;
+ const have=new Set((state.webPanels||[]).map(p=>p.url));
+ const error=el('p',{className:'panel-error',role:'alert'});
+ const add=async(url,title)=>{const r=await act('webPanelAdd',{url,title});if(r?.result?.ok===false)error.textContent=r.result.error;};
+ const grid=el('div',{className:'web-panel-suggest'},...WEB_PANEL_SUGGESTIONS.map(([title,url])=>{
+   const b=el('button',{type:'button',textContent:title,disabled:have.has(url),title:have.has(url)?'Già aggiunto':url});
+   b.onclick=()=>add(url,title);return b;
+ }));
+ const input=el('input',{type:'text',placeholder:'Oppure un indirizzo, es. app.slack.com',autocomplete:'off',spellcheck:false});
+ const form=el('form',{className:'link-form web-panel-form'},input,el('button',{type:'submit',textContent:'Aggiungi'}));
+ form.onsubmit=e=>{e.preventDefault();if(input.value.trim())add(input.value);};
+ list.replaceChildren(el('p',{className:'panel-hint',textContent:'Un sito sempre a portata in una colonna a destra: resta carico anche quando lo chiudi, senza occupare schede.'}),
+   grid,form,error,
+   el('p',{className:'panel-hint',textContent:'Clic destro su un pannello nella barra laterale: larghezza, versione mobile, rimuovi.'}));
+}
 // Homepage lives inside a tab; it is displayed only when that tab is active.
 // ── Stack compatto (Beta 0.18) ───────────────────────────────────────────
 // Uno stack compresso diventa una sola "pillola": le icone delle sue schede una accanto
@@ -1405,6 +1464,7 @@ function render(){
  renderLayoutInfo();
  renderOrb();
  renderHomeCards();
+ renderWebPanels(); // Beta 0.27
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
