@@ -663,6 +663,10 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
      bangSection(hint),
+     ...(state.siteStyleHosts?.length?[section('Stili dei siti',
+       el('div',{className:'tab-tools'},...state.siteStyleHosts.map(host=>el('span',{className:'folder-chip'},el('span',{textContent:host}),
+         (()=>{const x=el('button',{type:'button',textContent:'×',title:'Togli lo stile'});x.onclick=()=>act('removeSiteStyle',{host});return x;})()))),
+       hint('Per aggiungerne uno: tasto destro su una pagina → Stile per questo sito…'))]:[]),
      updateSection(row,hint),
      passwordSection(hint),
      extensionSection(hint),
@@ -1090,6 +1094,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    if(mode!=='tabs')tabManager=null;
    else return renderTabManager();
    if(mode==='addWebPanel')return renderAddWebPanel();
+   if(mode!=='siteStyle')renderedStyleHost=null;
+   else return renderSiteStyle();
    renderedAddPanel=false;
    if(mode!=='jarvis')renderedJarvis=null;
    else return renderJarvis();
@@ -1404,6 +1410,27 @@ function applyFrame(){
  body.dataset.tabsSide=(merged?f.sidebar.side:f.tabs?.side)||'bottom';
  // Cambiando disposizione la barra delle schede si ridisegna (orientamento diverso) e la cornice entra piano.
  if(!first){scrolledToTab=null;body.classList.remove('frame-change');void body.offsetWidth;body.classList.add('frame-change');setTimeout(()=>body.classList.remove('frame-change'),500);}
+}
+// ── Stile per sito (Beta 0.28) ───────────────────────────────────────────
+// Un CSS tuo per il sito della scheda attiva: ogni modifica si vede subito sulla pagina.
+let renderedStyleHost=null,styleTimer=null;
+function renderSiteStyle(){
+ $('sidePanelTitle').textContent='Stile del sito';
+ const s=state.siteStyle||{host:'',css:''},list=$('sidePanelItems');
+ if(renderedStyleHost===s.host&&list.querySelector('.site-style-editor'))return;
+ renderedStyleHost=s.host;
+ if(!s.host){list.replaceChildren(el('p',{className:'panel-hint',textContent:'Apri una pagina web: lo stile vale per il suo sito.'}));return;}
+ const area=el('textarea',{className:'site-style-editor',spellcheck:false,value:s.css,
+   placeholder:'/* Esempi */\nheader { display: none !important; }\nbody { font-size: 18px !important; }\n.annuncio, .banner { display: none !important; }'});
+ const status=el('p',{className:'panel-hint',textContent:s.css?'Stile salvato per questo sito.':'Nessuno stile per questo sito.'});
+ area.oninput=()=>{clearTimeout(styleTimer);styleTimer=setTimeout(()=>{act('previewSiteStyle',{css:area.value});status.textContent='Anteprima: non ancora salvato.';},250);};
+ const buttons=projectButtons(
+   ['Salva',async()=>{const r=await act('saveSiteStyle',{css:area.value});status.textContent=r?.result?.ok?'Salvato: vale per tutte le pagine di '+s.host+'.':(r?.result?.error||'Non salvato.');},'primary'],
+   ['Ripristina',()=>{area.value=state.siteStyle?.css||'';act('previewSiteStyle',{css:area.value});status.textContent='Tornato allo stile salvato.';}],
+   ['Elimina',async()=>{area.value='';await act('saveSiteStyle',{css:''});status.textContent='Stile eliminato.';}]);
+ list.replaceChildren(el('p',{className:'project-folder',textContent:s.host}),area,buttons,status,
+   el('p',{className:'panel-hint',textContent:'CSS normale. Con !important vinci sullo stile del sito. Vale per tutte le pagine di questo sito, anche al prossimo avvio.'}));
+ setTimeout(()=>area.focus(),0);
 }
 // ── Pannelli web (Beta 0.27) ─────────────────────────────────────────────
 // Pulsanti nella barra laterale (icona del sito, messaggi non letti) e barra del pannello aperto.

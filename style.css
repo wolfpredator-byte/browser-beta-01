@@ -954,3 +954,7 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
   animation:v-pop-in var(--dur-2) var(--ease-spring);font-size:var(--fs-sm)}
 #shotBar>button:not(.tool){padding:6px 12px;border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.14)}
 #shotBar>button:not(.tool):hover{background:rgba(var(--v-accent-rgb),.3)}
+/* Stile del sito: editor a tutta altezza, testo a larghezza fissa. */
+.site-style-editor{width:100%;min-height:340px;resize:vertical;padding:10px 12px;border:1px solid var(--v-line);border-radius:var(--r-md);
+  background:rgba(0,0,0,.35);color:inherit;font:12.5px/1.55 'Cascadia Code',Consolas,monospace;tab-size:2;outline:none}
+.site-style-editor:focus{border-color:var(--v-accent)}
