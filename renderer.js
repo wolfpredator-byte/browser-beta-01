@@ -1800,12 +1800,50 @@ window.browserAPI.onUi(message=>{
  else if(message?.type==='openFind')openFind();
  else if(message?.type==='palette')showSuggestions(message);
  else if(message?.type==='glance')showGlance(message);
+ else if(message?.type==='shot')showShot(message);
  else if(message?.type==='findResult'){
    const found=$('findCount');
    found.textContent=message.matches?`${message.active} di ${message.matches}`:'Nessun risultato';
    found.classList.toggle('none',!message.matches);
  }
 });
+// ── Screenshot (Beta 0.28) ───────────────────────────────────────────────
+// Sopra la foto della pagina: trascina per un'area (si vedono le misure), oppure i pulsanti.
+let shotBounds=null,shotDrag=null;
+function showShot(message){
+ const box=$('shot');
+ if(!message.open){box.hidden=true;$('shotImage').removeAttribute('src');shotBounds=null;return;}
+ shotBounds=message.bounds;
+ $('shotImage').src=message.image;
+ placeRect($('shotImage'),shotBounds);
+ $('shotArea').hidden=true;
+ box.hidden=false;
+}
+$('shot').addEventListener('pointerdown',event=>{
+ if(!shotBounds||event.target.closest('#shotBar'))return;
+ const b=shotBounds;
+ if(event.clientX<b.x||event.clientY<b.y||event.clientX>b.x+b.width||event.clientY>b.y+b.height)return;
+ shotDrag={x0:event.clientX,y0:event.clientY,rect:null};
+ $('shot').setPointerCapture(event.pointerId);
+});
+$('shot').addEventListener('pointermove',event=>{
+ if(!shotDrag)return;
+ const b=shotBounds,clamp=(v,a,c)=>Math.min(c,Math.max(a,v));
+ const x1=clamp(event.clientX,b.x,b.x+b.width),y1=clamp(event.clientY,b.y,b.y+b.height);
+ const r={x:Math.min(shotDrag.x0,x1),y:Math.min(shotDrag.y0,y1),width:Math.abs(x1-shotDrag.x0),height:Math.abs(y1-shotDrag.y0)};
+ shotDrag.rect=r;
+ const area=$('shotArea');area.hidden=false;placeRect(area,r);
+ area.dataset.size=`${Math.round(r.width)} × ${Math.round(r.height)}`;
+});
+$('shot').addEventListener('pointerup',()=>{
+ const r=shotDrag?.rect;shotDrag=null;
+ if(r&&r.width>4&&r.height>4)act('screenshotTake',{mode:'area',x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)});
+ else $('shotArea').hidden=true;
+});
+$('shotVisible').onclick=()=>act('screenshotTake',{mode:'visible'});
+$('shotFull').onclick=()=>act('screenshotTake',{mode:'full'});
+$('shotCancel').onclick=()=>act('screenshotClose');
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('shot').hidden)act('screenshotClose');});
 // ── Anteprima dei link (Beta 0.27) ─────────────────────────────────────
 // Sfondo: la foto sfocata della pagina sotto. Il riquadro con la pagina vera lo mette lib/glance.cjs.
 let glanceTimer=null;

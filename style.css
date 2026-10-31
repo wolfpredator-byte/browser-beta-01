@@ -942,3 +942,15 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
 .bang-form input{min-width:0;padding:7px 9px;border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(0,0,0,.25);color:inherit}
 .archive-head{width:100%;border:0;background:none;text-align:left;margin-top:10px;border-top:1px solid var(--v-line);padding-top:10px;border-radius:0}
 .archive-head .i{width:14px;height:14px}
+/* Screenshot: foto della pagina, area scelta con le misure, barra in alto. */
+#shot{position:fixed;inset:0;z-index:960;cursor:crosshair;background:rgba(0,0,0,.25);animation:v-fade-in var(--dur-1) var(--ease-out)}
+#shot[hidden]{display:none}
+#shotImage{position:fixed;border-radius:var(--page-radius,10px);filter:brightness(.6);pointer-events:none}
+#shotArea{position:fixed;border:2px solid var(--v-accent);border-radius:4px;background:rgba(var(--v-accent-rgb),.08);box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+#shotArea[hidden]{display:none}
+#shotArea::after{content:attr(data-size);position:absolute;right:0;bottom:-26px;padding:2px 8px;border-radius:6px;font-size:11px;background:var(--v-accent);color:#fff}
+#shotBar{position:fixed;top:104px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;cursor:default;
+  border-radius:var(--r-md);background:rgba(var(--v-bg-rgb),.9);backdrop-filter:blur(16px);border:1px solid var(--v-line);box-shadow:var(--shadow-2);
+  animation:v-pop-in var(--dur-2) var(--ease-spring);font-size:var(--fs-sm)}
+#shotBar>button:not(.tool){padding:6px 12px;border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.14)}
+#shotBar>button:not(.tool):hover{background:rgba(var(--v-accent-rgb),.3)}
