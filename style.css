@@ -782,3 +782,18 @@ body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;
   background:rgba(var(--v-bg-rgb),.92);box-shadow:-10px 0 10px rgba(var(--v-bg-rgb),.92)}
 .tab:hover .tab-more,.tab:focus-within .tab-more{opacity:1;pointer-events:auto}
 .tab:not(.active):not(:hover) .tab-close{opacity:.35}
+/* Anteprima dei link: tutto si scurisce, la pagina sotto resta sfocata, il riquadro ha la sua ombra. */
+#glance{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.38);animation:v-fade-in var(--dur-2) var(--ease-out)}
+#glance[hidden]{display:none}
+#glance.closing{animation:v-fade-out var(--dur-1) var(--ease-in-out) forwards}
+@keyframes v-fade-out{to{opacity:0}}
+#glanceBackdrop{position:fixed;object-fit:cover;filter:blur(10px) brightness(.5) saturate(1.1);border-radius:var(--page-radius,10px);pointer-events:auto}
+#glanceCard{position:fixed;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(var(--v-accent-2-rgb),.25);background:rgba(var(--v-bg-rgb),.9);
+  animation:v-pop-in var(--dur-2) var(--ease-spring)}
+#glanceBar{position:fixed;display:flex;align-items:center;gap:6px;height:38px;padding:0 4px 0 12px;border-radius:var(--r-md);
+  background:rgba(var(--v-bg-rgb),.86);backdrop-filter:blur(16px);border:1px solid var(--v-line);box-shadow:var(--shadow-2);animation:v-pop-in var(--dur-2) var(--ease-spring)}
+.glance-text{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;overflow:hidden;white-space:nowrap}
+#glanceTitle{overflow:hidden;text-overflow:ellipsis;font-size:var(--fs-md);font-weight:600}
+#glanceHost{font-size:var(--fs-xs);opacity:.6}
+#glanceBar>button:not(.tool){padding:5px 11px;font-size:var(--fs-sm);border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.14)}
+#glanceBar>button:not(.tool):hover{background:rgba(var(--v-accent-rgb),.3)}

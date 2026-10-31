@@ -1531,12 +1531,43 @@ window.browserAPI.onUi(message=>{
  else if(message?.type==='closeSuggestions')closeSuggestions();
  else if(message?.type==='openFind')openFind();
  else if(message?.type==='palette')showSuggestions(message);
+ else if(message?.type==='glance')showGlance(message);
  else if(message?.type==='findResult'){
    const found=$('findCount');
    found.textContent=message.matches?`${message.active} di ${message.matches}`:'Nessun risultato';
    found.classList.toggle('none',!message.matches);
  }
 });
+// ── Anteprima dei link (Beta 0.27) ─────────────────────────────────────
+// Sfondo: la foto sfocata della pagina sotto. Il riquadro con la pagina vera lo mette lib/glance.cjs.
+let glanceTimer=null;
+function showGlance(message){
+ const box=$('glance');
+ clearTimeout(glanceTimer);
+ if(!message.open){
+   if(box.hidden)return;
+   box.classList.add('closing');
+   glanceTimer=setTimeout(()=>{box.hidden=true;box.classList.remove('closing');$('glanceBackdrop').removeAttribute('src');},160);
+   return;
+ }
+ box.classList.remove('closing');box.hidden=false;
+ if(message.backdrop!==undefined){
+   const img=$('glanceBackdrop'),b=message.bounds;
+   img.hidden=!(message.backdrop&&b);
+   if(!img.hidden){img.src=message.backdrop;Object.assign(img.style,{left:b.x+'px',top:b.y+'px',width:b.width+'px',height:b.height+'px'});}
+ }
+ const r=message.rect;
+ Object.assign($('glanceCard').style,{left:r.x+'px',top:r.y+'px',width:r.width+'px',height:r.height+'px'});
+ Object.assign($('glanceBar').style,{left:r.x+'px',top:(r.y-44)+'px',width:r.width+'px'});
+ $('glanceTitle').textContent=message.title||'Caricamento…';
+ let host='';try{host=new URL(message.url).hostname.replace(/^www\./,'');}catch{}
+ $('glanceHost').textContent=host;
+}
+$('glance').onclick=event=>{if(event.target===$('glance')||event.target===$('glanceBackdrop'))act('glanceAction',{action:'close'});};
+$('glanceClose').onclick=()=>act('glanceAction',{action:'close'});
+$('glanceTab').onclick=()=>act('glanceAction',{action:'tab'});
+$('glanceSplit').onclick=()=>act('glanceAction',{action:'split'});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('glance').hidden)act('glanceAction',{action:'close'});});
 // ── Cerca nella pagina (Ctrl+F) e zoom ─────────────────────────────────
 let findTab=null;
 function openFind(){

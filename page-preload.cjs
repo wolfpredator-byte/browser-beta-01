@@ -213,3 +213,20 @@ if(window.top===window&&(location.protocol==='https:'||
   addEventListener('scroll',place,true);
   addEventListener('resize',place);
 }
+
+/**
+ * Beta 0.27 — anteprima dei link: Shift+clic su un link apre la pagina in un riquadro sopra quella
+ * attuale (lib/glance.cjs) invece che in una nuova finestra. Solo nelle pagine web.
+ */
+if(/^https?:$/.test(location.protocol)){
+  document.addEventListener('click',event=>{
+    if(!event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.button!==0||!event.isTrusted)return;
+    const link=event.target?.closest?.('a[href]');
+    if(!link)return;
+    let url;
+    try{url=new URL(link.href,location.href);}catch{return;}
+    if(!/^https?:$/.test(url.protocol))return;
+    event.preventDefault();event.stopImmediatePropagation();
+    ipcRenderer.send('glance:open',url.href);
+  },true);
+}
