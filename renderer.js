@@ -801,6 +801,38 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    input.onchange=()=>{clearTimeout(timer);act('setAppearanceValue',{key,value:Number(input.value)});input.blur();};
    return el('label',{className:'range-row'},el('span',{textContent:label}),input,out);
  }
+ // Disposizione (Beta 0.28): combinazioni pronte con un piccolo schema, poi le scelte libere.
+ const LAYOUT_PRESETS={classico:['Classico','bottom','left',true],'schede-alto':['Schede in alto','top','left',true],
+   colonna:['Colonna unica','left','left',true],'icone-colonna':['Icone + colonna schede','left','left',false],
+   'workspace-basso':['Workspace in basso','left','bottom',true],destra:['Tutto a destra','right','right',true],'barra-unica':['Una barra sola','bottom','bottom',true]};
+ function layoutDiagram(tabs,sidebar,merge){
+   const box=el('span',{className:'layout-mini'});
+   const vertical=s=>s==='left'||s==='right';
+   const add=(cls,side,size,offset=0)=>{const b=el('i',{className:cls});b.style[side]=offset+'%';
+     if(vertical(side)){b.style.top='18%';b.style.bottom='0';b.style.width=size+'%';}else{b.style.left='0';b.style.right='0';b.style.height=size+'%';}
+     box.append(b);};
+   box.append(Object.assign(el('i',{className:'mini-toolbar'})));
+   if(tabs===sidebar&&(merge||!vertical(tabs)))add('mini-merged',tabs,vertical(tabs)?24:12);
+   else if(tabs===sidebar){add('mini-side',sidebar,8);add('mini-tabs',tabs,20,8);}
+   else{add('mini-side',sidebar,vertical(sidebar)?8:10);add('mini-tabs',tabs,vertical(tabs)?20:10);}
+   return box;
+ }
+ function layoutSection(hint,sub){
+   const f=state.frame;if(!f)return el('span');
+   const c=f.config;
+   const grid=el('div',{className:'layout-grid'},...Object.entries(LAYOUT_PRESETS).map(([id,[label,tabs,sidebar,merge]])=>{
+     const b=el('button',{type:'button',className:'layout-card'+(f.preset===id?' chosen':'')},layoutDiagram(tabs,sidebar,merge),el('span',{textContent:label}));
+     b.onclick=()=>act('applyLayoutPreset',{preset:id});return b;
+   }));
+   const sides=[['bottom','In basso'],['top','In alto'],['left','A sinistra'],['right','A destra']];
+   const sameSide=c.tabs===c.sidebar&&(c.tabs==='left'||c.tabs==='right');
+   return section('Disposizione',grid,
+     sub('Su misura'),
+     el('label',{className:'permission-row'},el('span',{textContent:'Schede'}),selectBox(sides,c.tabs,tabs=>act('setLayout',{tabs}))),
+     el('label',{className:'permission-row'},el('span',{textContent:'Barra laterale (workspace e strumenti)'}),selectBox(sides,c.sidebar,sidebar=>act('setLayout',{sidebar}))),
+     ...(sameSide?[checkRow('Unisci in una colonna sola (come Arc e Zen)',c.merge,merge=>act('setLayout',{merge}))]:[]),
+     hint('Se schede e barra laterale stanno dallo stesso lato, si uniscono: workspace in alto, schede al centro, strumenti in basso.'));
+ }
  function appearanceSections(){
    const a=state.appearanceSettings;
    if(!a)return [];
@@ -865,6 +897,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'workspace'})],...(a.workspaceWallpaper?[['Togli',()=>act('clearWorkspaceWallpaper')]]:[])));
    const L=a.limits;
    return [
+     layoutSection(hint,sub),
      section('Preset',presetGrid,
        hint('Ogni preset porta colori, sfondo, logo e icona della finestra. Scegline uno diverso per un singolo workspace qui sotto.'),wsRow,
        ...(a.workspacePreset?[hint('Questo workspace ha un suo preset: le scelte qui sotto valgono per gli altri workspace.')]:[])),
@@ -1198,8 +1231,8 @@ function buildStripNode(entry){
      toggle.setAttribute('aria-expanded',String(!entry.collapsed));
      toggle.onclick=()=>act('toggleGroup',{group:entry.group});
      group.appendChild(toggle);
-     const actions=iconButton(group,'tab-more','Azioni stack',()=>act('tabContextMenu',{id:entry.tabIds[0]}),'stack-actions');
-     actions.title='Azioni stack';
+     // Beta 0.28: niente "⋯": il menu dello stack si apre col clic destro.
+     group.oncontextmenu=event=>{event.preventDefault();act('tabContextMenu',{id:entry.tabIds[0]});};
      // Trascinare un'altra scheda SOPRA lo stack la aggiunge al gruppo.
      group.ondragover=event=>event.preventDefault();
      group.ondrop=event=>{
@@ -1240,8 +1273,6 @@ function buildStripNode(entry){
    tab.appendChild(title);
    // Il menu contestuale è nativo Windows, anche con una pagina web aperta.
    tab.oncontextmenu=event=>{event.preventDefault();act('tabContextMenu',{id:t.id});};
-   const menu=iconButton(tab,'tab-more','Menu scheda',()=>act('tabContextMenu',{id:t.id}),'tab-more');
-   menu.title='Menu scheda';
    iconButton(tab,'close','Chiudi scheda',()=>act('closeTab',{id:t.id}),'tab-close');
    return tab;
 }
@@ -1275,10 +1306,48 @@ function renderTabStrip(strip,entries){
  for(const node of nodes){
    const r0=before.get(node.dataset.key);
    if(!r0||node.classList.contains('strip-enter'))continue;
-   const dx=r0.left-node.getBoundingClientRect().left;
-   if(Math.abs(dx)>1)node.animate([{transform:`translateX(${dx}px)`},{transform:'none'}],{duration:ms,easing:'cubic-bezier(.2,.8,.2,1)'});
+   const r1=node.getBoundingClientRect(),dx=r0.left-r1.left,dy=r0.top-r1.top;
+   if(Math.abs(dx)>1||Math.abs(dy)>1)node.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:ms,easing:'cubic-bezier(.2,.8,.2,1)'});
  }
  setTimeout(()=>{for(const node of nodes)node.classList.remove('strip-enter');},ms+50);
+}
+// ── Disposizione dell'interfaccia (Beta 0.28) ─────────────────────────────
+// Il processo principale manda dove sta ogni blocco (lib/frame-layout-rules.cjs): qui lo agganciamo al
+// suo bordo. Se schede e barra laterale stanno dallo stesso lato si uniscono: la barra delle schede
+// entra nella barra laterale (colonna unica come Arc e Zen, o una barra sola).
+let appliedFrame=null;
+const tabbarHome=document.createComment('posto della barra delle schede');
+function placeBlock(node,block,frame){
+ for(const prop of ['left','right','top','bottom','width','height'])node.style[prop]='';
+ if(!block)return;
+ // I lati che non usiamo vanno su auto: il CSS di partenza ne fissa alcuni (top:94px, bottom:0…).
+ for(const prop of ['left','right','top','bottom','width','height'])node.style[prop]='auto';
+ node.style[block.side]=block.offset+'px';
+ if(block.orientation==='vertical'){node.style.top=frame.top+'px';node.style.bottom=frame.bottom+'px';node.style.width=block.size+'px';}
+ else{node.style.left='0px';node.style.right='0px';node.style.height=block.size+'px';}
+}
+function applyFrame(){
+ const f=state.frame;if(!f)return;
+ const key=JSON.stringify([f.top,f.bottom,f.left,f.right,f.sidebar&&[f.sidebar.side,f.sidebar.offset,f.sidebar.size,f.sidebar.merged],f.tabs&&[f.tabs.side,f.tabs.offset,f.tabs.size]]);
+ if(key===appliedFrame)return;
+ const first=appliedFrame===null;
+ appliedFrame=key;
+ const body=document.body;
+ for(const [name,value] of [['top',f.top],['bottom',f.bottom],['left',f.left],['right',f.right]])body.style.setProperty('--frame-'+name,value+'px');
+ const sidebar=$('globalSidebar'),tabbar=document.querySelector('.tabbar');
+ if(!tabbarHome.parentNode)tabbar.before(tabbarHome);
+ const merged=!!f.sidebar?.merged;
+ if(merged&&tabbar.parentNode!==sidebar)$('addWorkspace').after(tabbar);
+ if(!merged&&tabbar.parentNode===sidebar)tabbarHome.after(tabbar);
+ placeBlock(sidebar,f.sidebar,f);
+ placeBlock(tabbar,merged?null:f.tabs,f);
+ body.dataset.merged=merged?'true':'false';
+ body.dataset.sidebarSide=f.sidebar?.side||'none';
+ body.dataset.sidebarOrientation=f.sidebar?.orientation||'vertical';
+ body.dataset.tabsOrientation=(merged?f.sidebar.orientation:f.tabs?.orientation)||'horizontal';
+ body.dataset.tabsSide=(merged?f.sidebar.side:f.tabs?.side)||'bottom';
+ // Cambiando disposizione la barra delle schede si ridisegna (orientamento diverso) e la cornice entra piano.
+ if(!first){scrolledToTab=null;body.classList.remove('frame-change');void body.offsetWidth;body.classList.add('frame-change');setTimeout(()=>body.classList.remove('frame-change'),500);}
 }
 // ── Pannelli web (Beta 0.27) ─────────────────────────────────────────────
 // Pulsanti nella barra laterale (icona del sito, messaggi non letti) e barra del pannello aperto.
@@ -1465,6 +1534,7 @@ function render(){
  renderOrb();
  renderHomeCards();
  renderWebPanels(); // Beta 0.27
+ applyFrame(); // Beta 0.28: disposizione dell'interfaccia
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
@@ -1536,8 +1606,10 @@ $('showBookmarks').onclick=()=>act('toggleSidePanel',{panel:'bookmarks'});
 $('showTabs').onclick=()=>act('toggleSidePanel',{panel:'tabs'});
 $('tabCount').onclick=()=>act('openTabManager');
 // Beta 0.24: con tante schede la barra scorre anche con la rotellina (su e giù = sinistra e destra).
+const stripVertical=()=>document.body.dataset.tabsOrientation==='vertical';
 $('tabs').addEventListener('wheel',event=>{
  const strip=$('tabs');
+ if(stripVertical())return; // in verticale la rotellina scorre già da sola
  if(strip.scrollWidth<=strip.clientWidth||Math.abs(event.deltaX)>Math.abs(event.deltaY))return;
  strip.scrollLeft+=event.deltaY;
  event.preventDefault();
@@ -1547,25 +1619,28 @@ $('tabs').addEventListener('wheel',event=>{
 const EDGE_ZONE=56,EDGE_SPEED=14; // px dal bordo · px per fotogramma al massimo
 let edgeSpeed=0,edgeFrame=0;
 function updateTabFades(){
- const strip=$('tabs'),max=strip.scrollWidth-strip.clientWidth;
- strip.classList.toggle('more-left',max>1&&strip.scrollLeft>1);
- strip.classList.toggle('more-right',max>1&&strip.scrollLeft<max-1);
+ const strip=$('tabs'),v=stripVertical();
+ const max=v?strip.scrollHeight-strip.clientHeight:strip.scrollWidth-strip.clientWidth,pos=v?strip.scrollTop:strip.scrollLeft;
+ strip.classList.toggle('more-left',max>1&&pos>1);
+ strip.classList.toggle('more-right',max>1&&pos<max-1);
 }
 function edgeStep(){
- const strip=$('tabs');
+ const strip=$('tabs'),key=stripVertical()?'scrollTop':'scrollLeft';
  if(!edgeSpeed){edgeFrame=0;return;}
- const before=strip.scrollLeft;
- strip.scrollLeft+=edgeSpeed;
- if(strip.scrollLeft===before){edgeSpeed=0;edgeFrame=0;return;} // arrivati in fondo
+ const before=strip[key];
+ strip[key]+=edgeSpeed;
+ if(strip[key]===before){edgeSpeed=0;edgeFrame=0;return;} // arrivati in fondo
  edgeFrame=requestAnimationFrame(edgeStep);
 }
 function edgeFromPointer(event){
- const strip=$('tabs');
- if(strip.scrollWidth<=strip.clientWidth){edgeSpeed=0;return;}
- const box=strip.getBoundingClientRect();
- const zone=Math.min(EDGE_ZONE,box.width/4),x=event.clientX-box.left;
+ const strip=$('tabs'),v=stripVertical();
+ // In verticale solo trascinando (col mouse fermo la rotellina basta).
+ if(v&&event.type!=='dragover'){edgeSpeed=0;return;}
+ if(v?strip.scrollHeight<=strip.clientHeight:strip.scrollWidth<=strip.clientWidth){edgeSpeed=0;return;}
+ const box=strip.getBoundingClientRect(),length=v?box.height:box.width;
+ const zone=Math.min(EDGE_ZONE,length/4),x=v?event.clientY-box.top:event.clientX-box.left;
  // Spinta da 0 (inizio della zona) a 1 (sul bordo), con una curva morbida.
- const push=x<zone?-(1-x/zone):x>box.width-zone?1-(box.width-x)/zone:0;
+ const push=x<zone?-(1-x/zone):x>length-zone?1-(length-x)/zone:0;
  edgeSpeed=Math.sign(push)*Math.ceil(EDGE_SPEED*push*push);
  if(edgeSpeed&&!edgeFrame)edgeFrame=requestAnimationFrame(edgeStep);
 }

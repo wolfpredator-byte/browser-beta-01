@@ -814,3 +814,92 @@ body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;
 .web-panel-suggest button{padding:9px 10px;border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.08);text-align:left}
 .web-panel-suggest button:hover:not(:disabled){background:rgba(var(--v-accent-rgb),.22);border-color:var(--v-line-strong)}
 .web-panel-suggest button:disabled{opacity:.4}
+
+/* ══ Beta 0.28 — Disposizione libera ═════════════════════════════════════
+   renderer.js (applyFrame) aggancia barra laterale e schede al loro bordo e imposta
+   --frame-top/bottom/left/right: tutte le aree si spostano di conseguenza. */
+body{--frame-top:94px;--frame-bottom:43px;--frame-left:var(--side-width);--frame-right:0px}
+#dashboard,#loadError{top:calc(var(--frame-top) + var(--gap));bottom:calc(var(--frame-bottom) + var(--gap));
+  left:calc(var(--frame-left) + var(--panel-width) + var(--gap));right:calc(var(--frame-right) + var(--gap))}
+body[data-panel-open="true"] #loadError{left:calc(var(--frame-left) + 300px + var(--gap))}
+body[data-downloads-open="true"] #loadError,body[data-downloads-open="true"] #dashboard{right:calc(var(--frame-right) + 340px + var(--gap))}
+#sidePanel{top:var(--frame-top);bottom:var(--frame-bottom);left:var(--frame-left)}
+.download-drawer{top:var(--frame-top);bottom:var(--frame-bottom);right:var(--frame-right)}
+#globalSidebar,.tabbar{position:absolute;box-sizing:border-box}
+body[data-sidebar-side="right"] #globalSidebar{border-right:0;border-left:1px solid var(--v-line)}
+body[data-sidebar-orientation="horizontal"] #globalSidebar{border-right:0;border-top:1px solid var(--v-line)}
+body[data-sidebar-side="top"] #globalSidebar{border-top:0;border-bottom:1px solid var(--v-line)}
+body.frame-change #globalSidebar,body.frame-change .tabbar{animation:v-fade-in var(--dur-3) var(--ease-out)}
+
+/* Schede tutte uguali (orizzontali): stessa larghezza, ordinate. */
+body[data-tabs-orientation="horizontal"] .tab{flex:0 0 184px;width:184px;min-width:0;max-width:none}
+body[data-tabs-orientation="horizontal"] .tab.stacked{flex-basis:170px;width:170px}
+
+/* Barra delle schede in verticale (colonna): commutatore in alto, schede al centro, comandi in basso. */
+body[data-tabs-orientation="vertical"] .tabbar{display:grid;grid-template-columns:repeat(3,auto) 1fr auto;
+  grid-template-areas:"switch switch switch switch switch" "tabs tabs tabs tabs tabs" "count new reopen . zen" "clock clock clock clock clock";
+  grid-template-rows:auto 1fr auto auto;align-items:center;gap:6px;padding:8px;border-top:0;height:auto}
+body[data-tabs-orientation="vertical"] #workspaceSwitcher{grid-area:switch;max-width:none;width:100%}
+body[data-tabs-orientation="vertical"] #tabs{grid-area:tabs;flex-direction:column;align-items:stretch;overflow-x:hidden;overflow-y:auto;
+  max-width:none!important;height:100%;min-height:0;gap:4px;scrollbar-width:none}
+body[data-tabs-orientation="vertical"] #tabs.more-left{-webkit-mask-image:linear-gradient(180deg,transparent,#000 40px);mask-image:linear-gradient(180deg,transparent,#000 40px)}
+body[data-tabs-orientation="vertical"] #tabs.more-right{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 40px),transparent)}
+body[data-tabs-orientation="vertical"] #tabs.more-left.more-right{-webkit-mask-image:linear-gradient(180deg,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(180deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+body[data-tabs-orientation="vertical"] .tab,body[data-tabs-orientation="vertical"] .stack-pill,body[data-tabs-orientation="vertical"] .stack-heading{
+  width:100%;max-width:none;min-width:0;flex:none}
+body[data-tabs-orientation="vertical"] .tab.stacked{margin-left:12px;width:calc(100% - 12px)}
+body[data-tabs-orientation="vertical"] #tabCount{grid-area:count}
+body[data-tabs-orientation="vertical"] #new{grid-area:new}
+body[data-tabs-orientation="vertical"] #reopenClosed{grid-area:reopen}
+body[data-tabs-orientation="vertical"] .tabbar-spacer{display:none}
+body[data-tabs-orientation="vertical"] #zenButton{grid-area:zen}
+body[data-tabs-orientation="vertical"] #clock{grid-area:clock;justify-self:center}
+
+/* Colonna unica (barra laterale + schede): workspace come icone in alto, schede al centro, strumenti in basso. */
+body[data-merged="true"][data-sidebar-orientation="vertical"] #globalSidebar{display:flex;flex-direction:column;overflow:hidden;padding:8px}
+body[data-merged="true"] #globalSidebar .tabbar{position:static;flex:1 1 auto;min-height:0;padding:6px 0;background:none;border:0}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #globalSidebar .sidebar-top{display:none}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #workspaces{flex-direction:row!important;flex-wrap:wrap;gap:4px!important}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #workspaces .workspace-button{width:38px!important;padding:6px;justify-content:center}
+body[data-merged="true"] #globalSidebar .workspace-name,body[data-merged="true"] #globalSidebar .workspace-count,
+body[data-merged="true"] #globalSidebar .tool-label,body[data-merged="true"] #globalSidebar .side-group{display:none!important}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #globalSidebar>.sideButton,
+body[data-merged="true"][data-sidebar-orientation="vertical"] #webPanels .sideButton{display:inline-flex;width:38px!important;justify-content:center;padding:7px;margin:1px}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #home{display:none}
+body[data-merged="true"] .tabbar #workspaceSwitcher{display:none}
+
+/* Barra laterale in orizzontale (in alto o in basso): tutto in fila, solo icone. */
+body[data-sidebar-orientation="horizontal"] #globalSidebar{display:flex;flex-direction:row;align-items:center;gap:4px;padding:4px 10px;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+body[data-sidebar-orientation="horizontal"] #globalSidebar .sidebar-top,body[data-sidebar-orientation="horizontal"] #globalSidebar .side-group,
+body[data-sidebar-orientation="horizontal"] #globalSidebar .tool-label,body[data-sidebar-orientation="horizontal"] #globalSidebar .workspace-count{display:none!important}
+body[data-sidebar-orientation="horizontal"] #workspaces,body[data-sidebar-orientation="horizontal"] #webPanels{display:flex;flex-direction:row!important;gap:4px}
+body[data-sidebar-orientation="horizontal"] #globalSidebar .sideButton,body[data-sidebar-orientation="horizontal"] #globalSidebar .workspace-button{
+  flex:none;width:auto!important;margin:0!important;padding:6px 9px}
+body[data-sidebar-orientation="horizontal"] #globalSidebar .workspace-name{display:inline}
+body[data-sidebar-orientation="horizontal"] #globalSidebar .settings-button{margin-left:auto!important}
+/* Barra unica in orizzontale: workspace, schede al centro, strumenti. */
+body[data-merged="true"][data-sidebar-orientation="horizontal"] #globalSidebar .tabbar{flex:1 1 auto;min-width:0;height:100%;display:flex;flex-direction:row;padding:0}
+/* Impostazioni → Disposizione: schemi in miniatura. */
+.layout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin:6px 0 10px}
+.layout-card{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--v-line);border-radius:var(--r-md);text-align:left;font-size:var(--fs-xs)}
+.layout-card.chosen{border-color:var(--v-accent);box-shadow:0 0 0 1px var(--v-accent)}
+.layout-card:hover{border-color:var(--v-line-strong)}
+.layout-mini{position:relative;display:block;width:100%;aspect-ratio:16/10;border-radius:6px;background:rgba(255,255,255,.04);overflow:hidden}
+.layout-mini i{position:absolute;display:block;border-radius:2px}
+.layout-mini .mini-toolbar{left:0;right:0;top:0;height:18%;background:rgba(255,255,255,.12)}
+.layout-mini .mini-side{background:rgba(var(--v-accent-2-rgb),.45)}
+.layout-mini .mini-tabs{background:rgba(var(--v-accent-rgb),.75)}
+.layout-mini .mini-merged{background:linear-gradient(180deg,rgba(var(--v-accent-2-rgb),.5) 0 18%,rgba(var(--v-accent-rgb),.75) 18% 82%,rgba(var(--v-accent-2-rgb),.5) 82%)}
+#sidebarTools{display:contents}
+/* Colonna unica: i pulsanti delle schede tornano della loro misura (la barra laterale li allarga a tutta riga). */
+body[data-merged="true"] #globalSidebar .tabbar button{width:auto;margin:0}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #sidebarTools{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;
+  padding-top:6px;border-top:1px solid var(--v-line);flex:none}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #sidebarTools .sideButton,
+body[data-merged="true"][data-sidebar-orientation="vertical"] #webPanels{display:inline-flex}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #webPanels{flex-wrap:wrap;gap:2px}
+body[data-sidebar-orientation="horizontal"] #sidebarTools{display:flex;flex-direction:row;align-items:center;gap:4px;flex:none}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #sidebarTools .sideButton,
+body[data-merged="true"][data-sidebar-orientation="vertical"] #addWorkspace{width:38px!important;height:38px;padding:7px!important;margin:1px!important;justify-content:center}
+body[data-merged="true"][data-sidebar-orientation="vertical"] #addWorkspace{display:none}
