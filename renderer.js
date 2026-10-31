@@ -1595,9 +1595,11 @@ function compactStack(entry){
 // e al loro posto compaiono riquadri col titolo, ricalcolati con split-rules.js.
 let splitDrag=null;
 const placeRect=(node,r,grow=0)=>Object.assign(node.style,{left:(r.x-grow)+'px',top:(r.y-grow)+'px',width:(r.width+2*grow)+'px',height:(r.height+2*grow)+'px'});
+const headRect=(r,h)=>({x:r.x,y:r.y,width:r.width,height:h});
 function drawSplitPreview(s,overrides){
  const layout=window.splitRules.layoutSplit(s.full,{mode:s.mode,ids:s.ids,ratioX:s.ratioX,ratioY:s.ratioY,...overrides},s.gap);
  for(const ghost of $('splitLayer').querySelectorAll('.split-ghost'))if(layout.rects[ghost.dataset.id])placeRect(ghost,layout.rects[ghost.dataset.id]);
+ for(const head of $('splitLayer').querySelectorAll('.split-head'))if(layout.rects[head.dataset.id])placeRect(head,headRect(layout.rects[head.dataset.id],s.head));
  [...$('splitLayer').querySelectorAll('.split-divider')].forEach((node,i)=>{if(layout.dividers[i])placeRect(node,layout.dividers[i].rect);});
 }
 let renderedSplit=null;
@@ -1608,11 +1610,12 @@ function renderSplit(){
  layer.hidden=!s;
  if(!s){renderedSplit=null;return;}
  if(splitDrag)return; // mentre trascini comanda il mouse
- const key=JSON.stringify([s.mode,s.ids,s.titles]);
+ const key=JSON.stringify([s.mode,s.ids,s.titles,s.favicons]);
  if(key!==renderedSplit){
    renderedSplit=key;
    layer.replaceChildren(el('div',{id:'splitFocus'}),
-     ...s.ids.map(id=>el('div',{className:'split-ghost','data-id':String(id),textContent:s.titles[id]||''})),
+     ...s.ids.map(id=>{const ghost=el('div',{className:'split-ghost',textContent:s.titles[id]||''});ghost.dataset.id=String(id);return ghost;}),
+     ...s.ids.map(id=>splitHead(id,s)),
      ...s.dividers.map((d,i)=>{
        const node=el('div',{className:'split-divider axis-'+d.axis,title:'Trascina per ridimensionare · doppio clic: metà e metà'});
        node.addEventListener('pointerdown',e=>startSplitDrag(e,i,node));
@@ -1622,8 +1625,27 @@ function renderSplit(){
  }
  placeRect($('splitFocus'),s.rects[s.focusedId],2);
  for(const ghost of layer.querySelectorAll('.split-ghost'))placeRect(ghost,s.rects[ghost.dataset.id]);
+ for(const head of layer.querySelectorAll('.split-head')){
+   placeRect(head,headRect(s.rects[head.dataset.id],s.head));
+   head.classList.toggle('active',Number(head.dataset.id)===s.focusedId);
+ }
  [...layer.querySelectorAll('.split-divider')].forEach((node,i)=>placeRect(node,s.dividers[i].rect));
  layer.classList.toggle('dragging',!!s.dragging);
+}
+/** Barretta in cima a un riquadro (come Vivaldi): clic = riquadro attivo, ↗ = staccalo, × = chiudi la scheda. */
+function splitHead(id,s){
+ const button=(icon,title,command)=>{
+   const b=el('button',{type:'button',className:'split-head-button',title,'aria-label':title},el('span',{className:'i i-'+icon,'aria-hidden':'true'}));
+   b.onclick=e=>{e.stopPropagation();act(command,{id});};
+   return b;
+ };
+ const icon=s.favicons?.[id]?el('img',{className:'split-head-icon',src:s.favicons[id],alt:''}):el('span',{className:'split-head-icon i i-tabs','aria-hidden':'true'});
+ const head=el('div',{className:'split-head'},icon,el('span',{className:'split-head-title',textContent:s.titles[id]||''}),
+   button('external','Togli dalla vista divisa','leaveSplit'),button('close','Chiudi la scheda','closeTab'));
+ head.dataset.id=String(id); // el() assegna proprietà, non attributi: data-id va messo così
+ head.onclick=()=>act('activateTab',{id});
+ head.oncontextmenu=e=>{e.preventDefault();act('tabContextMenu',{id});};
+ return head;
 }
 function startSplitDrag(e,index,node){
  const s=state.split;if(!s||!s.dividers[index])return;
@@ -1686,9 +1708,12 @@ $('splitDrop').addEventListener('dragover',event=>{
  const near={left:x,right:1-x,top:y,bottom:1-y};
  const zone=event.shiftKey?Object.keys(near).filter(z=>info.zones[z]).sort((a,b)=>near[a]-near[b])[0]||null:null;
  info.zone=zone;
- $('splitDropHint').textContent=zone?'Rilascia: vista divisa '+ZONE_LABELS[zone]:'Tieni premuto Shift per affiancare la scheda';
+ $('splitDropHint').textContent='Tieni premuto Shift per affiancare la scheda';
+ $('splitDropHint').hidden=!!zone;
  const preview=$('splitDropPreview');
  preview.hidden=!zone;
+ // Come Vivaldi: la zona dove finirà la scheda, grigia, con il lato scritto al centro.
+ if(zone)preview.textContent=ZONE_LABELS[zone][0].toUpperCase()+ZONE_LABELS[zone].slice(1);
  if(zone){const r=info.zones[zone];Object.assign(preview.style,{left:(r.x-f.x)+'px',top:(r.y-f.y)+'px',width:r.width+'px',height:r.height+'px'});}
 });
 $('splitDrop').addEventListener('drop',event=>{

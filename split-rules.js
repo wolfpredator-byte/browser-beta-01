@@ -11,11 +11,14 @@
  *   main3  [A | B / C]  A alta tutta  ratioX, ratioY (colonna di destra)
  *   main3r [A / B | C]  C alta tutta  ratioX, ratioY (colonna di sinistra)
  *   grid   [A B / C D]                ratioX, ratioY
+ *   cols3  [A | B | C]                ratioX, ratioY = i due divisori (frazioni della larghezza)
+ *   rows3  [A / B / C]                ratioX, ratioY = i due divisori (frazioni dell'altezza)
  * Trascinando una scheda verso un lato della pagina (con Shift) la si aggiunge da quel lato:
  * addToSplit decide la disposizione nuova, layoutSplit dove sta ogni riquadro.
  */
 (function(root){
-const MODES={cols:2,rows:2,main3:3,main3r:3,grid:4};
+const MODES={cols:2,rows:2,main3:3,main3r:3,grid:4,cols3:3,rows3:3};
+const THIRDS={ratioX:1/3,ratioY:2/3};
 const ZONES=['left','right','top','bottom'];
 const clampRatio=r=>Number.isFinite(r)?Math.min(.8,Math.max(.2,r)):.5;
 
@@ -27,7 +30,11 @@ function normalizeSplit(raw){
   if(!Object.hasOwn(MODES,raw.mode)||!Array.isArray(raw.ids))return null;
   const ids=raw.ids.filter(Number.isInteger);
   if(ids.length!==MODES[raw.mode]||new Set(ids).size!==ids.length)return null;
-  return {mode:raw.mode,ids,ratioX:clampRatio(raw.ratioX),ratioY:clampRatio(raw.ratioY)};
+  const inRow=raw.mode==='cols3'||raw.mode==='rows3';
+  let ratioX=clampRatio(raw.ratioX??(inRow?THIRDS.ratioX:.5)),ratioY=clampRatio(raw.ratioY??(inRow?THIRDS.ratioY:.5));
+  // Tre in fila: il secondo divisore resta dopo il primo, con almeno un decimo di spazio in mezzo.
+  if(inRow){ratioX=Math.min(ratioX,.7);ratioY=Math.max(ratioY,ratioX+.1);}
+  return {mode:raw.mode,ids,ratioX,ratioY};
 }
 
 /** Divide una lunghezza in due parti con uno spazio in mezzo. */
@@ -53,6 +60,17 @@ function layoutSplit(full,split,gap=8){
   if(s.mode==='main3'){rects[a]=R(x1,w1,full.y,full.height);rects[b]=R(x2,w2,y1,h1);rects[c]=R(x2,w2,y2,h2);vertical(full.y,full.height);horizontal(x2,w2);}
   if(s.mode==='main3r'){rects[a]=R(x1,w1,y1,h1);rects[b]=R(x1,w1,y2,h2);rects[c]=R(x2,w2,full.y,full.height);vertical(full.y,full.height);horizontal(x1,w1);}
   if(s.mode==='grid'){rects[a]=R(x1,w1,y1,h1);rects[b]=R(x2,w2,y1,h1);rects[c]=R(x1,w1,y2,h2);rects[d]=R(x2,w2,y2,h2);vertical(full.y,full.height);horizontal(full.x,full.width);}
+  if(s.mode==='cols3'||s.mode==='rows3'){
+    // Tre in fila: le due frazioni dicono dove cadono i divisori sulla lunghezza utile.
+    const across=s.mode==='cols3',start=across?full.x:full.y,length=across?full.width:full.height;
+    const usable=Math.max(3,length-2*gap),p1=Math.round(usable*s.ratioX),p2=Math.round(usable*s.ratioY);
+    const parts=[[start,p1],[start+p1+gap,p2-p1],[start+p2+2*gap,usable-p2]];
+    [a,b,c].forEach((id,i)=>{const [o,l]=parts[i];rects[id]=across?R(o,l,full.y,full.height):R(full.x,full.width,o,l);});
+    ['ratioX','ratioY'].forEach((key,i)=>{
+      const at=parts[i][0]+parts[i][1];
+      dividers.push(across?{axis:'x',key,rect:R(at,gap,full.y,full.height),span:full}:{axis:'y',key,rect:R(full.x,full.width,at,gap),span:full});
+    });
+  }
   return {rects,dividers};
 }
 
@@ -75,18 +93,20 @@ function addToSplit(split,activeId,newId,zone){
   if(s.ids.includes(newId)||s.ids.length>=4)return null;
   const [a,b,c]=s.ids;
   if(s.mode==='cols'){
-    // La nuova va sotto (o sopra) il lato più vicino; a sinistra/destra diventa una colonna intera.
-    if(zone==='right')return {mode:'main3r',ids:[a,b,newId],ratioX:.5,ratioY:.5};
-    if(zone==='left')return {mode:'main3',ids:[newId,a,b],ratioX:.5,ratioY:.5};
+    // A sinistra/destra: tre colonne (come Vivaldi). Sopra/sotto: va sotto (o sopra) la colonna più vicina.
+    if(zone==='right')return {mode:'cols3',ids:[a,b,newId],...THIRDS};
+    if(zone==='left')return {mode:'cols3',ids:[newId,a,b],...THIRDS};
     if(zone==='bottom')return {mode:'main3',ids:[a,b,newId],ratioX:s.ratioX,ratioY:.5};
     return {mode:'main3',ids:[a,newId,b],ratioX:s.ratioX,ratioY:.5};
   }
   if(s.mode==='rows'){
-    // Sopra e sotto c'è già una riga intera: la nuova diventa una colonna a sinistra o a destra.
+    // Sopra/sotto: tre righe. A sinistra/destra: la nuova diventa una colonna intera.
+    if(zone==='top')return {mode:'rows3',ids:[newId,a,b],...THIRDS};
+    if(zone==='bottom')return {mode:'rows3',ids:[a,b,newId],...THIRDS};
     if(zone==='right')return {mode:'main3r',ids:[a,b,newId],ratioX:.5,ratioY:s.ratioY};
-    if(zone==='left')return {mode:'main3',ids:[newId,a,b],ratioX:.5,ratioY:s.ratioY};
-    return null;
+    return {mode:'main3',ids:[newId,a,b],ratioX:.5,ratioY:s.ratioY};
   }
+  if(s.mode==='cols3'||s.mode==='rows3')return null; // tre in fila: il quarto non ci sta bene
   // Tre riquadri → griglia 2×2: la nuova prende l'angolo libero dal lato scelto.
   if(s.mode==='main3'){ // [a | b / c] → [a b / n c] o [n b / a c]
     return zone==='top'?{mode:'grid',ids:[newId,b,a,c],ratioX:s.ratioX,ratioY:s.ratioY}:{mode:'grid',ids:[a,b,newId,c],ratioX:s.ratioX,ratioY:s.ratioY};
@@ -103,7 +123,7 @@ function removeFromSplit(split,id){
   if(!s||!s.ids.includes(id))return s;
   const rest=s.ids.filter(x=>x!==id);
   if(rest.length<2)return null;
-  if(rest.length===2)return {mode:s.mode==='rows'?'rows':'cols',ids:rest,ratioX:.5,ratioY:.5};
+  if(rest.length===2)return {mode:s.mode==='rows'||s.mode==='rows3'?'rows':'cols',ids:rest,ratioX:.5,ratioY:.5};
   const keep={ratioX:s.ratioX,ratioY:s.ratioY};
   // Da griglia a tre: il riquadro rimasto solo nella sua colonna diventa alto tutta la finestra.
   const [tl,tr,bl,br]=s.ids;

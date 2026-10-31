@@ -928,9 +928,10 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
 #splitDrop{position:fixed;z-index:30;border-radius:var(--page-radius,10px);overflow:hidden;animation:v-fade-in var(--dur-1) var(--ease-out)}
 #splitDrop[hidden]{display:none}
 #splitDropBackdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55)}
-#splitDropPreview{position:absolute;border-radius:12px;background:rgba(var(--v-accent-rgb),.28);box-shadow:inset 0 0 0 2px var(--v-accent),0 0 30px rgba(var(--v-accent-rgb),.45);
+#splitDropPreview{position:absolute;border-radius:12px;background:rgba(200,200,214,.22);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45),0 12px 40px rgba(0,0,0,.35);
+  backdrop-filter:blur(6px);display:grid;place-items:center;color:#fff;font-size:15px;font-weight:600;letter-spacing:.3px;text-shadow:0 1px 6px rgba(0,0,0,.6);
   transition:left var(--dur-2) var(--ease-out),top var(--dur-2) var(--ease-out),width var(--dur-2) var(--ease-out),height var(--dur-2) var(--ease-out)}
-#splitDropPreview[hidden]{display:none}
+#splitDropPreview[hidden],#splitDropHint[hidden]{display:none}
 #splitDropHint{position:absolute;left:50%;top:18px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;font-size:var(--fs-sm);
   background:rgba(var(--v-bg-rgb),.85);border:1px solid var(--v-line);box-shadow:var(--shadow-2);pointer-events:none;white-space:nowrap}
 /* Workspace con account separati: un piccolo scudo sull'icona. */
@@ -977,3 +978,15 @@ body.peek-leaving[data-peek="top"] [data-peek-on]{transform:translateY(-100%);op
 body.peek-leaving[data-peek="bottom"] [data-peek-on]{transform:translateY(100%);opacity:0}
 body.peek-leaving[data-peek="left"] [data-peek-on]{transform:translateX(-100%);opacity:0}
 body.peek-leaving[data-peek="right"] [data-peek-on]{transform:translateX(100%);opacity:0}
+/* Vista divisa (Beta 0.28): barretta in cima a ogni riquadro, come Vivaldi. */
+.split-head{position:fixed;pointer-events:auto;display:flex;align-items:center;gap:7px;padding:0 4px 0 9px;
+  border-radius:9px 9px 0 0;background:rgba(var(--v-bg-rgb),.72);color:var(--v-muted);font-size:11.5px;cursor:default;
+  transition:background-color var(--dur-1) var(--ease-out),color var(--dur-1) var(--ease-out)}
+.split-head.active{background:rgba(var(--v-accent-rgb),.22);color:var(--v-text)}
+.split-head:hover{color:var(--v-text)}
+.split-head-icon{width:14px;height:14px;flex:none;object-fit:contain;opacity:.85}
+.split-head-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.split-head-button{width:22px;height:20px;padding:0;display:grid;place-items:center;border-radius:6px;opacity:.6}
+.split-head-button:hover{opacity:1;background:rgba(255,255,255,.1)}
+.split-head-button .i{width:12px;height:12px}
+#splitLayer.dragging .split-head{display:none}

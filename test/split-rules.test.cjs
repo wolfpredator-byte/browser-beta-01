@@ -36,7 +36,21 @@ test('aggiungere trascinando su un lato: da 1 a 4 riquadri', ()=>{
   assert.deepEqual([four.mode,four.ids],['grid',[1,2,4,3]]);
   assert.equal(addToSplit(four,1,5,'right'),null);       // al massimo 4
   assert.equal(addToSplit(two,1,2,'left'),null);         // già dentro
-  assert.equal(addToSplit({mode:'rows',ids:[1,2]},1,3,'bottom'),null);
+  assert.deepEqual(addToSplit({mode:'rows',ids:[1,2]},1,3,'bottom').ids,[1,2,3]);
+});
+
+test('tre in fila (come Vivaldi): colonne e righe', ()=>{
+  const cols=addToSplit({mode:'cols',ids:[1,2]},1,3,'right');
+  assert.deepEqual([cols.mode,cols.ids],['cols3',[1,2,3]]);
+  assert.equal(addToSplit({mode:'rows',ids:[1,2]},1,3,'top').mode,'rows3');
+  assert.equal(addToSplit(cols,1,4,'right'),null);
+  const l=layoutSplit({x:0,y:0,width:1208,height:808},cols,8);
+  assert.deepEqual(Object.values(l.rects).map(r=>r.width),[397,398,397]);
+  assert.deepEqual(l.dividers.map(d=>d.key),['ratioX','ratioY']);
+  // Il secondo divisore non può passare prima del primo.
+  const bad=normalizeSplit({mode:'cols3',ids:[1,2,3],ratioX:.8,ratioY:.3});
+  assert.ok(bad.ratioY>bad.ratioX);
+  assert.deepEqual(removeFromSplit({mode:'rows3',ids:[1,2,3]},2),{mode:'rows',ids:[1,3],ratioX:.5,ratioY:.5});
 });
 
 test('togliere: da 4 a nessuna vista', ()=>{
