@@ -1249,18 +1249,32 @@ function buildStripNode(entry){
    tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+(t.sleeping?' sleeping':'')+(t.inSplit?' in-split':'')+
      (entry.inGroup?' stacked':'');
    tab.draggable=true;
+   // Beta 0.28: mentre trascini si vede dove andrà la scheda (si apre uno spazio prima o dopo),
+   // con Shift la scheda sotto si illumina (diventerà uno stack).
    tab.ondragstart=event=>{
      event.dataTransfer.setData('text/plain',String(t.id));
+     event.dataTransfer.setData('application/x-varco-tab',String(t.id));
      event.dataTransfer.effectAllowed='move';
+     tab.classList.add('dragging');document.body.classList.add('tab-dragging');
+     startTabDrag(t.id);
    };
-   tab.ondragover=event=>event.preventDefault();
+   tab.ondragend=()=>{tab.classList.remove('dragging');endTabDrag();};
+   tab.ondragover=event=>{
+     if(!event.dataTransfer.types.includes('application/x-varco-tab'))return;
+     event.preventDefault();
+     // Lo spazio aperto "prima" sposta la scheda: lo togliamo dal calcolo, così il segno non tremola.
+     const r=tab.getBoundingClientRect(),v=stripVertical(),shift=tab.dataset.drop==='before'?(v?22:30):0;
+     const after=v?event.clientY>r.top-shift+(r.height+shift)/2:event.clientX>r.left-shift+(r.width+shift)/2;
+     markDrop(tab,event.shiftKey?'stack':after?'after':'before');
+   };
    tab.ondrop=event=>{
      event.preventDefault();
+     const mark=tab.dataset.drop;markDrop(null);
      const fromId=Number(event.dataTransfer.getData('text/plain'));
      if(!Number.isInteger(fromId)||fromId===t.id)return;
      // Shift + trascina: crea/assegna uno stack. Senza Shift: riordina soltanto.
-     if(event.shiftKey)act('stackTabs',{fromId,targetId:t.id});
-     else act('reorderTab',{id:fromId,beforeId:t.id});
+     if(event.shiftKey||mark==='stack')act('stackTabs',{fromId,targetId:t.id});
+     else act('reorderTab',{id:fromId,beforeId:t.id,after:mark==='after'});
    };
    // Icona del sito, oppure un cerchio che gira mentre la pagina carica.
    if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
@@ -1406,6 +1420,27 @@ function renderAddWebPanel(){
    grid,form,error,
    el('p',{className:'panel-hint',textContent:'Clic destro su un pannello nella barra laterale: larghezza, versione mobile, rimuovi.'}));
 }
+// ── Trascinamento delle schede (Beta 0.28) ───────────────────────────────
+let dropTarget=null;
+function markDrop(node,kind){
+ if(dropTarget&&dropTarget!==node){delete dropTarget.dataset.drop;}
+ dropTarget=node;
+ if(node)node.dataset.drop=kind;
+}
+function startTabDrag(id){dragTabId=id;openSplitDrop(id);}
+// Negli spazi tra le schede resta valido l'ultimo segno; uscendo dalla striscia sparisce.
+$('tabs').addEventListener('dragover',event=>{if(dragTabId!==null&&event.target===$('tabs'))event.preventDefault();});
+$('tabs').addEventListener('dragleave',event=>{if(!$('tabs').contains(event.relatedTarget))markDrop(null);});
+$('tabs').addEventListener('drop',event=>{
+ if(event.target!==$('tabs')||!dropTarget||dragTabId===null)return;
+ event.preventDefault();
+ const targetId=Number(String(dropTarget.dataset.key||'').slice(2)),kind=dropTarget.dataset.drop,fromId=dragTabId;
+ markDrop(null);
+ if(!Number.isInteger(targetId)||targetId===fromId)return;
+ if(kind==='stack')act('stackTabs',{fromId,targetId});else act('reorderTab',{id:fromId,beforeId:targetId,after:kind==='after'});
+});
+function endTabDrag(){markDrop(null);document.body.classList.remove('tab-dragging');dragTabId=null;closeSplitDrop();}
+let dragTabId=null;
 // Homepage lives inside a tab; it is displayed only when that tab is active.
 // ── Stack compatto (Beta 0.18) ───────────────────────────────────────────
 // Uno stack compresso diventa una sola "pillola": le icone delle sue schede una accanto
@@ -1442,61 +1477,115 @@ function compactStack(entry){
  return pill;
 }
 
-// ── Vista divisa (Beta 0.18) ─────────────────────────────────────────────
-// Le due pagine sono WebContentsView: la cornice disegna solo ciò che sta tra e intorno a loro
-// (contorno del lato attivo, divisore). Durante il trascinamento del divisore le pagine si
-// nascondono e al loro posto compaiono due riquadri col titolo, che seguono il mouse.
+// ── Vista divisa (Beta 0.18, a più riquadri dalla 0.28) ──────────────────
+// Le pagine sono WebContentsView: la cornice disegna solo ciò che sta tra e intorno a loro
+// (contorno del riquadro attivo, divisori). Mentre trascini un divisore le pagine si nascondono
+// e al loro posto compaiono riquadri col titolo, ricalcolati con split-rules.js.
 let splitDrag=null;
+const placeRect=(node,r,grow=0)=>Object.assign(node.style,{left:(r.x-grow)+'px',top:(r.y-grow)+'px',width:(r.width+2*grow)+'px',height:(r.height+2*grow)+'px'});
+function drawSplitPreview(s,overrides){
+ const layout=window.splitRules.layoutSplit(s.full,{mode:s.mode,ids:s.ids,ratioX:s.ratioX,ratioY:s.ratioY,...overrides},s.gap);
+ for(const ghost of $('splitLayer').querySelectorAll('.split-ghost'))if(layout.rects[ghost.dataset.id])placeRect(ghost,layout.rects[ghost.dataset.id]);
+ [...$('splitLayer').querySelectorAll('.split-divider')].forEach((node,i)=>{if(layout.dividers[i])placeRect(node,layout.dividers[i].rect);});
+}
+let renderedSplit=null;
 function renderSplit(){
  const s=state.split,layer=$('splitLayer');
  $('splitControls').hidden=!s;
+ $('splitSwap').hidden=!s||s.ids.length!==2;
  layer.hidden=!s;
- if(!s)return;
- const place=(node,r,grow=0)=>Object.assign(node.style,{left:(r.x-grow)+'px',top:(r.y-grow)+'px',width:(r.width+2*grow)+'px',height:(r.height+2*grow)+'px'});
+ if(!s){renderedSplit=null;return;}
  if(splitDrag)return; // mentre trascini comanda il mouse
- place($('splitFocus'),s.rects[s.focused],2);
- place($('splitDivider'),s.rects.divider);
- place($('splitGhostLeft'),s.rects.left);place($('splitGhostRight'),s.rects.right);
- $('splitGhostLeft').textContent=s.titles.left;$('splitGhostRight').textContent=s.titles.right;
+ const key=JSON.stringify([s.mode,s.ids,s.titles]);
+ if(key!==renderedSplit){
+   renderedSplit=key;
+   layer.replaceChildren(el('div',{id:'splitFocus'}),
+     ...s.ids.map(id=>el('div',{className:'split-ghost','data-id':String(id),textContent:s.titles[id]||''})),
+     ...s.dividers.map((d,i)=>{
+       const node=el('div',{className:'split-divider axis-'+d.axis,title:'Trascina per ridimensionare · doppio clic: metà e metà'});
+       node.addEventListener('pointerdown',e=>startSplitDrag(e,i,node));
+       node.addEventListener('dblclick',()=>act('setSplitRatio',{percent:50,key:d.key}));
+       return node;
+     }));
+ }
+ placeRect($('splitFocus'),s.rects[s.focusedId],2);
+ for(const ghost of layer.querySelectorAll('.split-ghost'))placeRect(ghost,s.rects[ghost.dataset.id]);
+ [...layer.querySelectorAll('.split-divider')].forEach((node,i)=>placeRect(node,s.dividers[i].rect));
  layer.classList.toggle('dragging',!!s.dragging);
 }
-$('splitDivider').addEventListener('pointerdown',e=>{
- const s=state.split;if(!s)return;
+function startSplitDrag(e,index,node){
+ const s=state.split;if(!s||!s.dividers[index])return;
  e.preventDefault();
- $('splitDivider').setPointerCapture(e.pointerId);
- const left=s.rects.left,right=s.rects.right;
- splitDrag={x0:left.x,total:right.x+right.width-left.x,percent:Math.round(s.ratio*100)};
+ node.setPointerCapture(e.pointerId);
+ const d=s.dividers[index];
+ splitDrag={divider:d,percent:Math.round((d.key==='ratioY'?s.ratioY:s.ratioX)*100),node};
  $('splitLayer').classList.add('dragging');
- act('splitDragging',{on:true});
-});
-$('splitDivider').addEventListener('pointermove',e=>{
- if(!splitDrag)return;
- const s=state.split,gap=s.rects.divider.width;
- const percent=Math.min(80,Math.max(20,Math.round(100*(e.clientX-splitDrag.x0)/splitDrag.total)));
- splitDrag.percent=percent;
- const usable=splitDrag.total-gap,leftWidth=Math.round(usable*percent/100);
- const place=(node,x,width)=>Object.assign(node.style,{left:x+'px',width:width+'px'});
- place($('splitGhostLeft'),splitDrag.x0,leftWidth);
- place($('splitDivider'),splitDrag.x0+leftWidth,gap);
- place($('splitGhostRight'),splitDrag.x0+leftWidth+gap,usable-leftWidth);
  $('splitFocus').style.display='none';
-});
+ act('splitDragging',{on:true});
+ node.onpointermove=ev=>{
+   if(!splitDrag)return;
+   const span=splitDrag.divider.span,vertical=splitDrag.divider.axis==='y';
+   const pos=vertical?(ev.clientY-span.y)/span.height:(ev.clientX-span.x)/span.width;
+   splitDrag.percent=Math.min(80,Math.max(20,Math.round(pos*100)));
+   drawSplitPreview(state.split,{[splitDrag.divider.key]:splitDrag.percent/100});
+ };
+}
 const endSplitDrag=async()=>{
  if(!splitDrag)return;
- const percent=splitDrag.percent;splitDrag=null;
- $('splitFocus').style.display='';
- await act('setSplitRatio',{percent});
+ const {percent,divider,node}=splitDrag;splitDrag=null;node.onpointermove=null;
+ $('splitFocus')&&($('splitFocus').style.display='');
+ await act('setSplitRatio',{percent,key:divider.key});
  act('splitDragging',{on:false});
 };
-$('splitDivider').addEventListener('pointerup',endSplitDrag);
-$('splitDivider').addEventListener('lostpointercapture',endSplitDrag);
-// Sicurezza: il trascinamento finisce anche rilasciando il mouse altrove o se la finestra perde il focus,
+// Il trascinamento finisce anche rilasciando il mouse altrove o se la finestra perde il focus,
 // altrimenti le pagine resterebbero nascoste.
 window.addEventListener('pointerup',endSplitDrag);
 window.addEventListener('blur',endSplitDrag);
-$('splitDivider').addEventListener('dblclick',()=>act('setSplitRatio',{percent:50}));
 $('splitSwap').onclick=()=>act('swapSplit');
 $('splitClose').onclick=()=>act('closeSplit');
+
+// ── Trascinare una scheda sulla pagina (Beta 0.28) ───────────────────────
+// Con Shift, il lato più vicino mostra dove finirebbe la scheda; rilasciando va in vista divisa.
+let splitDropInfo=null;
+const ZONE_LABELS={left:'a sinistra',right:'a destra',top:'in alto',bottom:'in basso'};
+async function openSplitDrop(id){
+ const r=await act('splitDropMode',{on:true,id});
+ const info=r?.result;
+ if(!info?.ok||dragTabId!==id){if(info?.ok)act('splitDropMode',{on:false});return;}
+ splitDropInfo={id,...info,zone:null};
+ const box=$('splitDrop');
+ placeRect(box,info.full);
+ const img=$('splitDropBackdrop');
+ img.hidden=!info.backdrop;
+ if(info.backdrop)img.src=info.backdrop;
+ $('splitDropPreview').hidden=true;
+ box.hidden=false;
+}
+function closeSplitDrop(){
+ if(!splitDropInfo)return;
+ splitDropInfo=null;
+ $('splitDrop').hidden=true;$('splitDropBackdrop').removeAttribute('src');
+ act('splitDropMode',{on:false});
+}
+$('splitDrop').addEventListener('dragover',event=>{
+ const info=splitDropInfo;if(!info)return;
+ event.preventDefault();
+ const f=info.full,x=(event.clientX-f.x)/f.width,y=(event.clientY-f.y)/f.height;
+ const near={left:x,right:1-x,top:y,bottom:1-y};
+ const zone=event.shiftKey?Object.keys(near).filter(z=>info.zones[z]).sort((a,b)=>near[a]-near[b])[0]||null:null;
+ info.zone=zone;
+ $('splitDropHint').textContent=zone?'Rilascia: vista divisa '+ZONE_LABELS[zone]:'Tieni premuto Shift per affiancare la scheda';
+ const preview=$('splitDropPreview');
+ preview.hidden=!zone;
+ if(zone){const r=info.zones[zone];Object.assign(preview.style,{left:(r.x-f.x)+'px',top:(r.y-f.y)+'px',width:r.width+'px',height:r.height+'px'});}
+});
+$('splitDrop').addEventListener('drop',event=>{
+ const info=splitDropInfo;if(!info)return;
+ event.preventDefault();
+ const {id,zone}=info;
+ closeSplitDrop();
+ if(zone)act('splitDrop',{id,zone});
+});
 
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.

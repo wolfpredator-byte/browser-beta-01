@@ -113,7 +113,9 @@
      è nascosta e al suo posto c'è una sua fotografia: altrimenti coprirebbe l'elenco. -->
 <img id="paletteBackdrop" alt="" hidden>
 <!-- Vista divisa: contorno del lato attivo, divisore trascinabile, riquadri mostrati mentre trascini. -->
-<div id="splitLayer" hidden><div id="splitFocus"></div><div id="splitGhostLeft" class="split-ghost"></div><div id="splitGhostRight" class="split-ghost"></div><div id="splitDivider" title="Trascina per ridimensionare · doppio clic: metà e metà"></div></div>
+<div id="splitLayer" hidden><div id="splitFocus"></div></div>
+<!-- Beta 0.28: trascinando una scheda sulla pagina, con Shift, anteprima del riquadro della vista divisa. -->
+<div id="splitDrop" hidden><img id="splitDropBackdrop" alt=""><div id="splitDropPreview" hidden></div><div id="splitDropHint">Tieni premuto Shift per affiancare la scheda</div></div>
 <!-- Palette (Beta 0.12.1): solo una barra di ricerca fluttuante; i risultati compaiono mentre scrivi. -->
 <!-- Beta 0.27: anteprima dei link (Shift+clic). La pagina dell'anteprima la disegna lib/glance.cjs sopra il riquadro. -->
 <!-- Beta 0.27: barra del pannello web aperto (la pagina la mette lib/webpanels.cjs sotto la barra). -->
@@ -136,5 +138,5 @@
  </div>
 </div>
 <div id="suggest" role="listbox" aria-label="Suggerimenti" hidden></div>
-<script src="palette-rules.js"></script>
+<script src="palette-rules.js"></script><script src="split-rules.js"></script>
 <script src="renderer.js"></script></body></html>

@@ -903,3 +903,33 @@ body[data-sidebar-orientation="horizontal"] #sidebarTools{display:flex;flex-dire
 body[data-merged="true"][data-sidebar-orientation="vertical"] #sidebarTools .sideButton,
 body[data-merged="true"][data-sidebar-orientation="vertical"] #addWorkspace{width:38px!important;height:38px;padding:7px!important;margin:1px!important;justify-content:center}
 body[data-merged="true"][data-sidebar-orientation="vertical"] #addWorkspace{display:none}
+/* Trascinamento delle schede: la scheda presa si attenua, si apre uno spazio dove andrà. */
+.tab.dragging{opacity:.35}
+.tab{transition:margin var(--dur-1) var(--ease-out),background-color var(--dur-1) var(--ease-out),border-color var(--dur-1),opacity var(--dur-1),box-shadow var(--dur-2)}
+.tab[data-drop]::after{content:'';position:absolute;border-radius:2px;background:var(--v-accent);box-shadow:0 0 10px var(--v-accent)}
+body[data-tabs-orientation="horizontal"] .tab[data-drop="before"]{margin-left:30px}
+body[data-tabs-orientation="horizontal"] .tab[data-drop="after"]{margin-right:30px}
+body[data-tabs-orientation="horizontal"] .tab[data-drop="before"]::after{left:-17px;top:4px;bottom:4px;width:3px}
+body[data-tabs-orientation="horizontal"] .tab[data-drop="after"]::after{right:-17px;top:4px;bottom:4px;width:3px}
+body[data-tabs-orientation="vertical"] .tab[data-drop="before"]{margin-top:22px}
+body[data-tabs-orientation="vertical"] .tab[data-drop="after"]{margin-bottom:22px}
+body[data-tabs-orientation="vertical"] .tab[data-drop="before"]::after{top:-13px;left:6px;right:6px;height:3px}
+body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13px;left:6px;right:6px;height:3px}
+.tab[data-drop="stack"]{background:rgba(var(--v-accent-rgb),.28);box-shadow:inset 0 0 0 2px var(--v-accent)}
+/* Vista divisa a più riquadri: un divisore per ogni divisione. */
+.split-divider{position:fixed;pointer-events:auto;border-radius:4px}
+.split-divider.axis-x{cursor:col-resize}
+.split-divider.axis-y{cursor:row-resize}
+.split-divider::after{content:'';position:absolute;left:50%;top:50%;border-radius:2px;background:rgba(var(--v-accent-2-rgb),.35);transition:background-color var(--dur-1)}
+.split-divider.axis-x::after{width:3px;height:42px;margin:-21px 0 0 -1.5px}
+.split-divider.axis-y::after{width:42px;height:3px;margin:-1.5px 0 0 -21px}
+.split-divider:hover::after,#splitLayer.dragging .split-divider::after{background:var(--v-accent-2)}
+/* Trascinando una scheda sulla pagina: la foto della pagina, il riquadro che occuperebbe, un suggerimento. */
+#splitDrop{position:fixed;z-index:30;border-radius:var(--page-radius,10px);overflow:hidden;animation:v-fade-in var(--dur-1) var(--ease-out)}
+#splitDrop[hidden]{display:none}
+#splitDropBackdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55)}
+#splitDropPreview{position:absolute;border-radius:12px;background:rgba(var(--v-accent-rgb),.28);box-shadow:inset 0 0 0 2px var(--v-accent),0 0 30px rgba(var(--v-accent-rgb),.45);
+  transition:left var(--dur-2) var(--ease-out),top var(--dur-2) var(--ease-out),width var(--dur-2) var(--ease-out),height var(--dur-2) var(--ease-out)}
+#splitDropPreview[hidden]{display:none}
+#splitDropHint{position:absolute;left:50%;top:18px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;font-size:var(--fs-sm);
+  background:rgba(var(--v-bg-rgb),.85);border:1px solid var(--v-line);box-shadow:var(--shadow-2);pointer-events:none;white-space:nowrap}
