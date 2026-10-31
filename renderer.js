@@ -857,6 +857,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      el('label',{className:'permission-row'},el('span',{textContent:'Schede'}),selectBox(sides,c.tabs,tabs=>act('setLayout',{tabs}))),
      el('label',{className:'permission-row'},el('span',{textContent:'Barra laterale (workspace e strumenti)'}),selectBox(sides,c.sidebar,sidebar=>act('setLayout',{sidebar}))),
      ...(sameSide?[checkRow('Unisci in una colonna sola (come Arc e Zen)',c.merge,merge=>act('setLayout',{merge}))]:[]),
+     checkRow('Modalità compatta: barre nascoste, tornano col mouse sul bordo (Ctrl+Shift+K)',!!c.compact,()=>act('toggleCompact')),
      hint('Se schede e barra laterale stanno dallo stesso lato, si uniscono: workspace in alto, schede al centro, strumenti in basso.'));
  }
  function appearanceSections(){
@@ -1388,8 +1389,38 @@ function placeBlock(node,block,frame){
  if(block.orientation==='vertical'){node.style.top=frame.top+'px';node.style.bottom=frame.bottom+'px';node.style.width=block.size+'px';}
  else{node.style.left='0px';node.style.right='0px';node.style.height=block.size+'px';}
 }
+// ── Modalità compatta (Beta 0.28) ────────────────────────────────────────
+// La pagina copre le barre lasciando un bordo sottile: col mouse sul bordo (o scrivendo nella barra
+// degli indirizzi) la pagina si ritira; uscendo verso la pagina, le barre si richiudono.
+let compactShown=false,compactTimer=null,pointerInFrame=false;
+const compactOn=()=>!!state.frame?.config?.compact;
+const COMPACT_TYPING='input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select';
+function compactShow(){
+ clearTimeout(compactTimer);
+ if(!compactOn()||compactShown)return;
+ compactShown=true;document.body.classList.add('compact-open');act('compactReveal',{on:true});
+}
+function compactHideSoon(delay=450){
+ clearTimeout(compactTimer);
+ compactTimer=setTimeout(()=>{
+   if(!compactOn()||!compactShown||pointerInFrame)return;
+   if(document.activeElement?.matches(COMPACT_TYPING))return; // stai scrivendo: le barre restano
+   compactShown=false;document.body.classList.remove('compact-open');act('compactReveal',{on:false});
+ },delay);
+}
+document.addEventListener('mouseover',e=>{
+ pointerInFrame=true;
+ // I pannelli accanto alla pagina non aprono le barre: solo i bordi.
+ if(compactOn()&&!e.target.closest('#sidePanel,#downloadDrawer,#webPanels'))compactShow();
+});
+document.documentElement.addEventListener('mouseleave',()=>{pointerInFrame=false;compactHideSoon();});
+window.addEventListener('blur',()=>{pointerInFrame=false;compactHideSoon(150);}); // clic sulla pagina
+document.addEventListener('focusin',e=>{if(e.target.matches(COMPACT_TYPING))compactShow();});
+document.addEventListener('focusout',()=>compactHideSoon());
 function applyFrame(){
  const f=state.frame;if(!f)return;
+ document.body.dataset.compact=f.config?.compact?'true':'false';
+ if(!f.config?.compact&&compactShown){compactShown=false;document.body.classList.remove('compact-open');}
  const key=JSON.stringify([f.top,f.bottom,f.left,f.right,f.sidebar&&[f.sidebar.side,f.sidebar.offset,f.sidebar.size,f.sidebar.merged],f.tabs&&[f.tabs.side,f.tabs.offset,f.tabs.size]]);
  if(key===appliedFrame)return;
  const first=appliedFrame===null;

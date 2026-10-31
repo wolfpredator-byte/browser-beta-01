@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {frameLayout,normalizeLayout,presetOf,PRESETS,HEADER,TABS_BAR,TABS_COLUMN,MERGED_COLUMN,SIDEBAR_STRIP}=require('../lib/frame-layout-rules.cjs');
+const {frameLayout,normalizeLayout,presetOf,compactInsets,COMPACT_EDGE,PRESETS,HEADER,TABS_BAR,TABS_COLUMN,MERGED_COLUMN,SIDEBAR_STRIP}=require('../lib/frame-layout-rules.cjs');
 
 const W={width:1600,height:900};
 
@@ -41,9 +41,16 @@ test('workspace in basso, tutto a destra, barra nascosta', ()=>{
 });
 
 test('valori sbagliati e combinazioni pronte', ()=>{
-  assert.deepEqual(normalizeLayout({tabs:'sopra',sidebar:42}),{tabs:'bottom',sidebar:'left',merge:true});
+  assert.deepEqual(normalizeLayout({tabs:'sopra',sidebar:42}),{tabs:'bottom',sidebar:'left',merge:true,compact:false});
+  assert.equal(normalizeLayout({compact:true}).compact,true);
   assert.equal(presetOf({tabs:'left',sidebar:'left',merge:false}),'icone-colonna');
   assert.equal(presetOf({tabs:'top',sidebar:'right'}),'');
   const top=frameLayout(W,PRESETS['schede-alto'],'compact');
   assert.deepEqual([top.top,top.bottom,top.tabs.y],[HEADER+TABS_BAR,0,HEADER]);
+});
+
+test('modalità compatta: solo un bordo sottile dove ci sono barre', ()=>{
+  const f=compactInsets(frameLayout(W,PRESETS.classico,'compact'));
+  assert.deepEqual([f.top,f.bottom,f.left,f.right],[COMPACT_EDGE,COMPACT_EDGE,COMPACT_EDGE,0]);
+  assert.ok(f.tabs&&f.sidebar);                        // le barre restano al loro posto, sotto la pagina
 });

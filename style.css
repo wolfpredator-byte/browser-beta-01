@@ -958,3 +958,6 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
 .site-style-editor{width:100%;min-height:340px;resize:vertical;padding:10px 12px;border:1px solid var(--v-line);border-radius:var(--r-md);
   background:rgba(0,0,0,.35);color:inherit;font:12.5px/1.55 'Cascadia Code',Consolas,monospace;tab-size:2;outline:none}
 .site-style-editor:focus{border-color:var(--v-accent)}
+/* Modalità compatta (Beta 0.28): con le barre chiuse resta solo un filo del colore d'accento sui bordi. */
+body[data-compact="true"]:not(.compact-open)::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--v-accent) 45%,transparent);transition:opacity var(--dur-2) var(--ease-out)}
