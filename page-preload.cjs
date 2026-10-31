@@ -230,3 +230,10 @@ if(/^https?:$/.test(location.protocol)){
     ipcRenderer.send('glance:open',url.href);
   },true);
 }
+
+// Beta 0.28: "Torna alla scheda" nella finestrella del video. Chromium chiude la finestrella e
+// lascia il video in riproduzione (con la × invece lo mette in pausa): in quel caso VARCO mostra la scheda.
+document.addEventListener('leavepictureinpicture',event=>{
+  const video=event.target;
+  setTimeout(()=>{if(video instanceof HTMLVideoElement&&!video.paused&&!video.ended)ipcRenderer.send('pip:back');},120);
+},true);

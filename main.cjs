@@ -119,6 +119,7 @@ function start(){
   jarvis.init(bus);
   // Schede non guardate da tempo tornano dormienti (impostazione nell'icona).
   sleeper.start();
+  require('./lib/compact.cjs').sync(); // Beta 0.28: modalità compatta
 
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();

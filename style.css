@@ -958,6 +958,22 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
 .site-style-editor{width:100%;min-height:340px;resize:vertical;padding:10px 12px;border:1px solid var(--v-line);border-radius:var(--r-md);
   background:rgba(0,0,0,.35);color:inherit;font:12.5px/1.55 'Cascadia Code',Consolas,monospace;tab-size:2;outline:none}
 .site-style-editor:focus{border-color:var(--v-accent)}
-/* Modalità compatta (Beta 0.28): con le barre chiuse resta solo un filo del colore d'accento sui bordi. */
-body[data-compact="true"]:not(.compact-open)::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50;
-  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--v-accent) 45%,transparent);transition:opacity var(--dur-2) var(--ease-out)}
+/* Modalità compatta (Beta 0.28): le barre entrano sopra la foto della pagina, dal loro lato. */
+#compactShots{position:fixed;inset:0;z-index:30;pointer-events:none}
+#compactShots[hidden]{display:none}
+#compactShots img{position:absolute;display:block}
+body[data-peek] [data-peek-on]{position:relative;z-index:40!important;background:rgba(var(--v-bg-rgb),.9)!important;backdrop-filter:blur(18px) saturate(1.2);
+  box-shadow:0 10px 40px rgba(0,0,0,.45);transition:transform var(--dur-2) var(--ease-out),opacity var(--dur-2) var(--ease-out)}
+body[data-peek] #globalSidebar[data-peek-on],body[data-peek] .tabbar[data-peek-on]{position:absolute}
+body[data-peek="top"] [data-peek-on]{animation:peek-top var(--dur-2) var(--ease-out)}
+body[data-peek="bottom"] [data-peek-on]{animation:peek-bottom var(--dur-2) var(--ease-out)}
+body[data-peek="left"] [data-peek-on]{animation:peek-left var(--dur-2) var(--ease-out)}
+body[data-peek="right"] [data-peek-on]{animation:peek-right var(--dur-2) var(--ease-out)}
+@keyframes peek-top{from{transform:translateY(-100%);opacity:.4}}
+@keyframes peek-bottom{from{transform:translateY(100%);opacity:.4}}
+@keyframes peek-left{from{transform:translateX(-100%);opacity:.4}}
+@keyframes peek-right{from{transform:translateX(100%);opacity:.4}}
+body.peek-leaving[data-peek="top"] [data-peek-on]{transform:translateY(-100%);opacity:0}
+body.peek-leaving[data-peek="bottom"] [data-peek-on]{transform:translateY(100%);opacity:0}
+body.peek-leaving[data-peek="left"] [data-peek-on]{transform:translateX(-100%);opacity:0}
+body.peek-leaving[data-peek="right"] [data-peek-on]{transform:translateX(100%);opacity:0}

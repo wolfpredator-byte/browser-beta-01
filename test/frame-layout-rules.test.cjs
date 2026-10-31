@@ -49,8 +49,8 @@ test('valori sbagliati e combinazioni pronte', ()=>{
   assert.deepEqual([top.top,top.bottom,top.tabs.y],[HEADER+TABS_BAR,0,HEADER]);
 });
 
-test('modalità compatta: solo un bordo sottile dove ci sono barre', ()=>{
+test('modalità compatta: la pagina va da bordo a bordo', ()=>{
   const f=compactInsets(frameLayout(W,PRESETS.classico,'compact'));
-  assert.deepEqual([f.top,f.bottom,f.left,f.right],[COMPACT_EDGE,COMPACT_EDGE,COMPACT_EDGE,0]);
+  assert.deepEqual([f.top,f.bottom,f.left,f.right],[COMPACT_EDGE,COMPACT_EDGE,COMPACT_EDGE,COMPACT_EDGE]);
   assert.ok(f.tabs&&f.sidebar);                        // le barre restano al loro posto, sotto la pagina
 });

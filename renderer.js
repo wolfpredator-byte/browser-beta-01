@@ -857,7 +857,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      el('label',{className:'permission-row'},el('span',{textContent:'Schede'}),selectBox(sides,c.tabs,tabs=>act('setLayout',{tabs}))),
      el('label',{className:'permission-row'},el('span',{textContent:'Barra laterale (workspace e strumenti)'}),selectBox(sides,c.sidebar,sidebar=>act('setLayout',{sidebar}))),
      ...(sameSide?[checkRow('Unisci in una colonna sola (come Arc e Zen)',c.merge,merge=>act('setLayout',{merge}))]:[]),
-     checkRow('Modalità compatta: barre nascoste, tornano col mouse sul bordo (Ctrl+Shift+K)',!!c.compact,()=>act('toggleCompact')),
+     checkRow('Modalità compatta: pagina a tutta finestra, le barre compaiono sopra col mouse sul bordo (Ctrl+Shift+K)',!!c.compact,()=>act('toggleCompact')),
      hint('Se schede e barra laterale stanno dallo stesso lato, si uniscono: workspace in alto, schede al centro, strumenti in basso.'));
  }
  function appearanceSections(){
@@ -1390,37 +1390,49 @@ function placeBlock(node,block,frame){
  else{node.style.left='0px';node.style.right='0px';node.style.height=block.size+'px';}
 }
 // ── Modalità compatta (Beta 0.28) ────────────────────────────────────────
-// La pagina copre le barre lasciando un bordo sottile: col mouse sul bordo (o scrivendo nella barra
-// degli indirizzi) la pagina si ritira; uscendo verso la pagina, le barre si richiudono.
-let compactShown=false,compactTimer=null,pointerInFrame=false;
-const compactOn=()=>!!state.frame?.config?.compact;
+// La pagina va da bordo a bordo. Col mouse sul bordo il processo principale (lib/compact.cjs) manda
+// le foto delle pagine: la cornice le mette al loro posto e fa entrare SOPRA la barra di quel lato.
+// Solo dopo le pagine vere si nascondono, così la pagina non si sposta e non lampeggia.
 const COMPACT_TYPING='input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select';
-function compactShow(){
- clearTimeout(compactTimer);
- if(!compactOn()||compactShown)return;
- compactShown=true;document.body.classList.add('compact-open');act('compactReveal',{on:true});
+let peekTimer=null;
+/** Le barre che stanno su un lato: l'intestazione è sempre in alto; schede e barra laterale dove le hai messe. */
+function peekBlocks(side){
+ const f=state.frame||{},merged=!!f.sidebar?.merged,out=[];
+ if(side==='top')out.push(document.querySelector('.window-titlebar'),document.querySelector('header.toolbar'));
+ if(f.sidebar?.side===side)out.push($('globalSidebar'));
+ if(!merged&&f.tabs?.side===side)out.push(document.querySelector('.tabbar'));
+ return out.filter(Boolean);
 }
-function compactHideSoon(delay=450){
- clearTimeout(compactTimer);
- compactTimer=setTimeout(()=>{
-   if(!compactOn()||!compactShown||pointerInFrame)return;
-   if(document.activeElement?.matches(COMPACT_TYPING))return; // stai scrivendo: le barre restano
-   compactShown=false;document.body.classList.remove('compact-open');act('compactReveal',{on:false});
- },delay);
+function showCompactPeek(message){
+ const body=document.body,layer=$('compactShots');
+ clearTimeout(peekTimer);
+ if(!message.side){
+   body.classList.add('peek-leaving');
+   peekTimer=setTimeout(()=>{
+     body.classList.remove('peek-leaving');delete body.dataset.peek;
+     for(const n of document.querySelectorAll('[data-peek-on]'))n.removeAttribute('data-peek-on');
+     layer.replaceChildren();layer.hidden=true;
+   },320);
+   return;
+ }
+ body.classList.remove('peek-leaving');
+ const images=message.shots.map(shot=>{const img=el('img',{src:shot.image,alt:''});placeRect(img,shot.bounds);return img;});
+ layer.replaceChildren(...images);layer.hidden=false;
+ // setTimeout e non requestAnimationFrame: con la pagina che copre tutta la cornice, Chromium sospende i fotogrammi.
+ // La barra entra solo dopo che la pagina vera si è nascosta: finché la copre, Chromium non fa avanzare le animazioni.
+ Promise.all(images.map(img=>img.decode().catch(()=>{}))).then(()=>setTimeout(async()=>{
+   await act('compactPeekReady');
+   for(const n of document.querySelectorAll('[data-peek-on]'))n.removeAttribute('data-peek-on');
+   for(const n of peekBlocks(message.side))n.setAttribute('data-peek-on','');
+   body.dataset.peek=message.side;
+ },16));
 }
-document.addEventListener('mouseover',e=>{
- pointerInFrame=true;
- // I pannelli accanto alla pagina non aprono le barre: solo i bordi.
- if(compactOn()&&!e.target.closest('#sidePanel,#downloadDrawer,#webPanels'))compactShow();
-});
-document.documentElement.addEventListener('mouseleave',()=>{pointerInFrame=false;compactHideSoon();});
-window.addEventListener('blur',()=>{pointerInFrame=false;compactHideSoon(150);}); // clic sulla pagina
-document.addEventListener('focusin',e=>{if(e.target.matches(COMPACT_TYPING))compactShow();});
-document.addEventListener('focusout',()=>compactHideSoon());
+// Mentre scrivi (barra degli indirizzi, ricerca nella pagina) le barre restano aperte.
+document.addEventListener('focusin',e=>{if(state.frame?.config?.compact&&e.target.matches(COMPACT_TYPING))act('compactHold',{on:true});});
+document.addEventListener('focusout',e=>{if(state.frame?.config?.compact&&e.target.matches(COMPACT_TYPING))act('compactHold',{on:false});});
 function applyFrame(){
  const f=state.frame;if(!f)return;
  document.body.dataset.compact=f.config?.compact?'true':'false';
- if(!f.config?.compact&&compactShown){compactShown=false;document.body.classList.remove('compact-open');}
  const key=JSON.stringify([f.top,f.bottom,f.left,f.right,f.sidebar&&[f.sidebar.side,f.sidebar.offset,f.sidebar.size,f.sidebar.merged],f.tabs&&[f.tabs.side,f.tabs.offset,f.tabs.size]]);
  if(key===appliedFrame)return;
  const first=appliedFrame===null;
@@ -1859,6 +1871,7 @@ window.browserAPI.onUi(message=>{
  else if(message?.type==='palette')showSuggestions(message);
  else if(message?.type==='glance')showGlance(message);
  else if(message?.type==='shot')showShot(message);
+ else if(message?.type==='compactPeek')showCompactPeek(message);
  else if(message?.type==='findResult'){
    const found=$('findCount');
    found.textContent=message.matches?`${message.active} di ${message.matches}`:'Nessun risultato';
