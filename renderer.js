@@ -676,6 +676,10 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Schede',
        row('Sospendi le schede non guardate',selectBox(SLEEP_LABELS,s.sleepAfterMinutes,v=>act('setSleepMinutes',{minutes:Number(v)}))),
        checkRow('Animazione a scorrimento quando cambi scheda',s.tabAnimations,enabled=>act('setTabAnimations',{enabled})),
+       checkRow('Video in finestrella quando cambi scheda',s.autoPip,enabled=>act('setAutoPip',{enabled})),
+       checkRow('Archivia da sole le schede non usate',s.autoArchive.enabled,enabled=>act('setAutoArchive',{enabled})),
+       ...(s.autoArchive.enabled?[row('Dopo',selectBox([[1,'1 giorno'],[3,'3 giorni'],[7,'7 giorni'],[14,'14 giorni']],s.autoArchive.days,v=>act('setAutoArchive',{days:Number(v)})))]:[]),
+       hint('Le schede archiviate si chiudono e restano in Schede → Archivio. Mai archiviate: fissate, negli stack, nella vista divisa.'),
        hint('Mai sospese: la scheda che guardi, quelle fissate, quelle che suonano e quelle con i DevTools aperti.')),
      section('Privacy e sicurezza',
        checkRow('Blocca pubblicità e tracker',s.adblock.enabled,enabled=>act('setAdblockEnabled',{enabled})),
@@ -1163,7 +1167,7 @@ $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 // ── Gestore delle schede (Beta 0.24) ─────────────────────────────────────
 // Pannello Schede: ricerca, schede raggruppate per sito, anche di tutti i workspace.
 // L'intestazione (ricerca) resta; si ridisegna solo l'elenco, così non perdi ciò che scrivi.
-const tabUi={query:'',all:false};
+const tabUi={query:'',all:false,archiveOpen:false};
 let tabManager=null,scrolledToTab=null,panelCloseTimer=null,themingTimer=null,shownHome=null;
 const siteOfUrl=url=>{try{const u=new URL(url);return /^https?:$/.test(u.protocol)?u.hostname.replace(/^www\./,''):'';}catch{return '';}};
 const pageKeyOf=url=>{try{const u=new URL(url);u.hash='';return u.href.replace(/\/$/,'');}catch{return url||'';}};
@@ -1235,6 +1239,26 @@ function drawTabManager(){
   }));
  }));
  if(!shown.length)m.results.append(el('p',{className:'panel-hint',textContent:q?'Nessuna scheda trovata.':'Nessuna scheda aperta.'}));
+ // Beta 0.28: archivio delle schede chiuse in automatico (si riaprono con un clic).
+ const archived=(state.archivedTabs||[]).map((t,index)=>({...t,index}))
+   .filter(t=>!q||(t.title||'').toLowerCase().includes(q)||(t.url||'').toLowerCase().includes(q));
+ if(archived.length||state.autoArchive?.enabled){
+   const head=el('button',{type:'button',className:'tab-site archive-head'+(tabUi.archiveOpen?' open':'')},
+     icon('downloads'),el('span',{className:'tab-site-name',textContent:'Archivio'}),el('span',{className:'tab-site-count',textContent:String(archived.length)}));
+   head.onclick=()=>{tabUi.archiveOpen=!tabUi.archiveOpen;drawTabManager();};
+   const block=el('div',{className:'tab-site-block archive-block'},head);
+   if(tabUi.archiveOpen){
+     for(const t of archived.slice(0,80)){
+       const main=el('button',{type:'button',className:'tab-row-main',title:t.url},el('span',{className:'tab-row-title',textContent:t.title||t.url}),
+         el('span',{className:'tab-row-meta',textContent:`${t.workspace} · archiviata ${new Date(t.archivedAt).toLocaleDateString('it-IT')}`}));
+       main.onclick=()=>act('restoreArchived',{index:t.index});
+       block.append(el('div',{className:'tab-row'},main));
+     }
+     if(archived.length)block.append(projectButtons(['Svuota l’archivio',()=>act('clearArchive')]));
+     else block.append(el('p',{className:'panel-hint',textContent:'Ancora niente: le schede non aperte da giorni finiranno qui.'}));
+   }
+   m.results.append(block);
+ }
 }
 // Un elemento della barra delle schede (scheda, intestazione di stack o stack compatto).
 function buildStripNode(entry){
