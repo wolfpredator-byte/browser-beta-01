@@ -708,6 +708,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function applyAppearance(){
    const a=state.appearance;
    if(!a)return;
+   document.body.dataset.motion=a.motion||'auto'; // Beta 0.27: Impostazioni → Animazioni
    const key=JSON.stringify([a.vars,a.hidden,a.density,a.home,a.logo]);
    if(key!==appliedAppearance){
      appliedAppearance=key;
@@ -846,6 +847,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        hint('L’immagine viene copiata nella cartella dei dati di VARCO: puoi spostare o cancellare l’originale.')),
      section('Interfaccia',
        el('label',{className:'permission-row'},el('span',{textContent:'Densità'}),selectBox(a.densities.map(d=>[d,d[0].toUpperCase()+d.slice(1)]),a.density,density=>act('setDensity',{density}))),
+       el('label',{className:'permission-row'},el('span',{textContent:'Animazioni'}),selectBox([['auto','Automatiche (come Windows)'],['full','Complete'],['reduced','Ridotte'],['off','Spente']],
+         state.appearance?.motion||'auto',motion=>act('setMotion',{motion}))),
        rangeRow('Dimensione del testo','fontScale',a.fontScale,L.fontScale,v=>v+'%'),
        rangeRow('Angoli delle pagine','radius',a.radius,L.radius,v=>v+' px'),
        sub('Barra laterale'),
@@ -977,7 +980,14 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  // L'interfaccia del pannello non dipende dall'esistenza della homepage.
  function renderSidePanel(){
    const mode=state.sidePanelOpen;
-   $('sidePanel').hidden=!mode;
+   // Beta 0.27: chiudendo, il pannello esce scorrendo prima di sparire.
+   const panel=$('sidePanel');
+   clearTimeout(panelCloseTimer);
+   if(mode){panel.classList.remove('closing');panel.hidden=false;}
+   else if(!panel.hidden&&!panel.classList.contains('closing')){
+     panel.classList.add('closing');
+     panelCloseTimer=setTimeout(()=>{panel.hidden=true;panel.classList.remove('closing');},130);
+   }
    if(mode!=='site')renderedSite=null;
    else return renderSite();
    if(mode!=='notifications')renderedNotify=null;
@@ -1065,7 +1075,7 @@ $('downloadCurrentFile').onclick=()=>act('downloadCurrentFile');
 // Pannello Schede: ricerca, schede raggruppate per sito, anche di tutti i workspace.
 // L'intestazione (ricerca) resta; si ridisegna solo l'elenco, così non perdi ciò che scrivi.
 const tabUi={query:'',all:false};
-let tabManager=null,scrolledToTab=null;
+let tabManager=null,scrolledToTab=null,panelCloseTimer=null;
 const siteOfUrl=url=>{try{const u=new URL(url);return /^https?:$/.test(u.protocol)?u.hostname.replace(/^www\./,''):'';}catch{return '';}};
 const pageKeyOf=url=>{try{const u=new URL(url);u.hash='';return u.href.replace(/\/$/,'');}catch{return url||'';}};
 function renderTabManager(){
@@ -1136,6 +1146,101 @@ function drawTabManager(){
   }));
  }));
  if(!shown.length)m.results.append(el('p',{className:'panel-hint',textContent:q?'Nessuna scheda trovata.':'Nessuna scheda aperta.'}));
+}
+// Un elemento della barra delle schede (scheda, intestazione di stack o stack compatto).
+function buildStripNode(entry){
+   if(entry.kind==='group'&&entry.collapsed)return compactStack(entry);
+   if(entry.kind==='group'){
+     const group=document.createElement('div');
+     group.className='stack-heading'+(entry.collapsed?' collapsed':'')+(entry.active?' contains-active':'');
+     const toggle=document.createElement('button');
+     toggle.className='stack-toggle';
+     toggle.replaceChildren(icon(entry.collapsed?'stack-closed':'stack-open'),entry.group+' ('+entry.count+')');
+     toggle.title=entry.collapsed?'Espandi stack':'Comprimi stack';
+     toggle.setAttribute('aria-expanded',String(!entry.collapsed));
+     toggle.onclick=()=>act('toggleGroup',{group:entry.group});
+     group.appendChild(toggle);
+     const actions=iconButton(group,'tab-more','Azioni stack',()=>act('tabContextMenu',{id:entry.tabIds[0]}),'stack-actions');
+     actions.title='Azioni stack';
+     // Trascinare un'altra scheda SOPRA lo stack la aggiunge al gruppo.
+     group.ondragover=event=>event.preventDefault();
+     group.ondrop=event=>{
+       event.preventDefault();
+       const fromId=Number(event.dataTransfer.getData('text/plain'));
+       if(Number.isInteger(fromId)&&fromId!==entry.tabIds[0])
+         act('stackTabs',{fromId,targetId:entry.tabIds[0]});
+     };
+     return group;
+   }
+   const t=entry.tab;
+   const tab=document.createElement('div');
+   // sleeping: pagina sospesa per risparmiare memoria, si ricarica al clic.
+   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+(t.sleeping?' sleeping':'')+(t.inSplit?' in-split':'')+
+     (entry.inGroup?' stacked':'');
+   tab.draggable=true;
+   tab.ondragstart=event=>{
+     event.dataTransfer.setData('text/plain',String(t.id));
+     event.dataTransfer.effectAllowed='move';
+   };
+   tab.ondragover=event=>event.preventDefault();
+   tab.ondrop=event=>{
+     event.preventDefault();
+     const fromId=Number(event.dataTransfer.getData('text/plain'));
+     if(!Number.isInteger(fromId)||fromId===t.id)return;
+     // Shift + trascina: crea/assegna uno stack. Senza Shift: riordina soltanto.
+     if(event.shiftKey)act('stackTabs',{fromId,targetId:t.id});
+     else act('reorderTab',{id:fromId,beforeId:t.id});
+   };
+   // Icona del sito, oppure un cerchio che gira mentre la pagina carica.
+   if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
+   else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
+   const title=document.createElement('span');
+   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':'home-tab'),t.page==='settings'?'Impostazioni':'Home');
+   else title.textContent=t.title||t.url;
+   title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
+   title.onclick=()=>act('activateTab',{id:t.id});
+   tab.appendChild(title);
+   // Il menu contestuale è nativo Windows, anche con una pagina web aperta.
+   tab.oncontextmenu=event=>{event.preventDefault();act('tabContextMenu',{id:t.id});};
+   const menu=iconButton(tab,'tab-more','Menu scheda',()=>act('tabContextMenu',{id:t.id}),'tab-more');
+   menu.title='Menu scheda';
+   iconButton(tab,'close','Chiudi scheda',()=>act('closeTab',{id:t.id}),'tab-close');
+   return tab;
+}
+const stripKey=entry=>entry.kind==='group'?'g:'+entry.group+(entry.collapsed?':c':''):'t:'+entry.tab.id;
+const motionMs=name=>parseFloat(getComputedStyle(document.body).getPropertyValue(name))||0;
+function renderTabStrip(strip,entries){
+ const old=new Map([...strip.children].filter(n=>n.dataset.key).map(n=>[n.dataset.key,n]));
+ const before=new Map([...old].map(([key,node])=>[key,node.getBoundingClientRect()]));
+ const nodes=entries.map(entry=>{
+   const key=stripKey(entry),sig=JSON.stringify(entry),previous=old.get(key);
+   old.delete(key);
+   if(previous&&previous.dataset.sig===sig)return previous;
+   const node=buildStripNode(entry);
+   node.dataset.key=key;node.dataset.sig=sig;
+   if(!previous&&before.size)node.classList.add('strip-enter'); // al primo disegno niente entrate
+   return node;
+ });
+ const ms=motionMs('--dur-2');
+ // Le schede chiuse: una copia resta dov'era e sfuma, mentre le altre scorrono nel buco.
+ if(ms)for(const [key,node] of old){
+   const r=before.get(key);
+   if(!r||!r.width)continue;
+   const ghost=node.cloneNode(true);
+   Object.assign(ghost.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',margin:'0',pointerEvents:'none',zIndex:'5'});
+   ghost.classList.add('strip-ghost');
+   document.body.append(ghost);
+   ghost.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(6px) scale(.92)'}],{duration:ms,easing:'cubic-bezier(.65,0,.35,1)'}).onfinish=()=>ghost.remove();
+ }
+ strip.replaceChildren(...nodes);
+ if(!ms)return;
+ for(const node of nodes){
+   const r0=before.get(node.dataset.key);
+   if(!r0||node.classList.contains('strip-enter'))continue;
+   const dx=r0.left-node.getBoundingClientRect().left;
+   if(Math.abs(dx)>1)node.animate([{transform:`translateX(${dx}px)`},{transform:'none'}],{duration:ms,easing:'cubic-bezier(.2,.8,.2,1)'});
+ }
+ setTimeout(()=>{for(const node of nodes)node.classList.remove('strip-enter');},ms+50);
 }
 // Homepage lives inside a tab; it is displayed only when that tab is active.
 // ── Stack compatto (Beta 0.18) ───────────────────────────────────────────
@@ -1254,67 +1359,10 @@ function render(){
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
- const tabs=$('tabs');tabs.replaceChildren();
- for(const entry of state.tabStrip||[]){
-   if(entry.kind==='group'&&entry.collapsed){tabs.appendChild(compactStack(entry));continue;}
-   if(entry.kind==='group'){
-     const group=document.createElement('div');
-     group.className='stack-heading'+(entry.collapsed?' collapsed':'')+(entry.active?' contains-active':'');
-     const toggle=document.createElement('button');
-     toggle.className='stack-toggle';
-     toggle.replaceChildren(icon(entry.collapsed?'stack-closed':'stack-open'),entry.group+' ('+entry.count+')');
-     toggle.title=entry.collapsed?'Espandi stack':'Comprimi stack';
-     toggle.setAttribute('aria-expanded',String(!entry.collapsed));
-     toggle.onclick=()=>act('toggleGroup',{group:entry.group});
-     group.appendChild(toggle);
-     const actions=iconButton(group,'tab-more','Azioni stack',()=>act('tabContextMenu',{id:entry.tabIds[0]}),'stack-actions');
-     actions.title='Azioni stack';
-     // Trascinare un'altra scheda SOPRA lo stack la aggiunge al gruppo.
-     group.ondragover=event=>event.preventDefault();
-     group.ondrop=event=>{
-       event.preventDefault();
-       const fromId=Number(event.dataTransfer.getData('text/plain'));
-       if(Number.isInteger(fromId)&&fromId!==entry.tabIds[0])
-         act('stackTabs',{fromId,targetId:entry.tabIds[0]});
-     };
-     tabs.appendChild(group);
-     continue;
-   }
-   const t=entry.tab;
-   const tab=document.createElement('div');
-   // sleeping: pagina sospesa per risparmiare memoria, si ricarica al clic.
-   tab.className='tab'+(t.active?' active':'')+(t.pinned?' pinned':'')+(t.sleeping?' sleeping':'')+(t.inSplit?' in-split':'')+
-     (entry.inGroup?' stacked':'');
-   tab.draggable=true;
-   tab.ondragstart=event=>{
-     event.dataTransfer.setData('text/plain',String(t.id));
-     event.dataTransfer.effectAllowed='move';
-   };
-   tab.ondragover=event=>event.preventDefault();
-   tab.ondrop=event=>{
-     event.preventDefault();
-     const fromId=Number(event.dataTransfer.getData('text/plain'));
-     if(!Number.isInteger(fromId)||fromId===t.id)return;
-     // Shift + trascina: crea/assegna uno stack. Senza Shift: riordina soltanto.
-     if(event.shiftKey)act('stackTabs',{fromId,targetId:t.id});
-     else act('reorderTab',{id:fromId,beforeId:t.id});
-   };
-   // Icona del sito, oppure un cerchio che gira mentre la pagina carica.
-   if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
-   else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
-   const title=document.createElement('span');
-   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':'home-tab'),t.page==='settings'?'Impostazioni':'Home');
-   else title.textContent=t.title||t.url;
-   title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
-   title.onclick=()=>act('activateTab',{id:t.id});
-   tab.appendChild(title);
-   // Il menu contestuale è nativo Windows, anche con una pagina web aperta.
-   tab.oncontextmenu=event=>{event.preventDefault();act('tabContextMenu',{id:t.id});};
-   const menu=iconButton(tab,'tab-more','Menu scheda',()=>act('tabContextMenu',{id:t.id}),'tab-more');
-   menu.title='Menu scheda';
-   iconButton(tab,'close','Chiudi scheda',()=>act('closeTab',{id:t.id}),'tab-close');
-   tabs.appendChild(tab);
- }
+ // Beta 0.27: la barra non si ricrea da zero. Ogni scheda tiene il suo elemento finché non cambia;
+ // le nuove entrano, le chiuse escono sfumando e le altre scorrono al loro posto (FLIP).
+ const tabs=$('tabs');
+ renderTabStrip(tabs,state.tabStrip||[]);
  // Beta 0.24: contatore delle schede e scheda attiva sempre in vista (solo quando cambia,
  // così non ti riporta indietro mentre scorri la barra).
  const tabTotal=(state.tabs||[]).filter(t=>!t.isHome).length;
