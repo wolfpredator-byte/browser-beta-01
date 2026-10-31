@@ -933,3 +933,7 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
 #splitDropPreview[hidden]{display:none}
 #splitDropHint{position:absolute;left:50%;top:18px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;font-size:var(--fs-sm);
   background:rgba(var(--v-bg-rgb),.85);border:1px solid var(--v-line);box-shadow:var(--shadow-2);pointer-events:none;white-space:nowrap}
+/* Workspace con account separati: un piccolo scudo sull'icona. */
+.workspace-button.isolated .workspace-icon{position:relative}
+.workspace-button.isolated .workspace-icon::after{content:'';position:absolute;right:-5px;bottom:-4px;width:11px;height:11px;border-radius:50%;
+  background:var(--v-accent) url(assets/icons/shield.svg) center/8px no-repeat;box-shadow:0 0 0 2px rgba(var(--v-bg-rgb),1)}

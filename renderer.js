@@ -1624,6 +1624,8 @@ function render(){
  renderHomeCards();
  renderWebPanels(); // Beta 0.27
  applyFrame(); // Beta 0.28: disposizione dell'interfaccia
+ // Le icone delle estensioni della sessione di questo workspace (account separati = sessione sua).
+ if(state.partition&&$('extensionActions').getAttribute('partition')!==state.partition)$('extensionActions').setAttribute('partition',state.partition);
  $('reopenClosed').disabled=!state.canReopenClosed;
  // Gli elementi 'group' e 'tab' arrivano dal modello tab-advanced.cjs.
  // I gruppi compressi visualizzano solo l'intestazione; i siti rimangono aperti.
@@ -1647,7 +1649,7 @@ function render(){
  for(const workspace of state.workspaces){
    const button=document.createElement('button');
    button.className='workspace-button'+(workspace.name===state.activeWorkspace?' selected':'')+
-     (workspace.openElsewhere?' elsewhere':'');
+     (workspace.openElsewhere?' elsewhere':'')+(workspace.isolated?' isolated':''); // Beta 0.28: account separati
    // Un workspace può stare in una sola finestra: il clic porta in primo piano quella.
    button.title=workspace.name+(workspace.openElsewhere?' — aperto in un’altra finestra':'')+
      ' — click destro per altre opzioni';
