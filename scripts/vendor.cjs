@@ -46,4 +46,20 @@ for(const [target,source] of Object.entries(FILES)){
   fs.mkdirSync(path.dirname(to),{recursive:true});
   fs.copyFileSync(from,to);copied++;
 }
+// Beta 0.26: elementi <browser-action-list> per le icone delle estensioni nella cornice.
+// La cornice è in sandbox e il suo preload non può caricare moduli: il "ponte" sta in preload.cjs,
+// mentre la parte che disegna le icone la estraiamo qui e la cornice la carica come script normale.
+{
+  const source=fs.readFileSync(path.join(nm,'electron-chrome-extensions','dist','cjs','browser-action.js'),'utf8');
+  const start=source.indexOf('function mainWorldScript() {');
+  const end=source.indexOf('if (process.contextIsolated)');
+  if(start===-1||end===-1){console.error('electron-chrome-extensions: formato di browser-action.js cambiato');process.exitCode=1;}
+  else{
+    const body=source.slice(start,end).trim(); // la funzione intera, fino alla sua graffa
+    const target=path.join(out,'frame','browser-action-element.js');
+    fs.mkdirSync(path.dirname(target),{recursive:true});
+    fs.writeFileSync(target,'// Estratto da electron-chrome-extensions (MIT) da scripts/vendor.cjs.\n'+body+'\nmainWorldScript();\n');
+    copied++;
+  }
+}
 console.log(`vendor: ${copied} file in viewer/vendor`);

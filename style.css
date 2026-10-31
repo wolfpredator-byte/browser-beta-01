@@ -695,3 +695,8 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .pw-user{font-size:12px;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pw-secret{flex:0 1 110px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;opacity:.85}
 .pw-row .inline-buttons button{padding:4px 9px;font-size:12px}
+/* Beta 0.26: icone delle estensioni nella barra in alto (componente con shadow DOM: si stila con ::part). */
+#extensionActions{display:flex;align-items:center;gap:2px;flex:none}
+#extensionActions::part(action){width:30px;height:30px;border:0;border-radius:9px;background-color:transparent;background-size:18px;background-position:center;background-repeat:no-repeat}
+#extensionActions::part(action):hover{background-color:rgba(var(--v-accent-rgb),.18)}
+#extensionActions::part(badge){font-size:9px;border-radius:5px}

@@ -46,6 +46,9 @@ const windows=require('./lib/windows.cjs');
 const tabs=require('./lib/tabs.cjs');
 
 app.enableSandbox();
+// Beta 0.26: la libreria delle estensioni registra lo schema crx:// (icone) quando viene caricata,
+// e va fatto prima che l'app sia pronta.
+require('electron-chrome-extensions');
 // Stessa cartella dati per `npm start` e per l'eseguibile installato: workspace,
 // sessioni, segreti e jarvis-mcp.json restano in %APPDATA%\personal-workspace-browser.
 // --user-data-dir (profili di prova) ha la precedenza.

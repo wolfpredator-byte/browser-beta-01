@@ -611,6 +611,21 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        r=>`Importate ${r.added} nuove e ${r.updated} aggiornate${r.skipped?` (${r.skipped} righe saltate)`:''}.`)]),
      hint('Cifrate con la protezione dati di Windows: solo il tuo account può leggerle. Le pagine ricevono una password solo quando scegli un account dall’elenco sotto il campo. Per esportare da Chrome: Impostazioni → Password → Esporta password.'));
  }
+ // Estensioni Chrome (Beta 0.26): si aggiungono dal Chrome Web Store, qui si gestiscono.
+ function extensionSection(hint){
+   const x=state.extensions;
+   if(!x)return el('span');
+   const rows=x.list.map(e=>el('div',{className:'pw-row'},
+     el('div',{className:'pw-site'},el('span',{className:'pw-host',textContent:`${e.name} ${e.version}`}),
+       el('span',{className:'pw-user',textContent:e.description||e.id,title:e.id})),
+     el('span',{className:'inline-buttons'},
+       ...(e.options?[addButton(el('span'),'Impostazioni',()=>act('extensionOptions',{id:e.id}))]:[]),
+       confirmButton('Rimuovi','Conferma',()=>settingsAction('extensionRemove',`«${e.name}» rimossa.`,{id:e.id})))));
+   return section('Estensioni',
+     ...(x.list.length?rows:[hint('Nessuna estensione. Aprile dal Chrome Web Store: il pulsante «Aggiungi» funziona anche in VARCO.')]),
+     projectButtons(['Apri il Chrome Web Store',()=>act('openWebStore'),'primary']),
+     hint('Le icone delle estensioni compaiono accanto alla barra degli indirizzi; un clic apre il loro menu. Funzionano quasi tutte le estensioni comuni (blocchi, temi scuri, gestori di password, traduttori); quelle che usano funzioni rare di Chrome possono funzionare solo in parte. VARCO chiede sempre prima di installare.'));
+ }
  function updateSection(row,hint){
    const u=state.update;
    if(!u)return el('span');
@@ -633,7 +648,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const s=state.settings;
    const list=$('settingsBody');
    if(list.contains(document.activeElement)&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
-   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords]);
+   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords,state.extensions]);
    if(key===renderedSettings)return;
    renderedSettings=key;
    const panel=$('settingsPage'),scroll=panel.scrollTop;
@@ -649,6 +664,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
      updateSection(row,hint),
      passwordSection(hint),
+     extensionSection(hint),
      section('Browser e file',
        projectButtons(['Apri le App predefinite di Windows',()=>act('openDefaultApps')]),
        hint('VARCO compare in "Apri con" per i file che sa mostrare (PDF, immagini, video, codice, modelli 3D…). Per aprirli sempre con VARCO, o per usarlo come browser, sceglilo lì per ogni tipo.')),
