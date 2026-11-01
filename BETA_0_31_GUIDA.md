@@ -54,7 +54,7 @@ Apri una scheda sul telefono e, con un tasto, la mandi al PC scegliendo dove apr
 - [ ] **T197** — PC: Scollega il telefono. Sul telefono, al controllo successivo, compare "Il PC non riconosce più questo telefono".
 
 **Stato:**
-- 173 test sul PC (8 nuovi sul collegamento) e 16 sul telefono, più una prova dal vivo.
+- 165 test sul PC (8 nuovi sul collegamento) e 16 sul telefono, più una prova dal vivo.
 - **Provato sul PC con un telefono simulato** (Node) che parla lo stesso protocollo:
   - abbinamento, scoperta via broadcast, rifiuto di chi non è abbinato;
   - schede nelle quattro destinazioni; la pagina riparte al 40% dello scroll;
