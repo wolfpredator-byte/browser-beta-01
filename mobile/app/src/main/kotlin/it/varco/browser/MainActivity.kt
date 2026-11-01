@@ -90,6 +90,7 @@ class MainActivity : Activity(), Pages.Listener {
         state = store.load()
         ui.theme = Themes.byId(state.settings.theme)
         pages = Pages(this, state, this)
+        pages.canCapture = { layer.visibility != View.VISIBLE && fullscreen.visibility != View.VISIBLE }
         build()
         if (Build.VERSION.SDK_INT >= 33) {
             onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { handleBack() }
@@ -210,7 +211,6 @@ class MainActivity : Activity(), Pages.Listener {
             clipToOutline = true
             addView(FrameLayout(this@MainActivity).apply { addView(progress, FrameLayout.LayoutParams(ui.MATCH, dp(2))) }, LinearLayout.LayoutParams(ui.MATCH, dp(2)))
             addView(controls)
-            elevation = dp(8).toFloat()
         }
         root.addView(bar, FrameLayout.LayoutParams(ui.MATCH, ui.WRAP, Gravity.BOTTOM))
 
@@ -421,12 +421,14 @@ class MainActivity : Activity(), Pages.Listener {
             fullscreen.removeAllViews()
             fullscreen.addView(view, FrameLayout.LayoutParams(ui.MATCH, ui.MATCH))
             fullscreen.visibility = View.VISIBLE
+            bar.visibility = View.GONE
             fullscreenCallback = callback
             controller?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(WindowInsets.Type.systemBars())
         } else {
             fullscreen.removeAllViews()
             fullscreen.visibility = View.GONE
+            bar.visibility = if (layer.visibility == View.VISIBLE && editPanel != null) View.INVISIBLE else View.VISIBLE
             fullscreenCallback = null
             controller?.show(WindowInsets.Type.systemBars())
         }
@@ -527,7 +529,7 @@ class MainActivity : Activity(), Pages.Listener {
         }
         fun refresh(q: String) {
             suggestions.removeAllViews()
-            for (s in suggestionsFor(q)) suggestions.addView(ui.menuRow(s.icon, s.title, s.detail) { closeLayer(); s.run() }.apply {
+            for (s in suggestionsFor(q)) suggestions.addView(ui.menuRow(s.icon, s.title, s.detail) { s.run(); closeLayer() }.apply {
                 // Titoli lunghi (schede aperte) su una riga sola, col valore a destra sempre visibile.
                 for (i in 0 until childCount) (getChildAt(i) as? TextView)?.apply { isSingleLine = true; ellipsize = TextUtils.TruncateAt.END }
                 if (s.detail != null) (getChildAt(childCount - 1) as TextView).apply { maxWidth = dp(140); setPadding(dp(10), 0, 0, 0) }
@@ -618,9 +620,17 @@ class MainActivity : Activity(), Pages.Listener {
 
     // ------------------------------------------------------------------ griglia delle schede e workspace
 
+    /** Prima la foto della pagina aperta (finché è visibile), poi la griglia. */
     private fun openTabs() {
-        state.current()?.let { pages.snapshot(it.id) }
-        openLayer(dim = .94f)
+        val cur = state.current()
+        if (cur != null && layer.visibility != View.VISIBLE) pages.snapshot(cur.id) { buildTabs() } else buildTabs()
+    }
+
+    private fun buildTabs() {
+        openLayer(dim = 1f)
+        // Opaca: sotto non devono vedersi la Home o la pagina. La barra si nasconde, la griglia ha i suoi pulsanti.
+        layer.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(Themes.mix(ui.bg, ui.accent, .08f), ui.bg))
+        bar.visibility = View.INVISIBLE
         layer.setOnClickListener(null)
         val chips = ui.row().apply { setPadding(dp(12), dp(10), dp(12), dp(10)) }
         for (ws in state.workspaces) {
@@ -646,7 +656,7 @@ class MainActivity : Activity(), Pages.Listener {
         val scroll = ScrollView(this).apply { addView(grid); isVerticalScrollBarEnabled = false }
 
         val actions = ui.row(
-            ui.button("Nuova scheda", primary = true) { closeLayer(); newTab() },
+            ui.button("Nuova scheda", primary = true) { newTab() },
         ).apply { setPadding(dp(16), dp(8), dp(16), sysBottom + dp(12)) }
         actions.addView(View(this), ui.lp(dp(10), 1))
         actions.addView(ui.button("Fatto") { closeLayer() })
@@ -673,41 +683,52 @@ class MainActivity : Activity(), Pages.Listener {
 
     private fun tabCard(t: Tab, h: Int): View {
         val active = t.id == state.current()?.id
-        val thumb = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            setBackgroundColor(Themes.mix(ui.bg, 0xFFFFFFFF.toInt(), .04f))
-            val bmp = pages.thumbs[t.id]
-            when {
-                t.url == UrlRules.HOME -> { setImageBitmap(wallpaperThumb()) }
-                bmp != null -> { setImageBitmap(bmp); scaleType = ImageView.ScaleType.MATRIX; imageMatrix = android.graphics.Matrix().apply {
-                    val s = (h * 2f) / bmp.width.coerceAtLeast(1); setScale(s, s) } }
+        val bmp = pages.thumbs[t.id]
+        val icon = pages.icons[t.id]
+        val body = FrameLayout(this).apply { setBackgroundColor(Themes.mix(ui.bg, 0xFFFFFFFF.toInt(), .04f)) }
+        when {
+            t.url == UrlRules.HOME -> body.addView(ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setImageBitmap(wallpaperThumb()) })
+            bmp != null -> body.addView(ImageView(this).apply {
+                setImageBitmap(bmp)
+                // La miniatura riempie la larghezza partendo dall'alto della pagina.
+                scaleType = ImageView.ScaleType.MATRIX
+                addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+                    val s = v.width.toFloat() / bmp.width.coerceAtLeast(1)
+                    (v as ImageView).imageMatrix = android.graphics.Matrix().apply { setScale(s, s) }
+                }
+            })
+            else -> {
+                // Scheda mai vista (dormiva dall'avvio): l'icona del sito e il suo nome al posto della foto.
+                val col = ui.column().apply { gravity = Gravity.CENTER }
+                if (icon != null) col.addView(ImageView(this).apply { setImageBitmap(icon) }, LinearLayout.LayoutParams(dp(32), dp(32)).apply { bottomMargin = dp(10) })
+                else col.addView(ui.label(UrlRules.displayHost(t.url).take(1).uppercase(), 26f, ui.accent, bold = true).apply {
+                    gravity = Gravity.CENTER
+                    background = ui.round(Themes.alpha(ui.accent, .14f), 14f)
+                }, LinearLayout.LayoutParams(dp(48), dp(48)).apply { bottomMargin = dp(10) })
+                col.addView(ui.label(UrlRules.displayHost(t.url), 12f, ui.muted).apply { isSingleLine = true; ellipsize = TextUtils.TruncateAt.END; gravity = Gravity.CENTER })
+                body.addView(col, FrameLayout.LayoutParams(ui.MATCH, ui.WRAP, Gravity.CENTER).apply { leftMargin = dp(10); rightMargin = dp(10) })
             }
         }
-        // La miniatura riempie la larghezza partendo dall'alto della pagina.
-        if (pages.thumbs[t.id] != null && t.url != UrlRules.HOME) thumb.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
-            val bmp = pages.thumbs[t.id] ?: return@addOnLayoutChangeListener
-            val s = v.width.toFloat() / bmp.width.coerceAtLeast(1)
-            (v as ImageView).imageMatrix = android.graphics.Matrix().apply { setScale(s, s) }
-        }
-        val icon = pages.icons[t.id]
         val head = ui.row().apply {
             setPadding(dp(10), 0, dp(2), 0)
             if (icon != null) addView(ImageView(this@MainActivity).apply { setImageBitmap(icon) }, LinearLayout.LayoutParams(dp(14), dp(14)).apply { marginEnd = dp(7) })
             addView(ui.label(if (t.url == UrlRules.HOME) "Home" else t.title.ifBlank { UrlRules.displayHost(t.url) }, 12.5f, if (active) ui.text else ui.muted, bold = active).apply {
                 isSingleLine = true; ellipsize = TextUtils.TruncateAt.END
             }, ui.lp(0, ui.WRAP, 1f))
-            addView(ui.iconButton(R.drawable.ic_close, "Chiudi scheda") { closeTab(t.id); if (state.tabsOf().isNotEmpty()) openTabs() }.apply {
+            addView(ui.iconButton(R.drawable.ic_close, "Chiudi scheda") { closeTab(t.id); buildTabs() }.apply {
                 layoutParams = LinearLayout.LayoutParams(dp(34), dp(34))
                 (getChildAt(0).layoutParams as FrameLayout.LayoutParams).apply { width = dp(16); height = dp(16) }
             })
         }
         return ui.column(head).apply {
-            addView(thumb, ui.lp(ui.MATCH, 0, 1f))
-            background = ui.pressable(ui.glass, 16f, if (active) ui.accent else ui.line)
-            if (active) (background as? android.graphics.drawable.RippleDrawable)?.let { (it.getDrawable(0) as GradientDrawable).setStroke(dp(2), ui.accent) }
+            addView(body, ui.lp(ui.MATCH, 0, 1f))
+            background = ui.pressable(ui.glass, 16f)
+            // Il bordo sta in primo piano, sopra la miniatura: così si vede tutto intorno.
+            foreground = ui.round(0, 16f, if (active) ui.accent else ui.line, if (active) 2f else 1f)
             clipToOutline = true
             isClickable = true
-            setOnClickListener { closeLayer(); select(t) }
+            // Prima scelgo la scheda, poi chiudo la griglia: la foto di quella vecchia è già stata fatta all'apertura.
+            setOnClickListener { select(t); closeLayer() }
             setOnLongClickListener { tabOptions(t); true }
         }
     }

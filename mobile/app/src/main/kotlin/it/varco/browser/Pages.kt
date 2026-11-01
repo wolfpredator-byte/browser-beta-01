@@ -6,7 +6,10 @@ import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.Canvas
+import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -84,19 +87,28 @@ class Pages(private val activity: Activity, private val state: BrowserState, pri
         destroy()
     }
 
-    /** Una piccola foto della pagina per la griglia delle schede (un terzo della misura). */
-    fun snapshot(id: String, view: WebView? = awake[id]) {
-        val v = view ?: return
-        if (v.width <= 0 || v.height <= 0) return
+    /** false quando sopra la pagina c'è qualcosa (griglia, menu, tastiera): la foto prenderebbe quello. */
+    var canCapture: () -> Boolean = { true }
+
+    /**
+     * Una piccola foto della pagina per la griglia delle schede (un terzo della misura).
+     * Copia i pixel dallo schermo (PixelCopy): disegnare la WebView in un Bitmap dà un'immagine nera,
+     * perché la pagina la disegna la GPU. Quindi funziona solo con la pagina visibile. done arriva sempre, anche se la foto non riesce.
+     */
+    fun snapshot(id: String, view: WebView? = awake[id], done: (() -> Unit)? = null) {
+        val v = view
+        if (v == null || !v.isAttachedToWindow || !v.isShown || v.width <= 0 || v.height <= 0 || !canCapture()) { done?.invoke(); return }
         try {
             val scale = .34f
-            val bmp = Bitmap.createBitmap((v.width * scale).toInt().coerceAtLeast(1), (v.height * scale).toInt().coerceAtLeast(1), Bitmap.Config.RGB_565)
-            val c = Canvas(bmp)
-            c.scale(scale, scale)
-            c.translate(-v.scrollX.toFloat(), -v.scrollY.toFloat())
-            v.draw(c)
-            thumbs[id] = bmp
-        } catch (_: OutOfMemoryError) { }
+            val bmp = Bitmap.createBitmap((v.width * scale).toInt().coerceAtLeast(1), (v.height * scale).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+            val at = IntArray(2)
+            v.getLocationInWindow(at)
+            val rect = Rect(at[0], at[1], at[0] + v.width, at[1] + v.height)
+            PixelCopy.request(activity.window, rect, bmp, { result ->
+                if (result == PixelCopy.SUCCESS) thumbs[id] = bmp
+                done?.invoke()
+            }, Handler(Looper.getMainLooper()))
+        } catch (_: Throwable) { done?.invoke() }
     }
 
     fun applySettings() {

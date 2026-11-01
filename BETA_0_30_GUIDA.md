@@ -65,6 +65,13 @@ Il browser per PC non cambia in questa versione. La 0.30 è la prima del telefon
 - [ ] **T187** — Video di YouTube a schermo intero: le barre spariscono. Indietro esce dallo schermo intero.
 - [ ] **T188** — Imposta VARCO come browser di serie, poi tocca un link in un'altra app (Telegram, mail…): si apre in VARCO. Scarica un file: arriva in Download.
 
+**Prima prova sul telefono (2 novembre):** Home, menu e temi a posto. Corretti:
+- la barra restava sopra il video a schermo intero e sopra la griglia delle schede, coprendo "Nuova scheda" e "Fatto". Su Android un elemento con l'ombra (elevation) si disegna sopra a tutto: ho tolto l'ombra;
+- la griglia era semitrasparente e si vedevano la Home e la pagina sotto: ora è opaca;
+- le anteprime erano nere: ora la foto si copia dallo schermo (PixelCopy) mentre la pagina è visibile;
+- le schede mai aperte da quando hai avviato l'app mostrano l'icona e il nome del sito al posto della foto;
+- il bordo della scheda aperta si vedeva solo in alto: ora sta sopra la miniatura e la circonda tutta.
+
 **Stato:** 11 test JUnit superati (regole della barra, user agent, schede e workspace, schede che dormono). L'APK compila.
 - **Non ancora provato su un telefono vero.** L'emulatore non parte su questo PC: manca l'accelerazione hardware. Per attivarla: Windows → "Attiva o disattiva funzionalità di Windows" → **Piattaforma hypervisor Windows**, poi riavvia. Il telefono virtuale di prova `VARCO_Test` è già creato.
 - In alternativa, con il **debug wireless** del telefono (Opzioni sviluppatore → Debug wireless) posso installare l'app e leggerne gli errori direttamente dal PC.
