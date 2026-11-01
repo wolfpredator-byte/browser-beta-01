@@ -16,7 +16,7 @@ test('aspetto: valori sbagliati tornano entro i limiti o al predefinito', ()=>{
   assert.deepEqual(a.hidden,['showNotes']);
   assert.equal(a.home.jarvis,false);
   assert.equal(a.home.search,true);
-  assert.deepEqual(a.wallpaper,{kind:'default',file:'',blur:0,brightness:100}); // immagine senza file → VARCO
+  assert.deepEqual(a.wallpaper,{kind:'default',file:'',gradient:'aurora',blur:0,brightness:100}); // immagine senza file → VARCO
   assert.deepEqual(normalizeAppearance(undefined),defaultAppearance());
 });
 
@@ -76,7 +76,7 @@ test('preset del workspace: tema pronto, preset tuo o come gli altri', ()=>{
   const lime=effectiveAppearance(global,'theme:lime',presets);
   assert.equal(lime.theme,'lime');
   assert.equal(lime.accent,'');
-  assert.deepEqual(lime.wallpaper,{kind:'default',file:'',blur:4,brightness:50}); // sfondo del preset
+  assert.deepEqual(lime.wallpaper,{kind:'default',file:'',gradient:'aurora',blur:4,brightness:50}); // sfondo del preset
   const mine=effectiveAppearance(global,'user:Mio',presets);
   assert.equal(mine.accent,'#ff0000');
   assert.equal(mine.radius,3);
@@ -91,4 +91,32 @@ test('link rapidi: solo http(s), titolo dal sito, al massimo 12', ()=>{
   assert.equal(links[1].title,'Mio');
   assert.equal(links.length,12);
   assert.ok(links.every(l=>l.url.startsWith('http')));
+});
+
+test('Beta 0.29: sfondi generati, carattere, bagliore, grana, tema chiaro', ()=>{
+  const r=require('../lib/appearance-rules.cjs');
+  const n=r.normalizeAppearance({font:'nessuno',mode:'boh',glow:400,grain:-3,wallpaper:{kind:'gradient',gradient:'zz'}});
+  assert.deepEqual([n.font,n.mode,n.glow,n.grain,n.wallpaper.kind,n.wallpaper.gradient],['segoe','scuro',100,0,'gradient','aurora']);
+  const dark=r.cssVariables({});
+  assert.equal(dark['--v-ink-rgb'],'255,255,255');
+  assert.equal(dark['--v-glow'],'1.00');
+  const light=r.cssVariables({mode:'chiaro',font:'georgia',grain:50,wallpaper:{kind:'gradient',gradient:'mesh'}});
+  assert.equal(light['--v-ink-rgb'],'20,20,40');
+  assert.ok(parseInt(light['--v-bg'].slice(1,3),16)>230);          // sfondo chiaro
+  assert.match(light['--v-font'],/^Georgia/);
+  assert.match(light['--v-wallpaper'],/^radial-gradient/);
+  assert.equal(light['--v-grain'],'0.110');
+  for(const id of Object.keys(r.GRADIENTS))assert.match(r.gradientWallpaper(id,'#ff0066','#00ccff','#101018'),/gradient\(/);
+  assert.ok(r.PRESET_KEYS.includes('mode')&&r.PRESET_KEYS.includes('font'));
+});
+
+test('Beta 0.29: colori presi da un\'immagine', ()=>{
+  const {paletteFromPixels}=require('../lib/appearance-rules.cjs');
+  const px=Buffer.alloc(4*100);
+  for(let i=0;i<100;i++){const c=i<60?[255,40,160]:i<85?[0,220,255]:[10,8,20];px[i*4+2]=c[0];px[i*4+1]=c[1];px[i*4]=c[2];px[i*4+3]=255;}
+  const p=paletteFromPixels(px);
+  assert.equal(p.accent,'#ff28a0');      // il colore vivo più presente
+  assert.equal(p.accent2,'#00dcff');     // un'altra tinta
+  assert.ok(parseInt(p.bg.slice(1,3),16)<20);
+  assert.equal(paletteFromPixels(Buffer.alloc(16)).accent,'#7c6cff'); // niente colori vivi: quello di VARCO
 });

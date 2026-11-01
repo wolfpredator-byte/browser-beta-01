@@ -48,3 +48,19 @@ button:focus-visible{outline:2px solid var(--v-accent-2);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.menu,.dialog,.backdrop{animation:none}}
 .swatch{display:block;width:12px;height:12px;margin:2px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .chosen-mark{color:#cfc8ff;margin-left:12px}
+
+/* Beta 0.29: tema chiaro (lib/appearance.cjs passa --v-mode) e carattere scelto. */
+html,body,button{font-family:var(--v-font,'Segoe UI Variable','Segoe UI',Arial,sans-serif)}
+@container style(--v-mode: chiaro){
+  #root{color:#1c1b29}
+  .menu{background:rgba(252,252,255,.97);box-shadow:0 16px 40px rgba(20,20,40,.18)}
+  .item{color:#2a2938}.item .icon{color:#6a6788}.item .keys,.item .more{color:#8a88a0}
+  .item.active,.item:hover{color:#1c1b29}.item.active .icon,.item:hover .icon{color:var(--v-accent)}
+  .item.disabled{color:#b0aec2}.item.disabled .icon{color:#c4c2d4}
+  .backdrop{background:rgba(230,230,240,.5)}
+  .dialog{background:rgba(252,252,255,.98);box-shadow:0 24px 70px rgba(20,20,40,.22);color:#1c1b29}
+  .dialog p{color:#5d5b72}.dialog label{color:#3a3950}.dialog .close{color:#6a6788}.dialog .close:hover{background:rgba(20,20,40,.06);color:#1c1b29}
+  button{color:#1c1b29;background:rgba(20,20,40,.04)}
+  button.primary,button.danger{color:#fff}
+  .chosen-mark{color:var(--v-accent)}
+}

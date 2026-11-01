@@ -747,7 +747,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const a=state.appearance;
    if(!a)return;
    document.body.dataset.motion=a.motion||'auto'; // Beta 0.27: Impostazioni → Animazioni
-   const key=JSON.stringify([a.vars,a.hidden,a.density,a.home,a.logo]);
+   const key=JSON.stringify([a.vars,a.hidden,a.density,a.home,a.logo,a.mode]);
    if(key!==appliedAppearance){
      // Beta 0.27: cambiando tema o workspace i colori sfumano e lo sfondo nuovo entra in dissolvenza.
      const wallChanged=appliedAppearance!==null&&document.documentElement.style.getPropertyValue('--v-wallpaper')!==a.vars['--v-wallpaper'];
@@ -762,6 +762,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      if($('heroLogo').getAttribute('src')!==a.logo)$('heroLogo').src=a.logo;
      $('titlebarLogo').classList.toggle('themed',a.themedLogo);
      document.body.dataset.density=a.density;
+     document.body.dataset.mode=a.mode||'scuro'; // Beta 0.29: tema chiaro
      for(const node of document.querySelectorAll('.user-hidden'))node.classList.remove('user-hidden');
      for(const id of a.hidden)$(id)?.classList.add('user-hidden');
      for(const [card,nodes] of Object.entries(HOME_CARD_NODES))if(a.home[card]===false)for(const node of nodes())node?.classList.add('user-hidden');
@@ -917,6 +918,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      selectBox(wsOptions,a.workspacePreset,preset=>act('setWorkspacePreset',{preset})));
    // Sfondo
    const wallNow=a.wallpaper.kind==='image'?a.wallpaperName:a.wallpaper.kind==='none'?'Nessuno (tinta unita)':
+     a.wallpaper.kind==='gradient'?'Sfondo generato ('+(a.gradients.find(g=>g.id===a.wallpaper.gradient)?.label||'')+')':
      theme?.group==='preset'&&a.theme!=='varco'?'Sfondo del preset '+theme.label:'Sfondo VARCO';
    const wallAll=el('div',{className:'permission-row'},el('span',{textContent:'Tutti i workspace: '+wallNow}),
      projectButtons(['Immagine…',()=>act('chooseWallpaper',{scope:'all'})],[theme?.group==='preset'&&a.theme!=='varco'?'Del preset':'VARCO',()=>act('setWallpaperKind',{kind:'default'})],['Nessuno',()=>act('setWallpaperKind',{kind:'none'})]));
@@ -928,9 +930,14 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Preset',presetGrid,
        hint('Ogni preset porta colori, sfondo, logo e icona della finestra. Scegline uno diverso per un singolo workspace qui sotto.'),wsRow,
        ...(a.workspacePreset?[hint('Questo workspace ha un suo preset: le scelte qui sotto valgono per gli altri workspace.')]:[])),
-     section('Tema e colori',sub('Tinte (solo colori)'),grid,accentRow,accent2Row,
+     section('Tema e colori',
+       el('label',{className:'permission-row'},el('span',{textContent:'Tema'}),selectBox([['scuro','Scuro'],['chiaro','Chiaro']],a.mode,mode=>act('setMode',{mode}))),
+       sub('Tinte (solo colori)'),grid,accentRow,accent2Row,
+       el('div',{className:'inline-buttons'},addButton(el('span'),'Prendi i colori dallo sfondo',
+         ()=>settingsAction('accentFromWallpaper',r=>r.accent?`Colori presi: ${r.accent} e ${r.accent2}.`:''))),
        rangeRow('Opacità delle barre','glass',a.glass,L.glass,v=>v+'%'),
-       hint('Più bassa: barre più trasparenti, si vede di più lo sfondo.')),
+       rangeRow('Bagliore','glow',a.glow,L.glow,v=>v+'%'),
+       hint('Opacità più bassa: barre più trasparenti. Bagliore: quanto brillano i bordi e le ombre colorate. "Prendi i colori" usa lo sfondo in uso (o un\'immagine che scegli).')),
      section('I miei preset',...(mine.length?mine:[hint('Personalizza colori, sfondo e interfaccia, poi salva qui il risultato con un nome.')]),
        saveForm,
        el('div',{className:'inline-buttons'},
@@ -938,10 +945,19 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
          ...(mine.length?[addButton(el('span'),'Esporta…',()=>settingsAction('exportPresets',r=>`${r.count} preset esportati.`))]:[])),
        hint(`Al massimo ${a.maxPresets}. Il file esportato contiene anche gli sfondi: puoi passarlo a un altro PC.`)),
      section('Sfondo',wallAll,wallWs,
+       sub('Sfondi generati (con i colori del tema)'),
+       el('div',{className:'gradient-grid'},...a.gradients.map(g=>{
+         const card=el('button',{type:'button',className:'gradient-card'+(a.wallpaper.kind==='gradient'&&a.wallpaper.gradient===g.id?' chosen':''),title:g.label},el('span',{textContent:g.label}));
+         card.style.backgroundImage=g.css;
+         card.onclick=()=>act('setGradientWallpaper',{gradient:g.id});
+         return card;
+       })),
        rangeRow('Sfocatura','blur',a.wallpaper.blur,L.blur,v=>v+' px'),
        rangeRow('Luminosità','brightness',a.wallpaper.brightness,L.brightness,v=>v+'%'),
+       rangeRow('Grana','grain',a.grain,L.grain,v=>v+'%'),
        hint('L’immagine viene copiata nella cartella dei dati di VARCO: puoi spostare o cancellare l’originale.')),
      section('Interfaccia',
+       el('label',{className:'permission-row'},el('span',{textContent:'Carattere'}),selectBox(a.fonts.map(f=>[f.id,f.label]),a.font,font=>act('setFont',{font}))),
        el('label',{className:'permission-row'},el('span',{textContent:'Densità'}),selectBox(a.densities.map(d=>[d,d[0].toUpperCase()+d.slice(1)]),a.density,density=>act('setDensity',{density}))),
        el('label',{className:'permission-row'},el('span',{textContent:'Animazioni'}),selectBox([['auto','Automatiche (come Windows)'],['full','Complete'],['reduced','Ridotte'],['off','Spente']],
          state.appearance?.motion||'auto',motion=>act('setMotion',{motion}))),

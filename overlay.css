@@ -28,3 +28,12 @@ button.close{background:transparent;border:0;padding:4px;color:#8f8daa;flex:0 0 
 button.close:hover{color:#fff;background:rgba(255,255,255,.06)}
 button.close .i{width:14px;height:14px}
 @media(prefers-reduced-motion:reduce){.toast,.toast.leaving{animation:none}}
+
+/* Beta 0.29: tema chiaro (lib/appearance.cjs passa --v-mode) e carattere scelto. */
+html,body,button{font-family:var(--v-font,'Segoe UI Variable','Segoe UI',Arial,sans-serif)}
+@container style(--v-mode: chiaro){
+  #stack{color:#1c1b29}
+  .toast{background:rgba(252,252,255,.96);box-shadow:0 14px 34px rgba(20,20,40,.18)}
+  .text{color:#5d5b72}.bar{background:rgba(20,20,40,.08)}
+  button{color:#1c1b29}button.close{color:#6a6788}button.close:hover{color:#1c1b29;background:rgba(20,20,40,.06)}
+}
