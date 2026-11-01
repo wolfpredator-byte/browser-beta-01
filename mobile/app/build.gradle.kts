@@ -1,0 +1,65 @@
+plugins {
+    id("com.android.application")
+}
+
+android {
+    namespace = "it.varco.browser"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "it.varco.browser"
+        minSdk = 30
+        targetSdk = 36
+        versionCode = 30000
+        versionName = "0.30.0"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+}
+
+/**
+ * Sfondi e loghi vengono dagli asset del VARCO per PC (../../assets): li copio nell'APK a ogni build,
+ * così i due browser restano uguali senza file doppi nel repository.
+ */
+abstract class CopyVarcoAssets : DefaultTask() {
+    @get:InputDirectory abstract val source: DirectoryProperty
+    @get:OutputDirectory abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun run() {
+        val src = source.get().asFile
+        val out = output.get().asFile
+        out.deleteRecursively()
+        File(out, "varco").mkdirs()
+        File(src, "home-bg.jpg").copyTo(File(out, "varco/wallpaper.jpg"))
+        File(src, "app-icon-256.png").copyTo(File(out, "varco/logo.png"))
+        File(src, "presets").listFiles()?.filter { it.isDirectory }?.forEach { dir ->
+            for (name in listOf("wallpaper.jpg", "logo.png")) {
+                val f = File(dir, name)
+                if (f.exists()) f.copyTo(File(out, "${dir.name}/$name"))
+            }
+        }
+    }
+}
+
+val copyVarcoAssets = tasks.register<CopyVarcoAssets>("copyVarcoAssets") {
+    source.set(rootProject.layout.projectDirectory.dir("../assets"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copyVarcoAssets, CopyVarcoAssets::output)
+    }
+}

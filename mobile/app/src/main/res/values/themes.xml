@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Varco" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/varco_bg</item>
+        <item name="android:colorAccent">@color/varco_accent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <color name="varco_bg">#07070E</color>
+    <color name="varco_accent">#7C6CFF</color>
+</resources>

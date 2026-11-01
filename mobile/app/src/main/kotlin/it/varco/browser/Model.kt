@@ -1,0 +1,130 @@
+package it.varco.browser
+
+/**
+ * Beta 0.30: schede e workspace del telefono. Solo dati e regole, niente WebView:
+ * MainActivity li disegna e Store li salva.
+ */
+data class Workspace(val id: String, var name: String, var color: Int)
+
+data class Tab(
+    val id: String,
+    var workspace: String,
+    var url: String = UrlRules.HOME,
+    var title: String = "",
+    /** Ultima volta che l'hai guardata: decide quali schede vanno a dormire. */
+    var lastUsed: Long = 0,
+)
+
+class Settings(
+    var theme: String = "varco",
+    var searchEngine: String = "google",
+    var desktopSite: Boolean = false,
+)
+
+class BrowserState {
+    val workspaces = mutableListOf<Workspace>()
+    val tabs = mutableListOf<Tab>()
+    var activeWorkspace = ""
+    /** La scheda aperta in ogni workspace, così tornandoci la ritrovi. */
+    val activeTab = mutableMapOf<String, String>()
+    val settings = Settings()
+    private var seq = 0L
+
+    fun newId(prefix: String): String = "$prefix${System.currentTimeMillis().toString(36)}${(seq++).toString(36)}"
+
+    fun tabsOf(ws: String = activeWorkspace) = tabs.filter { it.workspace == ws }
+    fun workspace(id: String = activeWorkspace) = workspaces.firstOrNull { it.id == id }
+    fun current(): Tab? = tabs.firstOrNull { it.id == activeTab[activeWorkspace] && it.workspace == activeWorkspace }
+        ?: tabsOf().maxByOrNull { it.lastUsed }
+
+    /** Al primo avvio (o con dati rovinati): un workspace "Personale" con la Home. */
+    fun ensureValid(now: Long = System.currentTimeMillis()) {
+        if (workspaces.isEmpty()) workspaces += Workspace(newId("w"), "Personale", Themes.WORKSPACE_COLORS[0])
+        tabs.removeAll { t -> workspaces.none { it.id == t.workspace } }
+        if (workspace(activeWorkspace) == null) activeWorkspace = workspaces.first().id
+        for (ws in workspaces) if (tabsOf(ws.id).isEmpty()) tabs += Tab(newId("t"), ws.id, lastUsed = now)
+        for (ws in workspaces) if (tabs.none { it.id == activeTab[ws.id] && it.workspace == ws.id })
+            activeTab[ws.id] = tabsOf(ws.id).maxBy { it.lastUsed }.id
+    }
+
+    fun select(tab: Tab, now: Long = System.currentTimeMillis()) {
+        activeWorkspace = tab.workspace
+        activeTab[tab.workspace] = tab.id
+        tab.lastUsed = now
+    }
+
+    fun addTab(url: String = UrlRules.HOME, ws: String = activeWorkspace, select: Boolean = true, now: Long = System.currentTimeMillis()): Tab {
+        val tab = Tab(newId("t"), ws, url, lastUsed = if (select) now else now - 1)
+        // Subito dopo la scheda aperta, come sul PC.
+        val after = tabs.indexOfFirst { it.id == activeTab[ws] }
+        if (after >= 0) tabs.add(after + 1, tab) else tabs += tab
+        if (select) select(tab, now)
+        return tab
+    }
+
+    /**
+     * Chiude una scheda e dice quale aprire al suo posto.
+     * Come sul PC (0.12): chiudendo l'ultima del workspace non resti senza niente, torni alla Home.
+     */
+    fun closeTab(id: String, now: Long = System.currentTimeMillis()): Tab? {
+        val tab = tabs.firstOrNull { it.id == id } ?: return null
+        val siblings = tabsOf(tab.workspace)
+        val index = siblings.indexOf(tab)
+        tabs.remove(tab)
+        if (siblings.size == 1) {
+            val home = Tab(newId("t"), tab.workspace, lastUsed = now)
+            tabs += home
+            activeTab[tab.workspace] = home.id
+            return home
+        }
+        if (activeTab[tab.workspace] == id) {
+            val left = tabsOf(tab.workspace)
+            // La vicina a destra, o quella a sinistra se era l'ultima.
+            val next = left[index.coerceAtMost(left.size - 1)]
+            activeTab[tab.workspace] = next.id
+            next.lastUsed = now
+        }
+        return tabs.first { it.id == activeTab[tab.workspace] }
+    }
+
+    fun addWorkspace(name: String): Workspace {
+        val used = workspaces.map { it.color }.toSet()
+        val color = Themes.WORKSPACE_COLORS.firstOrNull { it !in used } ?: Themes.WORKSPACE_COLORS[workspaces.size % Themes.WORKSPACE_COLORS.size]
+        val ws = Workspace(newId("w"), name.trim().ifEmpty { "Workspace ${workspaces.size + 1}" }.take(30), color)
+        workspaces += ws
+        ensureValid()
+        return ws
+    }
+
+    /** Elimina un workspace con le sue schede. L'ultimo non si può eliminare. */
+    fun deleteWorkspace(id: String): Boolean {
+        if (workspaces.size <= 1 || workspace(id) == null) return false
+        workspaces.removeAll { it.id == id }
+        tabs.removeAll { it.workspace == id }
+        activeTab.remove(id)
+        if (activeWorkspace == id) activeWorkspace = workspaces.first().id
+        ensureValid()
+        return true
+    }
+
+    fun moveTab(id: String, ws: String) {
+        val tab = tabs.firstOrNull { it.id == id } ?: return
+        if (workspace(ws) == null || tab.workspace == ws) return
+        val from = tab.workspace
+        if (tabsOf(from).size == 1) tabs += Tab(newId("t"), from)
+        tab.workspace = ws
+        if (activeTab[from] == id) activeTab[from] = tabsOf(from).maxBy { it.lastUsed }.id
+        ensureValid()
+    }
+
+    companion object {
+        /** Quante pagine restano vive insieme. Le altre dormono: tengono indirizzo e cronologia, non memoria. */
+        const val MAX_AWAKE = 4
+
+        /** Le schede da far dormire: tutte tranne la aperta e le più recenti fino a MAX_AWAKE. */
+        fun toSleep(awake: Collection<Tab>, activeId: String?, max: Int = MAX_AWAKE): List<Tab> {
+            val keep = awake.sortedByDescending { if (it.id == activeId) Long.MAX_VALUE else it.lastUsed }.take(max).map { it.id }.toSet()
+            return awake.filter { it.id !in keep }
+        }
+    }
+}
