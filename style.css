@@ -695,6 +695,11 @@ body[data-density=ariosa] #sidePanelItems{line-height:1.7}
 .pw-user{font-size:12px;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pw-secret{flex:0 1 110px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;opacity:.85}
 .pw-row .inline-buttons button{padding:4px 9px;font-size:12px}
+/* Beta 0.31: QR per collegare il telefono */
+.link-qr{display:flex;gap:18px;align-items:center;margin:12px 0;padding:14px;border-radius:14px;background:rgba(var(--v-ink-rgb),.04);border:1px solid var(--v-line)}
+.link-qr img{width:180px;height:180px;border-radius:10px;background:#fff;padding:6px;flex:none;image-rendering:pixelated}
+.link-qr-text{display:flex;flex-direction:column;gap:8px;min-width:0}
+.link-qr-text p{margin:0;color:var(--v-muted);font-size:13px;line-height:1.45}
 /* Beta 0.26: icone delle estensioni nella barra in alto (componente con shadow DOM: si stila con ::part). */
 #extensionActions{display:flex;align-items:center;gap:2px;flex:none}
 #extensionActions::part(action){width:30px;height:30px;border:0;border-radius:9px;background-color:transparent;background-size:18px;background-position:center;background-repeat:no-repeat}

@@ -49,6 +49,25 @@ class Store(ctx: Context) {
                 )
             }
         }
+        o.optJSONObject("link")?.let { l ->
+            val secret = l.optString("secret")
+            if (secret.isNotEmpty() && l.optString("pcId").isNotEmpty()) s.link = LinkConfig(
+                l.getString("pcId"), l.optString("pcName", "PC"),
+                l.optJSONArray("hosts")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList(),
+                l.optInt("port", LinkRules.HTTP_PORT), secret, l.optString("deviceId").ifEmpty { LinkRules.newId(16) },
+                l.optString("lastHost"),
+                l.optJSONArray("workspaces")?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map { w ->
+                    w.optString("name") to (if (w.has("color")) w.optInt("color") else null) } } ?: emptyList(),
+                l.optString("lastTarget", "tab"), l.optLong("lastContact"))
+        }
+        o.optJSONArray("outbox")?.let { a ->
+            for (i in 0 until a.length()) {
+                val t = a.optJSONObject(i) ?: continue
+                val url = t.optString("url")
+                if (UrlRules.isWebUrl(url)) s.outbox += OutTab(t.optString("id").ifEmpty { LinkRules.newId() }, url, t.optString("title"),
+                    t.optDouble("scroll", 0.0), t.optDouble("time", 0.0), t.optString("target", "tab"))
+            }
+        }
         s.activeWorkspace = o.optString("activeWorkspace")
         o.optJSONObject("activeTab")?.let { m -> m.keys().forEach { k -> s.activeTab[k] = m.optString(k) } }
     }
@@ -63,6 +82,14 @@ class Store(ctx: Context) {
             })
             .put("activeWorkspace", s.activeWorkspace)
             .put("activeTab", JSONObject(s.activeTab as Map<*, *>))
+            .put("link", s.link?.let { l ->
+                JSONObject().put("pcId", l.pcId).put("pcName", l.pcName).put("hosts", JSONArray(l.hosts)).put("port", l.port)
+                    .put("secret", l.secret).put("deviceId", l.deviceId).put("lastHost", l.lastHost).put("lastTarget", l.lastTarget)
+                    .put("lastContact", l.lastContact)
+                    .put("workspaces", JSONArray().apply { l.workspaces.forEach { (n, c) -> put(JSONObject().put("name", n).apply { if (c != null) put("color", c) }) } })
+            } ?: JSONObject.NULL)
+            .put("outbox", JSONArray().apply { s.outbox.forEach { put(JSONObject().put("id", it.id).put("url", it.url).put("title", it.title)
+                .put("scroll", it.scroll).put("time", it.time).put("target", it.target)) } })
         val tmp = File(file.parentFile, "state.json.tmp")
         tmp.writeText(o.toString())
         if (!tmp.renameTo(file)) { file.delete(); tmp.renameTo(file) }

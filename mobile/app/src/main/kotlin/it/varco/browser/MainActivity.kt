@@ -50,10 +50,11 @@ import kotlin.math.abs
  * Come sul PC: le schede stanno in basso (qui una barra sola con l'indirizzo), la Home ha lo sfondo del tema,
  * i workspace separano le schede. Tutta l'interfaccia è costruita nel codice: build() la rifà quando cambi tema.
  */
-class MainActivity : Activity(), Pages.Listener {
+class MainActivity : Activity(), Pages.Listener, Link.Listener {
     private lateinit var state: BrowserState
     private lateinit var store: Store
     private lateinit var pages: Pages
+    private lateinit var link: Link
     private val ui = Ui(this)
     private val handler = Handler(Looper.getMainLooper())
     private val italian = Locale.ITALIAN
@@ -90,6 +91,7 @@ class MainActivity : Activity(), Pages.Listener {
         state = store.load()
         ui.theme = Themes.byId(state.settings.theme)
         pages = Pages(this, state, this)
+        link = Link(state, this)
         pages.canCapture = { layer.visibility != View.VISIBLE && fullscreen.visibility != View.VISIBLE }
         build()
         if (Build.VERSION.SDK_INT >= 33) {
@@ -113,12 +115,14 @@ class MainActivity : Activity(), Pages.Listener {
         super.onPause()
         state.current()?.let { pages.snapshot(it.id) }
         pages.pauseAll()
+        link.stopPolling()
         save()
     }
 
     override fun onResume() {
         super.onResume()
         pages.resumeAll()
+        link.startPolling()
     }
 
     // ------------------------------------------------------------------ interfaccia
@@ -199,7 +203,10 @@ class MainActivity : Activity(), Pages.Listener {
             setOnClickListener { openTabs() }
             setOnLongClickListener { newTab(); true }
         }
-        val menuButton = ui.iconButton(R.drawable.ic_menu, "Menu") { openMenu() }
+        val menuButton = ui.iconButton(R.drawable.ic_menu, "Menu") { openMenu() }.apply {
+            // Beta 0.31: tenendo premuto il menu mandi la pagina al PC con l'ultima destinazione scelta.
+            setOnLongClickListener { quickSendToPc(); true }
+        }
         val controls = ui.row().apply {
             addView(pill, ui.lp(0, dp(42), 1f))
             addView(tabsButton, LinearLayout.LayoutParams(dp(46), dp(44)).apply { marginStart = dp(4) })
@@ -825,6 +832,14 @@ class MainActivity : Activity(), Pages.Listener {
         val list = ui.column(quickRow,
             View(this).apply { setBackgroundColor(ui.line) }.also { it.layoutParams = LinearLayout.LayoutParams(ui.MATCH, 1).apply { bottomMargin = dp(6) } },
         )
+        val pc = state.link
+        if (pc != null && onPage) list.addView(ui.menuRow(R.drawable.ic_external, "Manda al PC", pc.pcName) { openSendSheet() })
+        if (pc == null) list.addView(ui.menuRow(R.drawable.ic_external, "Collega al PC") { openPairSheet() })
+        else list.addView(ui.menuRow(R.drawable.ic_info, "PC collegato", when {
+            state.outbox.isNotEmpty() -> "${state.outbox.size} in coda"
+            link.reachable -> "raggiungibile"
+            else -> "non raggiungibile"
+        }) { openLinkSheet() })
         if (onPage) list.addView(ui.menuRow(R.drawable.ic_forward, "Condividi") {
             closeLayer()
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, tab!!.url).putExtra(Intent.EXTRA_SUBJECT, tab.title), "Condividi"))
@@ -923,6 +938,189 @@ class MainActivity : Activity(), Pages.Listener {
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
 
+    // ------------------------------------------------------------------ collegamento col PC (Beta 0.31)
+
+    private fun targetLabel(target: String): String = when {
+        target == "tab" -> "Scheda nuova sul PC"
+        target == "window" -> "Finestra nuova sul PC"
+        target == "ask" -> "Chiedi sul PC"
+        target.startsWith("ws:") -> "Workspace ${target.removePrefix("ws:")}"
+        else -> target
+    }
+
+    /** Menu → Manda al PC: scegli dove si apre. L'ultima scelta sta in cima. */
+    private fun openSendSheet() {
+        val pc = state.link ?: return openPairSheet()
+        openLayer(dim = .5f)
+        val list = ui.column(title("Manda a ${pc.pcName}"))
+        val options = mutableListOf(
+            Triple("tab", R.drawable.ic_tab_new, "Scheda nuova nella finestra aperta"),
+            Triple("window", R.drawable.ic_external, "Finestra nuova"),
+            Triple("ask", R.drawable.ic_info, "Chiedi sul PC"),
+        )
+        options.sortByDescending { it.first == pc.lastTarget }
+        for ((target, icon, label) in options) list.addView(ui.menuRow(icon, label, if (target == pc.lastTarget) "ultima" else null) { closeLayer(); sendCurrentToPc(target) })
+        if (pc.workspaces.isNotEmpty()) {
+            list.addView(title("In un workspace del PC"))
+            for ((name, color) in pc.workspaces) list.addView(ui.row().apply {
+                background = ui.pressable(0, 12f)
+                setPadding(dp(14), 0, dp(14), 0)
+                minimumHeight = dp(48)
+                addView(View(this@MainActivity).apply {
+                    background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(color ?: ui.muted) }
+                }, LinearLayout.LayoutParams(dp(10), dp(10)).apply { marginStart = dp(5); marginEnd = dp(19) })
+                addView(ui.label(name, 15f), ui.lp(0, ui.WRAP, 1f))
+                if (pc.lastTarget == "ws:$name") addView(ui.label("ultima", 13f, ui.muted))
+                isClickable = true
+                setOnClickListener { closeLayer(); sendCurrentToPc("ws:$name") }
+            })
+        }
+        list.addView(ui.label("Tieni premuto il pulsante del menu per mandarla subito con l'ultima scelta.", 12f, ui.muted).apply { setPadding(dp(14), dp(10), dp(14), dp(4)) })
+        val scroll = ScrollView(this).apply { addView(list); isVerticalScrollBarEnabled = false }
+        sheet(scroll, bottomMargin = sysBottom + dp(8 + BAR + 8))
+        val maxH = (resources.displayMetrics.heightPixels * .62f).toInt()
+        scroll.post { if (scroll.height > maxH) scroll.layoutParams = LinearLayout.LayoutParams(ui.MATCH, maxH) }
+    }
+
+    private fun quickSendToPc() {
+        val pc = state.link
+        val tab = state.current()
+        when {
+            pc == null -> openPairSheet()
+            tab == null || tab.url == UrlRules.HOME -> toast("Apri una pagina da mandare al PC")
+            else -> sendCurrentToPc(pc.lastTarget)
+        }
+    }
+
+    /** Legge dove sei nella pagina (scroll, minuto del video), poi la mette in coda per il PC. */
+    private fun sendCurrentToPc(target: String) {
+        val pc = state.link ?: return
+        val tab = state.current() ?: return
+        if (!UrlRules.isWebUrl(tab.url)) return toast("Questa pagina non si può mandare")
+        pc.lastTarget = target
+        val view = pages.viewOf(tab.id)
+        val enqueue = { scroll: Double, time: Double ->
+            link.send(OutTab(LinkRules.newId(), tab.url, tab.title, scroll, time, target))
+            toast(if (link.reachable) "${targetLabel(target)}: mandata" else "In coda: parte quando sei sulla Wi-Fi di casa")
+            scheduleSave()
+        }
+        if (view == null) return enqueue(0.0, 0.0)
+        view.evaluateJavascript(LinkRules.CAPTURE_SCRIPT) { json ->
+            val o = runCatching { org.json.JSONObject(json) }.getOrNull()
+            enqueue(o?.optDouble("scroll", 0.0) ?: 0.0, o?.optDouble("time", 0.0) ?: 0.0)
+        }
+    }
+
+    /** Menu → Collega al PC: inquadra il QR delle Impostazioni del PC, oppure incolla il codice. */
+    private fun openPairSheet() {
+        openLayer(dim = .5f)
+        val content = ui.column(
+            title("Collega al PC"),
+            ui.label("Sul PC: VARCO → Impostazioni → Telefono → Collega un telefono. Telefono e PC devono essere sulla stessa Wi-Fi.", 14f, ui.muted).apply {
+                setPadding(dp(14), 0, dp(14), dp(14)); setLineSpacing(0f, 1.2f)
+            },
+        )
+        val buttons = ui.row().apply { setPadding(dp(6), 0, dp(6), dp(6)) }
+        buttons.addView(ui.button("Inquadra il QR", primary = true) { scanPairingCode() }, ui.lp(0, ui.WRAP, 1f))
+        buttons.addView(View(this), ui.lp(dp(8), 1))
+        buttons.addView(ui.button("Incolla il codice") {
+            val clip = (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).primaryClip
+            val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
+            if (text.isBlank()) toast("Gli appunti sono vuoti: sul PC premi «Copia il codice» e mandalo al telefono") else pairWith(text)
+        }, ui.lp(0, ui.WRAP, 1f))
+        content.addView(buttons)
+        sheet(content, bottomMargin = sysBottom + dp(8 + BAR + 8))
+    }
+
+    private fun scanPairingCode() {
+        try {
+            val options = com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions.Builder()
+                .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_QR_CODE).build()
+            com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(this, options).startScan()
+                .addOnSuccessListener { code -> code.rawValue?.let(::pairWith) }
+                .addOnFailureListener { toast("Lettore QR non disponibile: usa «Incolla il codice»") }
+        } catch (_: Throwable) {
+            toast("Lettore QR non disponibile: usa «Incolla il codice»")
+        }
+    }
+
+    private fun pairWith(code: String) {
+        closeLayer()
+        toast("Collegamento al PC…")
+        link.pair(code) { ok, message ->
+            toast(message)
+            if (ok) scheduleSave()
+        }
+    }
+
+    /** Menu → PC collegato: stato, controlla adesso, scollega. */
+    private fun openLinkSheet() {
+        val pc = state.link ?: return openPairSheet()
+        openLayer(dim = .5f)
+        val status = when {
+            link.reachable -> "Raggiungibile" + (pc.lastHost.takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "")
+            link.lastError.isNotEmpty() -> link.lastError
+            else -> "Non raggiungibile: VARCO deve essere aperto sul PC, sulla stessa Wi-Fi"
+        }
+        val list = ui.column(title(pc.pcName),
+            ui.label(status, 14f, ui.muted).apply { setPadding(dp(14), 0, dp(14), dp(8)) })
+        if (state.outbox.isNotEmpty()) list.addView(ui.label("In coda: " + state.outbox.joinToString(", ") { it.title.ifBlank { UrlRules.displayHost(it.url) } }, 13f, ui.muted).apply {
+            setPadding(dp(14), 0, dp(14), dp(8)); maxLines = 3; ellipsize = TextUtils.TruncateAt.END
+        })
+        list.addView(ui.menuRow(R.drawable.ic_reload, "Controlla adesso") { closeLayer(); toast("Controllo il PC…"); link.sync() })
+        list.addView(ui.menuRow(R.drawable.ic_external, "Collega di nuovo (QR nuovo)") { openPairSheet() })
+        list.addView(ui.menuRow(R.drawable.ic_close, "Scollega") { closeLayer(); link.unpair(); scheduleSave(); toast("Scollegato da ${pc.pcName}") })
+        sheet(list, bottomMargin = sysBottom + dp(8 + BAR + 8))
+    }
+
+    // Link.Listener
+
+    override fun onLinkChanged() { scheduleSave() }
+
+    override fun onSent(tab: OutTab) { }
+
+    override fun onUnpaired(reason: String) {
+        toast(reason)
+        scheduleSave()
+    }
+
+    /** Schede dal PC: si aprono dietro (nel workspace in cui sei) e compare un avviso con "Apri". */
+    override fun onIncoming(tabs: List<Link.Incoming>) {
+        val created = tabs.map { inc ->
+            val t = state.addTab(LinkRules.withTime(inc.url, inc.time), select = false)
+            t.title = inc.title
+            if (inc.scroll > 0.01 || inc.time >= 5) pages.restore[t.id] = inc.scroll to inc.time
+            t
+        }
+        updateBar()
+        scheduleSave()
+        if (created.isEmpty()) return
+        val pcName = state.link?.pcName ?: "PC"
+        showBanner(if (created.size == 1) "Da $pcName: ${created[0].title.ifBlank { UrlRules.displayHost(created[0].url) }}" else "${created.size} schede da $pcName") {
+            if (created.size == 1) select(created[0]) else openTabs()
+        }
+    }
+
+    private var banner: View? = null
+
+    /** Avviso sopra la barra, con un pulsante; sparisce da solo dopo 8 secondi. */
+    private fun showBanner(text: String, onOpen: () -> Unit) {
+        banner?.let { root.removeView(it) }
+        val card = ui.row(ui.icon(R.drawable.ic_external, 18, ui.accent).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = dp(10) }).apply {
+            background = ui.round(ui.glass, 18f, ui.lineStrong)
+            setPadding(dp(14), dp(6), dp(6), dp(6))
+            addView(ui.label(text, 14f).apply { maxLines = 2; ellipsize = TextUtils.TruncateAt.END }, ui.lp(0, ui.WRAP, 1f))
+        }
+        card.addView(ui.button("Apri", primary = true) { root.removeView(card); banner = null; onOpen() }.apply { minHeight = dp(38) })
+        root.addView(card, root.indexOfChild(layer), FrameLayout.LayoutParams(ui.MATCH, ui.WRAP, Gravity.BOTTOM).apply {
+            leftMargin = dp(14); rightMargin = dp(14); bottomMargin = sysBottom + dp(8 + BAR + 10)
+        })
+        banner = card
+        card.translationY = dp(30).toFloat(); card.alpha = 0f
+        card.animate().translationY(0f).alpha(1f).setDuration(220).start()
+        handler.postDelayed({ if (banner === card) { banner = null; card.animate().alpha(0f).setDuration(200).withEndAction { root.removeView(card) }.start() } }, 8000)
+    }
+
     companion object {
         private const val FILE_REQUEST = 42
         /** Altezza della barra in basso (dp): 2 della linea di caricamento + 58 dei pulsanti. */
@@ -932,5 +1130,5 @@ class MainActivity : Activity(), Pages.Listener {
 
 /** La versione scritta nel menu, senza attivare BuildConfig in Gradle. */
 object BuildConfigLite {
-    const val VERSION = "0.30.0"
+    const val VERSION = "0.31.0"
 }

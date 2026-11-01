@@ -120,6 +120,7 @@ function start(){
   // Schede non guardate da tempo tornano dormienti (impostazione nell'icona).
   sleeper.start();
   require('./lib/compact.cjs').sync(); // Beta 0.28: modalità compatta
+  require('./lib/link.cjs').start(); // Beta 0.31: collegamento col telefono
 
   // Schede salvate → dormienti. Avviato con Windows: solo l'icona, nessuna finestra.
   tabs.restoreSession();
@@ -186,6 +187,7 @@ app.on('before-quit',()=>{
   projects.closeAll();
   projectProcesses.stopAll(); // I dev server non devono restare aperti senza il browser.
   jarvis.stop();
+  require('./lib/link.cjs').stop();
 });
 app.on('will-quit',flushSave);
 app.on('window-all-closed',()=>{

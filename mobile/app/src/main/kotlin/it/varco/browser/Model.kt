@@ -21,7 +21,29 @@ class Settings(
     var desktopSite: Boolean = false,
 )
 
+/**
+ * Beta 0.31: il PC collegato. secret è il segreto del QR (base64url): da lì nasce la chiave di ogni messaggio.
+ * workspaces = quelli del PC (nome, colore), aggiornati a ogni contatto; lastTarget = l'ultima destinazione scelta.
+ */
+class LinkConfig(
+    val pcId: String,
+    var pcName: String,
+    var hosts: List<String>,
+    var port: Int,
+    val secret: String,
+    val deviceId: String,
+    var lastHost: String = "",
+    var workspaces: List<Pair<String, Int?>> = emptyList(),
+    var lastTarget: String = "tab",
+    var lastContact: Long = 0,
+)
+
+/** Una scheda da mandare al PC. target: tab | window | ask | ws:<nome del workspace>. Resta in coda finché il PC non risponde. */
+data class OutTab(val id: String, val url: String, val title: String, val scroll: Double, val time: Double, val target: String)
+
 class BrowserState {
+    var link: LinkConfig? = null
+    val outbox = mutableListOf<OutTab>()
     val workspaces = mutableListOf<Workspace>()
     val tabs = mutableListOf<Tab>()
     var activeWorkspace = ""

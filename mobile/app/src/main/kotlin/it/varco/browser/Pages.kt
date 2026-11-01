@@ -44,6 +44,8 @@ class Pages(private val activity: Activity, private val state: BrowserState, pri
     val thumbs = HashMap<String, Bitmap>()
     val icons = HashMap<String, Bitmap>()
     val progress = HashMap<String, Int>()
+    /** Beta 0.31: schede arrivate dal PC, da rimettere dov'eri (scroll, minuto del video) appena caricate. */
+    val restore = HashMap<String, Pair<Double, Double>>()
 
     fun viewOf(tabId: String): WebView? = awake[tabId]
 
@@ -162,6 +164,7 @@ class Pages(private val activity: Activity, private val state: BrowserState, pri
             override fun onPageFinished(view: WebView, url: String) {
                 tab.title = view.title?.takeIf { it.isNotBlank() && it != url } ?: tab.title
                 listener.onPageChanged(tab)
+                restore.remove(tab.id)?.let { (scroll, time) -> view.evaluateJavascript(LinkRules.restoreScript(scroll, time), null) }
                 view.postDelayed({ if (awake[tab.id] === view) snapshot(tab.id, view) }, 600)
             }
 

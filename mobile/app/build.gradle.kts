@@ -10,8 +10,8 @@ android {
         applicationId = "it.varco.browser"
         minSdk = 30
         targetSdk = 36
-        versionCode = 30000
-        versionName = "0.30.0"
+        versionCode = 31000
+        versionName = "0.31.0"
     }
 
     buildTypes {
@@ -26,7 +26,11 @@ android {
 }
 
 dependencies {
+    // Beta 0.31: lettore di QR di Google Play Services (nessun permesso della fotocamera per l'app).
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     testImplementation("junit:junit:4.13.2")
+    // org.json vero nei test (in android.jar c'è solo uno stub).
+    testImplementation("org.json:json:20240303")
 }
 
 /**

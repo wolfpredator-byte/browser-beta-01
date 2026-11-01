@@ -11,6 +11,7 @@
         android:label="VARCO"
         android:theme="@style/Theme.Varco"
         android:enableOnBackInvokedCallback="true"
+        android:usesCleartextTraffic="true"
         android:supportsRtl="false">
         <activity
             android:name=".MainActivity"

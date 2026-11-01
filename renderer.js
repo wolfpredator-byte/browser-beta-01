@@ -626,6 +626,31 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      projectButtons(['Apri il Chrome Web Store',()=>act('openWebStore'),'primary']),
      hint('Le icone delle estensioni compaiono accanto alla barra degli indirizzi; un clic apre il loro menu. Funzionano quasi tutte le estensioni comuni (blocchi, temi scuri, gestori di password, traduttori); quelle che usano funzioni rare di Chrome possono funzionare solo in parte. VARCO chiede sempre prima di installare.'));
  }
+ // Telefono collegato (Beta 0.31): QR per abbinare, telefoni abbinati, stato del server sulla rete di casa.
+ function linkSection(hint){
+   const l=state.link;
+   if(!l)return el('span');
+   const rows=l.devices.map(d=>el('div',{className:'pw-row'},
+     el('div',{className:'pw-site'},el('span',{className:'pw-host',textContent:d.name}),
+       el('span',{className:'pw-user',textContent:(d.lastSeen?'visto '+timeAgo(d.lastSeen):'mai visto')+(d.waiting?` · ${d.waiting} ${d.waiting===1?'scheda':'schede'} in attesa`:'')})),
+     el('span',{className:'inline-buttons'},confirmButton('Scollega','Conferma',()=>settingsAction('linkRemoveDevice',`«${d.name}» scollegato.`,{id:d.id})))));
+   const qr=l.pairing?el('div',{className:'link-qr'},
+     el('img',{src:l.pairing.qr,alt:'QR per collegare il telefono'}),
+     el('div',{className:'link-qr-text'},
+       el('strong',{textContent:'Inquadra il QR con VARCO sul telefono'}),
+       el('p',{textContent:'Sul telefono: Menu → Collega al PC → Inquadra il QR. Telefono e PC devono essere sulla stessa Wi-Fi. Il QR vale 10 minuti.'}),
+       projectButtons(['Copia il codice',()=>settingsAction('linkCopyCode','Codice copiato: mandalo al telefono e incollalo in Collega al PC → Incolla il codice.')],
+         ['Annulla',()=>act('linkStopPairing')]))):null;
+   const status=!l.enabled?null:el('p',{className:l.error?'panel-error':'game-meta',
+     textContent:l.error?`Il PC non riesce a mettersi in ascolto: ${l.error}`:l.listening?`In ascolto sulla rete di casa: ${l.hosts.join(', ')||'nessuna rete trovata'} · porta ${l.port}`:'Avvio…'});
+   return section('Telefono',
+     checkRow('Collegamento col telefono (VARCO per Android) sulla rete di casa',l.enabled,enabled=>act('linkSetEnabled',{enabled})),
+     ...(status?[status]:[]),
+     ...rows,
+     ...(qr?[qr]:[]),
+     ...(l.enabled&&!l.pairing?[projectButtons([l.devices.length?'Collega un altro telefono':'Collega un telefono',()=>settingsAction('linkStartPairing'),'primary'])]:[]),
+     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. Tutto resta sulla rete di casa, cifrato: nessun server esterno. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
+ }
  function updateSection(row,hint){
    const u=state.update;
    if(!u)return el('span');
@@ -648,7 +673,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const s=state.settings;
    const list=$('settingsBody');
    if(list.contains(document.activeElement)&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
-   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords,state.extensions]);
+   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords,state.extensions,state.link]);
    if(key===renderedSettings)return;
    renderedSettings=key;
    const panel=$('settingsPage'),scroll=panel.scrollTop;
@@ -667,6 +692,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        el('div',{className:'tab-tools'},...state.siteStyleHosts.map(host=>el('span',{className:'folder-chip'},el('span',{textContent:host}),
          (()=>{const x=el('button',{type:'button',textContent:'×',title:'Togli lo stile'});x.onclick=()=>act('removeSiteStyle',{host});return x;})()))),
        hint('Per aggiungerne uno: tasto destro su una pagina → Stile per questo sito…'))]:[]),
+     linkSection(hint),
      updateSection(row,hint),
      passwordSection(hint),
      extensionSection(hint),
