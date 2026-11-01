@@ -1679,50 +1679,19 @@ $('splitSwap').onclick=()=>act('swapSplit');
 $('splitClose').onclick=()=>act('closeSplit');
 
 // ── Trascinare una scheda sulla pagina (Beta 0.28) ───────────────────────
-// Con Shift, il lato più vicino mostra dove finirebbe la scheda; rilasciando va in vista divisa.
-let splitDropInfo=null;
-const ZONE_LABELS={left:'a sinistra',right:'a destra',top:'in alto',bottom:'in basso'};
+// Le zone le disegna un livello trasparente sopra le pagine vive (lib/split-drop.cjs, split-drop.html):
+// la cornice dice solo quando il trascinamento inizia e finisce.
+let splitDropOpen=false;
 async function openSplitDrop(id){
  const r=await act('splitDropMode',{on:true,id});
- const info=r?.result;
- if(!info?.ok||dragTabId!==id){if(info?.ok)act('splitDropMode',{on:false});return;}
- splitDropInfo={id,...info,zone:null};
- const box=$('splitDrop');
- placeRect(box,info.full);
- const img=$('splitDropBackdrop');
- img.hidden=!info.backdrop;
- if(info.backdrop)img.src=info.backdrop;
- $('splitDropPreview').hidden=true;
- box.hidden=false;
+ splitDropOpen=!!r?.result?.ok;
+ if(splitDropOpen&&dragTabId!==id)closeSplitDrop(); // il trascinamento è già finito
 }
 function closeSplitDrop(){
- if(!splitDropInfo)return;
- splitDropInfo=null;
- $('splitDrop').hidden=true;$('splitDropBackdrop').removeAttribute('src');
+ if(!splitDropOpen)return;
+ splitDropOpen=false;
  act('splitDropMode',{on:false});
 }
-$('splitDrop').addEventListener('dragover',event=>{
- const info=splitDropInfo;if(!info)return;
- event.preventDefault();
- const f=info.full,x=(event.clientX-f.x)/f.width,y=(event.clientY-f.y)/f.height;
- const near={left:x,right:1-x,top:y,bottom:1-y};
- const zone=event.shiftKey?Object.keys(near).filter(z=>info.zones[z]).sort((a,b)=>near[a]-near[b])[0]||null:null;
- info.zone=zone;
- $('splitDropHint').textContent='Tieni premuto Shift per affiancare la scheda';
- $('splitDropHint').hidden=!!zone;
- const preview=$('splitDropPreview');
- preview.hidden=!zone;
- // Come Vivaldi: la zona dove finirà la scheda, grigia, con il lato scritto al centro.
- if(zone)preview.textContent=ZONE_LABELS[zone][0].toUpperCase()+ZONE_LABELS[zone].slice(1);
- if(zone){const r=info.zones[zone];Object.assign(preview.style,{left:(r.x-f.x)+'px',top:(r.y-f.y)+'px',width:r.width+'px',height:r.height+'px'});}
-});
-$('splitDrop').addEventListener('drop',event=>{
- const info=splitDropInfo;if(!info)return;
- event.preventDefault();
- const {id,zone}=info;
- closeSplitDrop();
- if(zone)act('splitDrop',{id,zone});
-});
 
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.

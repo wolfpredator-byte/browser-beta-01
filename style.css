@@ -924,16 +924,6 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
 .split-divider.axis-x::after{width:3px;height:42px;margin:-21px 0 0 -1.5px}
 .split-divider.axis-y::after{width:42px;height:3px;margin:-1.5px 0 0 -21px}
 .split-divider:hover::after,#splitLayer.dragging .split-divider::after{background:var(--v-accent-2)}
-/* Trascinando una scheda sulla pagina: la foto della pagina, il riquadro che occuperebbe, un suggerimento. */
-#splitDrop{position:fixed;z-index:30;border-radius:var(--page-radius,10px);overflow:hidden;animation:v-fade-in var(--dur-1) var(--ease-out)}
-#splitDrop[hidden]{display:none}
-#splitDropBackdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55)}
-#splitDropPreview{position:absolute;border-radius:12px;background:rgba(200,200,214,.22);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45),0 12px 40px rgba(0,0,0,.35);
-  backdrop-filter:blur(6px);display:grid;place-items:center;color:#fff;font-size:15px;font-weight:600;letter-spacing:.3px;text-shadow:0 1px 6px rgba(0,0,0,.6);
-  transition:left var(--dur-2) var(--ease-out),top var(--dur-2) var(--ease-out),width var(--dur-2) var(--ease-out),height var(--dur-2) var(--ease-out)}
-#splitDropPreview[hidden],#splitDropHint[hidden]{display:none}
-#splitDropHint{position:absolute;left:50%;top:18px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;font-size:var(--fs-sm);
-  background:rgba(var(--v-bg-rgb),.85);border:1px solid var(--v-line);box-shadow:var(--shadow-2);pointer-events:none;white-space:nowrap}
 /* Workspace con account separati: un piccolo scudo sull'icona. */
 .workspace-button.isolated .workspace-icon{position:relative}
 .workspace-button.isolated .workspace-icon::after{content:'';position:absolute;right:-5px;bottom:-4px;width:11px;height:11px;border-radius:50%;

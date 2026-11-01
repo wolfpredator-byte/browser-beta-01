@@ -59,6 +59,16 @@ Installer: `dist\VARCO Setup 0.28.0.exe`.
 - **Impostazioni → Stili dei siti:** l'elenco dei siti con uno stile, con la × per toglierlo.
 - Con `!important` vinci sullo stile del sito (esempio: `header { display: none !important; }`).
 
+## 0.28.1 — Anteprima della vista divisa sopra la pagina viva (dalle tue prove)
+Installer: `dist\VARCO Setup 0.28.1.exe`.
+
+Trascinando una scheda verso la pagina, la pagina veniva sostituita da una sua foto scurita, che si vedeva sgranata. Ora:
+- la pagina (o le pagine, in vista divisa) **resta viva e nitida** sotto;
+- la zona grigia con il lato scritto compare **sopra**, su un livello trasparente;
+- senza Shift resta solo il suggerimento "Tieni premuto Shift per affiancare la scheda".
+
+- [ ] **T174** — Trascina una scheda sopra una pagina con un video in riproduzione: il video continua e resta nitido. Tieni Shift: la zona grigia compare sopra. Rilascia a destra: si affianca. **📸**
+
 ## Corretto durante le prove
 - "Torna alla scheda" nella finestrella del video non faceva niente.
 - I riquadri della vista divisa non si ridisegnavano dopo un cambio (un attributo dei riquadri non veniva impostato).
@@ -67,6 +77,7 @@ Installer: `dist\VARCO Setup 0.28.0.exe`.
 
 ## Modalità insegnamento
 - **Una regola sola per due processi:** `lib/frame-layout-rules.cjs` calcola dove sta ogni barra. Il processo principale la usa per mettere le pagine, la cornice per disegnare le barre. Così non possono mai andare fuori sincrono.
+- **Un livello trasparente per trascinare (0.28.1):** il trascinamento va sempre alla vista che sta sotto il mouse, e le pagine coprono la cornice. Per questo prima le pagine diventavano foto. Ora un WebContentsView trasparente (split-drop.html) si mette sopra le pagine solo mentre trascini: riceve il trascinamento e disegna la zona, poi sparisce.
 - **Vista divisa come dati:** `split-rules.js` descrive la vista divisa con un modo (colonne, righe, una grande più due, griglia) e l'elenco delle pagine. Da lì calcola i rettangoli e decide se una pagina in più ci sta. Lo stesso file gira sia nel processo principale sia nella cornice, per l'anteprima.
 - **Account separati = partizioni:** ogni workspace isolato ha una sua sessione di Chromium (`persist:varco-ws-…`), con cookie e archivio propri. Permessi, blocco pubblicità, estensioni e download vanno configurati per ogni sessione.
 - **Barre sopra una pagina che sta sopra tutto:** le pagine sono WebContentsView e coprono sempre la cornice. In modalità compatta VARCO fotografa la pagina (JPEG: 8 ms invece dei 181 del PNG), la cornice mette la foto esattamente al suo posto e fa entrare la barra; solo allora la pagina vera si nasconde. La barra compare in circa 110 ms. Il bordo si riconosce dalla posizione del mouse, letta dal processo principale, così la pagina può arrivare fino al bordo.
