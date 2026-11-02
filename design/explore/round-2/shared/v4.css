@@ -1,0 +1,35 @@
+/* Base comune delle varianti del round 2 (dalla V4 · Panoramica di stato). */
+.page{height:100vh;overflow:auto}
+.col{max-width:1080px;margin:0 auto;padding:44px 32px 100px}
+.top{display:flex;align-items:center;gap:24px;margin-bottom:28px}
+.top .k-input{max-width:340px;margin-left:auto}
+
+.alert{display:flex;gap:16px;align-items:flex-start;padding:14px 18px;margin-bottom:22px;border-color:rgba(255,122,138,.35);background:rgba(60,14,24,.5)}
+.alert>strong{color:var(--v-danger);font-weight:600;padding-top:6px;white-space:nowrap}
+.alert ul{margin:0;padding:0;list-style:none;flex:1}
+.alert li button{display:flex;gap:8px;width:100%;text-align:left;padding:6px 8px}
+.alert li button span:first-child{color:var(--v-muted);min-width:70px}
+.alert li button span:last-child{margin-left:auto;color:var(--v-danger)}
+
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grid .wide{grid-column:span 2}
+.tile{display:flex;flex-direction:column;gap:10px;text-align:left;padding:18px 20px;min-height:150px;border-radius:var(--r-lg);background:var(--v-glass);border:1px solid var(--v-line);cursor:pointer;
+  transition:border-color var(--dur-2) var(--ease-out),background var(--dur-2) var(--ease-out),opacity var(--dur-2)}
+.tile:hover{border-color:var(--v-line-strong);background:rgba(34,32,62,.6)}
+.tile[aria-current="true"]{border-color:var(--v-accent);box-shadow:inset 0 0 0 1px var(--v-accent)}
+.tile>header{display:flex;align-items:center;gap:10px;color:var(--v-muted)}
+.tile>header span{font-size:var(--fs-xs);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.tile>header svg:last-child{margin-left:auto;opacity:.5}
+.tile>p{margin:0;font-size:var(--fs-lg);line-height:1.35}
+.tile.err>p{color:var(--v-danger)}
+.tile.err>header svg:first-child{color:var(--v-danger)}
+.quick{margin-top:auto;display:flex;flex-direction:column;gap:6px}
+.quick .k-row{min-height:auto;padding:0;border:0;font-size:var(--fs-sm);color:var(--v-muted);cursor:default}
+.quick .k-hint{display:none}
+
+.detail-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.detail-head button{margin-left:auto}
+.detail-sum{color:var(--v-muted);margin:0 0 22px}
+.detail-sum.err{color:var(--v-danger)}
+.k-status.error{background:rgba(255,122,138,.08);border-radius:var(--r-sm);padding:8px 10px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.grid .wide{grid-column:auto}}

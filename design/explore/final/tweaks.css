@@ -1,0 +1,27 @@
+/* Pannello Tweaks: strumento di progettazione, non fa parte della pagina finale. */
+.tw-btn{position:fixed;left:14px;bottom:12px;z-index:200;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;
+  background:rgba(10,10,18,.85);border:1px solid rgba(255,255,255,.18);font:12px 'Segoe UI',system-ui,sans-serif;color:#ddd}
+.tw-btn:hover{background:#1c1b2e}
+.tw{position:fixed;left:14px;bottom:52px;z-index:200;width:300px;max-height:calc(100vh - 70px);display:none;flex-direction:column;
+  background:rgba(12,12,20,.96);border:1px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6);
+  font:12px/1.4 'Segoe UI',system-ui,sans-serif;color:#ddd;letter-spacing:0}
+.tw.open{display:flex}
+.tw-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.tw-head strong{flex:1;font-weight:600}
+.tw-head button,.tw-foot button{padding:4px 9px;border-radius:7px;border:1px solid rgba(255,255,255,.14);font-size:11px}
+.tw-foot button.main{background:#fff;color:#000;border-color:#fff}
+.tw-body{overflow:auto;padding:6px 12px 10px}
+.tw-sec{margin-top:10px}
+.tw-sec>h5{margin:0 0 4px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#888;font-weight:600}
+.tw-row{display:grid;grid-template-columns:1fr 112px 38px;align-items:center;gap:8px;min-height:26px}
+.tw-row input[type=range]{width:100%;accent-color:#fff}
+.tw-row output{color:#999;text-align:right;font-variant-numeric:tabular-nums;font-size:11px}
+.tw-row select{grid-column:2/4;background:#1a1a26;border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:3px 6px;color:#ddd;font-size:11px}
+.tw-row.switch{grid-template-columns:1fr auto}
+.tw-row.switch input{accent-color:#fff}
+.tw-sw{display:flex;gap:5px;flex-wrap:wrap;grid-column:2/4}
+.tw-sw button{width:20px;height:20px;padding:0;border-radius:50%;border:2px solid transparent}
+.tw-sw button[aria-pressed="true"]{border-color:#fff}
+.tw-sw input{width:22px;height:22px;padding:0;border:0;background:none}
+.tw-foot{display:flex;gap:6px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}
+.tw-foot span{flex:1;color:#888;align-self:center;font-size:11px}

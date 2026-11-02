@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- V1 — Categorie a sinistra: una colonna di categorie con un riassunto, a destra solo la categoria scelta. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V1 · Categorie a sinistra</title>
+<link rel="stylesheet" href="../shared/kit.css">
+<style>
+  .app{display:grid;grid-template-columns:270px 1fr;height:100vh}
+  .rail{display:flex;flex-direction:column;gap:4px;padding:28px 14px;background:rgba(7,7,14,.62);border-right:1px solid var(--v-line);overflow:auto}
+  .rail h1{font-size:var(--fs-lg);letter-spacing:.2em;text-transform:uppercase;font-weight:500;margin:0 10px 16px}
+  .rail .k-input{margin-bottom:12px}
+  .cat{display:grid;grid-template-columns:20px 1fr auto;gap:2px 12px;align-items:center;text-align:left;padding:9px 10px;border-radius:var(--r-md)}
+  .cat small{grid-column:2/4;color:var(--v-muted);font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cat svg{color:var(--v-muted)}
+  .cat[aria-current="true"]{background:rgba(var(--v-accent-rgb),.16);box-shadow:inset 2px 0 0 var(--v-accent)}
+  .cat[aria-current="true"] svg{color:var(--v-accent-2)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--v-danger)}
+  .pane{overflow:auto;padding:36px max(32px,5vw) 80px}
+  .pane-inner{max-width:760px}
+  .pane header{margin-bottom:22px}
+  .pane header p{margin:6px 0 0;color:var(--v-muted)}
+  .card{padding:18px 22px 6px;margin-bottom:16px}
+  .result{display:block;width:100%;text-align:left;padding:10px 14px;border-radius:var(--r-md)}
+  .result small{display:block;color:var(--v-muted);font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase}
+  @media(max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}.rail{flex-direction:row;overflow-x:auto;padding:10px}.rail h1,.cat small,.rail .k-input{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Categorie">
+    <h1>Impostazioni</h1>
+    <input class="k-input" id="q" type="search" placeholder="Cerca… (Ctrl+F)" autocomplete="off">
+    <div id="cats"></div>
+  </nav>
+  <main class="pane"><div class="pane-inner" id="pane"></div></main>
+</div>
+<script src="../shared/data.js"></script>
+<script src="../shared/kit.js"></script>
+<script>
+  const {el,icon,group,search,highlight,empty,flash}=K;
+  let current=location.hash.slice(1)||'aspetto';
+  const q=document.getElementById('q'), pane=document.getElementById('pane'), cats=document.getElementById('cats');
+
+  function drawRail(){
+    cats.replaceChildren(...SETTINGS.map(c=>{
+      const b=el('button',{type:'button',className:'cat'},icon(c.icon),el('span',{textContent:c.title}),
+        c.status?.()==='error'?el('span',{className:'dot',title:'Da controllare'}):el('span'),el('small',{textContent:c.summary()}));
+      b.setAttribute('aria-current',String(!q.value&&c.id===current));
+      b.onclick=()=>{q.value='';current=c.id;history.replaceState(null,'','#'+c.id);draw();};
+      return b;
+    }));
+  }
+  function drawCategory(){
+    const c=SETTINGS.find(x=>x.id===current);
+    pane.replaceChildren(el('header',{},el('h2',{className:'k-title',textContent:c.title}),el('p',{textContent:c.summary()})),
+      ...c.groups.map(g=>el('div',{className:'card k-glass'},group(g))));
+  }
+  function drawResults(){
+    const hits=search(q.value);
+    pane.replaceChildren(el('header',{},el('h2',{className:'k-title',textContent:'Risultati'}),el('p',{textContent:hits.length?`${hits.length} impostazioni`:''})),
+      ...(hits.length?hits.map(h=>{
+        const r=el('button',{type:'button',className:'result'},el('small',{textContent:`${h.cat.title} › ${h.group.title}`}),highlight(h.item.label||h.item.text||h.group.title,q.value));
+        r.onclick=()=>{current=h.cat.id;q.value='';draw();const n=[...pane.querySelectorAll('[data-label]')].find(x=>x.dataset.label===(h.item.label||h.item.text||''));if(n)flash(n);};
+        return r;
+      }):[empty(q.value)]));
+  }
+  function draw(){drawRail();q.value?drawResults():drawCategory();pane.parentElement.scrollTop=0;}
+  q.oninput=draw;
+  addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+  draw();
+</script>
+</body>
+</html>

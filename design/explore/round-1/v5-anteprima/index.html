@@ -1,0 +1,133 @@
+<!doctype html>
+<!-- V5 — Anteprima dal vivo: impostazioni a sinistra, a destra una VARCO in miniatura che cambia mentre regoli. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V5 · Anteprima dal vivo</title>
+<link rel="stylesheet" href="../shared/kit.css">
+<style>
+  .app{display:grid;grid-template-columns:minmax(380px,520px) 1fr;height:100vh}
+  .left{display:flex;flex-direction:column;background:rgba(7,7,14,.7);border-right:1px solid var(--v-line);min-height:0}
+  .left header{padding:26px 26px 0}
+  .left header .k-input{margin:16px 0 12px}
+  .tabs{display:flex;gap:2px;overflow-x:auto;padding:0 22px;border-bottom:1px solid var(--v-line)}
+  .tabs button{white-space:nowrap;border-radius:0;padding:10px 10px;color:var(--v-muted);border-bottom:2px solid transparent;position:relative}
+  .tabs button[aria-selected="true"]{color:var(--v-text);border-bottom-color:var(--v-accent)}
+  .tabs button.err::after{content:"";position:absolute;top:8px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--v-danger)}
+  .list{flex:1;overflow:auto;padding:22px 26px 80px}
+  .right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:16px;min-width:0}
+  .right .k-h{align-self:flex-start;margin-left:max(0px,calc(50% - 360px))}
+  .result small{display:block;color:var(--v-muted);font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;padding-top:10px}
+  /* Mini VARCO */
+  .mini{--a:#7c6cff;--bg:#07070e;--panel:rgba(24,23,44,.7);--ink:#e9e8f5;--blur:18px;--bright:.62;--s:1;
+    width:min(720px,100%);aspect-ratio:16/10;border-radius:14px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.12);box-shadow:0 30px 80px rgba(0,0,0,.6);
+    background:var(--bg);color:var(--ink);font-size:calc(11px*var(--s));display:grid;grid-template-rows:auto 1fr;transition:all var(--dur-3) var(--ease-out)}
+  .mini::before{content:"";position:absolute;inset:-30px;background:url(../../../../assets/home-bg.jpg) center/cover;filter:blur(var(--blur)) brightness(var(--bright));transition:filter var(--dur-3)}
+  .mini.light{--bg:#eef0f6;--panel:rgba(255,255,255,.72);--ink:#1b1b2a}
+  .mini.light::before{filter:blur(var(--blur)) brightness(calc(var(--bright) + .7)) saturate(.6)}
+  .mini>*{position:relative}
+  .m-bar{display:flex;gap:8px;align-items:center;padding:10px 12px;background:var(--panel);backdrop-filter:blur(10px)}
+  .m-dot{width:16px;height:16px;border-radius:5px;background:var(--a)}
+  .m-url{flex:1;height:22px;border-radius:7px;border:1px solid color-mix(in srgb,var(--a) 30%,transparent);padding:3px 10px;opacity:.8}
+  .m-body{display:grid;grid-template-columns:120px 1fr;min-height:0}
+  .mini.htabs .m-body{grid-template-columns:1fr}
+  .mini.htabs .m-side{display:none}
+  .m-htabs{display:none;gap:6px;padding:6px 12px;background:var(--panel)}
+  .mini.htabs .m-htabs{display:flex}
+  .m-htabs span,.m-side span{display:block;padding:5px 8px;border-radius:6px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m-htabs span{flex:0 1 110px}
+  .m-htabs span.on,.m-side span.on{background:color-mix(in srgb,var(--a) 28%,transparent);opacity:1}
+  .m-side{padding:10px 8px;background:var(--panel);display:flex;flex-direction:column;gap:3px}
+  .m-home{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+  .m-clock{font-size:3.2em;font-weight:200;letter-spacing:.04em}
+  .m-search{width:60%;height:28px;border-radius:14px;background:var(--panel);border:1px solid color-mix(in srgb,var(--a) 40%,transparent);box-shadow:0 0 calc(18px*var(--glow,.6)) color-mix(in srgb,var(--a) 50%,transparent)}
+  .m-links{display:flex;gap:10px}.m-links i{width:28px;height:28px;border-radius:9px;background:var(--panel)}
+  .m-note{max-width:720px;color:var(--v-muted);font-size:var(--fs-sm);text-align:center}
+  .m-why{width:min(720px,100%);padding:16px 20px}
+  @media(max-width:900px){.app{grid-template-columns:1fr}.right{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="left">
+    <header><h1 class="k-title">Impostazioni</h1><input class="k-input" id="q" type="search" placeholder="Cerca… (Ctrl+F)" autocomplete="off"></header>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div class="list" id="list"></div>
+  </section>
+  <section class="right" id="right">
+    <h4 class="k-h">Anteprima</h4>
+    <div class="mini" id="mini">
+      <div class="m-bar"><span class="m-dot"></span><span class="m-url">varco://home</span></div>
+      <div style="display:flex;flex-direction:column;min-height:0">
+        <div class="m-htabs"><span class="on">Home</span><span>GitHub</span><span>Discord</span><span>Destiny Builder</span></div>
+        <div class="m-body" style="flex:1">
+          <div class="m-side"><span class="on">Home</span><span>GitHub</span><span>Discord</span><span>Destiny Builder</span><span>Nexus Mods</span></div>
+          <div class="m-home"><div class="m-clock">21:47</div><div class="m-search"></div><div class="m-links"><i></i><i></i><i></i><i></i><i></i></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="m-note" id="note">Tema, colore, sfondo, carattere, dimensione e schede si vedono qui mentre li cambi.</p>
+  </section>
+</div>
+<script src="../shared/data.js"></script>
+<script src="../shared/kit.js"></script>
+<script>
+  const {el,group,search,highlight,empty,flash}=K;
+  const tabs=document.getElementById('tabs'),list=document.getElementById('list'),q=document.getElementById('q'),mini=document.getElementById('mini'),note=document.getElementById('note');
+  let current='aspetto';
+  // Cosa cambia fuori dall'aspetto: una frase al posto dell'anteprima.
+  const WHY={navigazione:'Le frasi scritte nella barra o nella Home vanno al motore scelto. Le scorciatoie (!yt, !gh…) saltano direttamente al sito.',
+    schede:'Le schede sospese restano nella barra ma non usano memoria. Quelle archiviate spariscono dopo i giorni scelti e restano in Schede → Archivio.',
+    privacy:'Pubblicità e tracker non arrivano alle pagine. Le password sono cifrate con il tuo account di Windows.',
+    telefono:'Le schede passano fra telefono e PC; fuori casa passano da ntfy.sh, cifrate.',
+    estensioni:'Le icone delle estensioni compaiono accanto alla barra degli indirizzi.',
+    sistema:'Aggiornamenti, avvio con Windows, backup dei dati e diagnostica.'};
+
+  function drawTabs(){
+    tabs.replaceChildren(...SETTINGS.map(c=>{
+      const b=el('button',{type:'button',role:'tab',textContent:c.title,className:c.status?.()==='error'?'err':''});
+      b.setAttribute('aria-selected',String(!q.value&&c.id===current));
+      b.onclick=()=>{q.value='';current=c.id;draw();};return b;
+    }));
+  }
+  function draw(){
+    drawTabs();list.scrollTop=0;
+    if(q.value){
+      const hits=search(q.value);
+      list.replaceChildren(...(hits.length?hits.map(h=>{
+        const r=el('button',{type:'button',className:'result',style:'display:block;width:100%;text-align:left;padding:4px 8px 10px'},el('small',{textContent:`${h.cat.title} › ${h.group.title}`}),highlight(h.item.label||h.item.text||h.group.title,q.value));
+        r.onclick=()=>{current=h.cat.id;q.value='';draw();const n=[...list.querySelectorAll('[data-label]')].find(x=>x.dataset.label===(h.item.label||h.item.text));if(n)flash(n);};
+        return r;
+      }):[empty(q.value)]));
+    }else{
+      const c=SETTINGS.find(x=>x.id===current);
+      list.replaceChildren(...c.groups.map(g=>group(g)));
+    }
+    const isLook=!q.value&&current==='aspetto';
+    mini.style.opacity=isLook||q.value?1:.35;
+    note.textContent=isLook||q.value?'Tema, colore, sfondo, carattere, dimensione e schede si vedono qui mentre li cambi.':WHY[current];
+  }
+
+  // Collega i controlli dell'aspetto alla miniatura.
+  list.addEventListener('input',apply);list.addEventListener('change',apply);list.addEventListener('click',e=>{if(e.target.closest('.k-switch,.k-preset'))setTimeout(()=>apply(e));});
+  function apply(e){
+    const row=e?.target.closest('[data-label]');const label=row?.dataset.label;const t=e?.target;
+    const PRESET={'Cosmic':'#7c6cff','Vice City':'#ff4fa3','Ember':'#ff7a3d','Midnight Ink':'#6f8cff','Aurora Forest':'#4fe0a6','Oxford Rose':'#e98aa6'};
+    if(t?.closest?.('.k-preset'))mini.style.setProperty('--a',PRESET[t.textContent]);
+    if(label==='Colore accento')mini.style.setProperty('--a',t.value);
+    if(label==='Tema')mini.classList.toggle('light',t.value==='light');
+    if(label==='Sfocatura')mini.style.setProperty('--blur',t.value*.5+'px');
+    if(label==='Luminosità')mini.style.setProperty('--bright',t.value/100);
+    if(label==='Bagliore')mini.style.setProperty('--glow',t.value/100);
+    if(label==='Dimensione interfaccia')mini.style.setProperty('--s',t.value/100);
+    if(label==='Carattere')mini.style.fontFamily={segoe:'"Segoe UI Variable",sans-serif',inter:'Inter,sans-serif',mono:'"Cascadia Mono",monospace'}[t.value];
+    if(label==='Schede in verticale')mini.classList.toggle('htabs',row.querySelector('.k-switch').getAttribute('aria-checked')!=='true');
+    if(label==='Orologio nella Home')mini.querySelector('.m-clock').style.visibility=row.querySelector('.k-switch').getAttribute('aria-checked')==='true'?'visible':'hidden';
+    if(label==='Collegamenti rapidi')mini.querySelector('.m-links').style.visibility=row.querySelector('.k-switch').getAttribute('aria-checked')==='true'?'visible':'hidden';
+  }
+  q.oninput=draw;
+  addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+  draw();
+</script>
+</body>
+</html>

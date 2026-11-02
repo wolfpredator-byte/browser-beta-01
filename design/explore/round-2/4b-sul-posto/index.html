@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- 4b — Si allarga sul posto: il riquadro scelto diventa largo quanto la griglia e mostra tutte le impostazioni. Niente sovrapposizioni. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4b · Si allarga sul posto</title>
+<link rel="stylesheet" href="../../round-1/shared/kit.css">
+<link rel="stylesheet" href="../shared/v4.css">
+<style>
+  .expanded{grid-column:1/-1;padding:26px 30px 10px;border-radius:var(--r-lg);background:var(--v-glass-strong);border:1px solid var(--v-accent);
+    animation:grow var(--dur-3) var(--ease-out);scroll-margin-top:24px}
+  @keyframes grow{from{opacity:0;transform:scaleY(.96)}}
+  .expanded .groups{columns:2 340px;column-gap:40px}
+  .expanded .k-group{break-inside:avoid}
+  .grid.has-open .tile{min-height:110px}
+  .grid.has-open .tile .quick{display:none}
+</style>
+</head>
+<body>
+<div class="page" id="page"><div class="col">
+  <div class="top"><h1 class="k-title">Impostazioni</h1><input class="k-input" id="q" type="search" placeholder="Cerca… (Ctrl+F)" autocomplete="off"></div>
+  <div id="main"></div>
+</div></div>
+<script src="../../round-1/shared/data.js"></script>
+<script src="../../round-1/shared/kit.js"></script>
+<script src="../shared/v4.js"></script>
+<script>
+  const main=document.getElementById('main'),q=document.getElementById('q');
+  let selected=null,target=null;
+  function draw(){
+    if(q.value){main.replaceChildren(...V4.results(q.value));return;}
+    main.replaceChildren(...V4.overview({selected}).filter(Boolean));
+    if(!selected)return;
+    // Il riquadro scelto viene sostituito dal dettaglio a tutta riga.
+    const grid=main.querySelector('.grid');grid.classList.add('has-open');
+    const tile=grid.querySelector(`[data-id="${selected}"]`);
+    const [head,sum,...groups]=V4.detail(selected,{onClose:close,closeLabel:'Riduci ↑'});
+    const box=K.el('section',{className:'expanded'},head,sum,K.el('div',{className:'groups'},groups));
+    tile.replaceWith(box);
+    box.scrollIntoView({behavior:'smooth',block:'start'});
+    V4.focus(box,target);
+  }
+  V4.open=(id,t)=>{q.value='';selected=id;target=t;draw();};
+  function close(){selected=null;draw();}
+  q.oninput=draw;
+  addEventListener('keydown',e=>{if(e.key==='Escape')close();if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+  draw();
+</script>
+</body>
+</html>

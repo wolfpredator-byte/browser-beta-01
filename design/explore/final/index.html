@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- Versione scelta (4a · Pannello laterale) con i token esposti e il pannello Tweaks. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Impostazioni · 4a con tweak</title>
+<link rel="stylesheet" href="../round-1/shared/kit.css">
+<link rel="stylesheet" href="../round-2/shared/v4.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="tweaks.css">
+<style>
+  .page{transition:padding-right var(--dur-3) var(--ease-out)}
+  body.open .page{padding-right:min(var(--t-sheet-w),55vw)}
+  body.open .grid{grid-template-columns:repeat(var(--t-cols-open),minmax(0,1fr))}
+  body.open .grid .wide{grid-column:auto}
+  body.open .tile:not([aria-current="true"]){opacity:var(--t-dim)}
+  .sheet{position:fixed;top:0;right:0;bottom:0;width:min(var(--t-sheet-w),55vw);background:var(--v-glass-strong);border-left:1px solid var(--v-line-strong);
+    transform:translateX(100%);transition:transform var(--dur-3) var(--ease-out);overflow:auto;padding:30px 32px 80px;backdrop-filter:blur(24px);box-shadow:-30px 0 60px rgba(0,0,0,.35)}
+  body.open .sheet{transform:none}
+</style>
+</head>
+<body>
+<div class="page"><div class="col">
+  <div class="top"><h1 class="k-title">Impostazioni</h1><input class="k-input" id="q" type="search" placeholder="Cerca… (Ctrl+F)" autocomplete="off"></div>
+  <div id="main"></div>
+</div></div>
+<aside class="sheet" id="sheet" aria-label="Categoria"></aside>
+<script src="../round-1/shared/data.js"></script>
+<script src="../round-1/shared/kit.js"></script>
+<script src="../round-2/shared/v4.js"></script>
+<script>
+  const main=document.getElementById('main'),sheet=document.getElementById('sheet'),q=document.getElementById('q');
+  let selected=null;
+  const draw=()=>main.replaceChildren(...(q.value?V4.results(q.value):V4.overview({selected})).filter(Boolean));
+  V4.open=(id,target)=>{
+    selected=id;
+    sheet.replaceChildren(...V4.detail(id,{onClose:close}));sheet.scrollTop=0;
+    document.body.classList.add('open');draw();V4.focus(sheet,target);
+  };
+  function close(){selected=null;document.body.classList.remove('open');draw();}
+  q.oninput=draw;
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('.tw.open'))close();if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+  draw();
+</script>
+<script src="tweaks.js"></script>
+</body>
+</html>

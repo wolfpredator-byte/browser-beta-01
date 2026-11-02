@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- 4c — La griglia diventa colonna: aperta una categoria, i riquadri si restringono a sinistra (con il loro stato) e il dettaglio prende il resto. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4c · La griglia diventa colonna</title>
+<link rel="stylesheet" href="../../round-1/shared/kit.css">
+<link rel="stylesheet" href="../shared/v4.css">
+<style>
+  .col{max-width:1180px}
+  .split{display:grid;grid-template-columns:1fr 0fr;gap:0}
+  body.open .split{grid-template-columns:290px 1fr;gap:26px}
+  .split>*{min-width:0}
+  body.open .grid{grid-template-columns:1fr;gap:6px}
+  body.open .grid .wide{grid-column:auto}
+  body.open .tile{min-height:auto;padding:10px 14px;gap:4px;border-radius:var(--r-md)}
+  body.open .tile>p{font-size:var(--fs-sm);color:var(--v-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.open .tile.err>p{color:var(--v-danger)}
+  body.open .tile[aria-current="true"]{background:rgba(var(--v-accent-rgb),.14)}
+  body.open .alert{display:none}
+  .detail{overflow:hidden;opacity:0;transition:opacity var(--dur-3)}
+  body.open .detail{opacity:1;padding:26px 30px 10px;border-radius:var(--r-lg);background:var(--v-glass-strong);border:1px solid var(--v-line-strong);align-self:start;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto}
+</style>
+</head>
+<body>
+<div class="page"><div class="col">
+  <div class="top"><h1 class="k-title">Impostazioni</h1><input class="k-input" id="q" type="search" placeholder="Cerca… (Ctrl+F)" autocomplete="off"></div>
+  <div class="split"><div id="main"></div><section class="detail" id="detail" aria-label="Categoria"></section></div>
+</div></div>
+<script src="../../round-1/shared/data.js"></script>
+<script src="../../round-1/shared/kit.js"></script>
+<script src="../shared/v4.js"></script>
+<script>
+  const main=document.getElementById('main'),detail=document.getElementById('detail'),q=document.getElementById('q');
+  let selected=null;
+  const draw=()=>main.replaceChildren(...(q.value?V4.results(q.value):V4.overview({selected,compact:!!selected})).filter(Boolean));
+  V4.open=(id,target)=>{
+    q.value='';selected=id;document.body.classList.add('open');
+    detail.replaceChildren(...V4.detail(id,{onClose:close,closeLabel:'Torna alla panoramica'}));detail.scrollTop=0;
+    draw();V4.focus(detail,target);
+  };
+  function close(){selected=null;document.body.classList.remove('open');detail.replaceChildren();draw();}
+  q.oninput=()=>{if(q.value&&selected)close();draw();};
+  addEventListener('keydown',e=>{if(e.key==='Escape')close();if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+  draw();
+</script>
+</body>
+</html>
