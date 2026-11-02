@@ -650,10 +650,11 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      ...(status?[status]:[]),
      ...(l.enabled?[checkRow('Anche fuori casa (le schede passano da ntfy.sh, cifrate)',l.relay,enabled=>act('linkSetRelay',{enabled}))]:[]),
      ...(relayStatus?[relayStatus]:[]),
+     ...(l.enabled?[checkRow('Sincronizza le password col telefono (solo sulla rete di casa)',l.syncPasswords,enabled=>act('linkSetSyncPasswords',{enabled}))]:[]),
      ...rows,
      ...(qr?[qr]:[]),
      ...(l.enabled&&!l.pairing?[projectButtons([l.devices.length?'Collega un altro telefono':'Collega un telefono',()=>settingsAction('linkStartPairing'),'primary'])]:[]),
-     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. In casa passa tutto sulla rete locale. Fuori casa le schede passano da ntfy.sh, un servizio pubblico che le tiene al massimo 12 ore: sono cifrate con la chiave del QR, quindi ntfy non può leggerle. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
+     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. Preferiti e password si sincronizzano da soli quando telefono e PC sono sulla stessa Wi-Fi. In casa passa tutto sulla rete locale. Fuori casa le schede passano da ntfy.sh, un servizio pubblico che le tiene al massimo 12 ore: sono cifrate con la chiave del QR, quindi ntfy non può leggerle. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
  }
  function updateSection(row,hint){
    const u=state.update;

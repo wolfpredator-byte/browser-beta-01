@@ -16,6 +16,7 @@ import android.os.Environment
 import android.os.Message
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -37,6 +38,31 @@ class Pages(private val activity: Activity, private val state: BrowserState, pri
         fun onOpenTab(url: String?, from: Tab, transport: Message?)
         fun onFullscreen(view: View?, callback: WebChromeClient.CustomViewCallback?)
         fun onFileChooser(callback: ValueCallback<Array<Uri>>, params: WebChromeClient.FileChooserParams): Boolean
+        /** Beta 0.33: hai toccato (o lasciato) un campo di accesso. */
+        fun onLoginField(tab: Tab, view: WebView, focused: Boolean)
+        /** Beta 0.33: hai appena fatto un accesso (o, con password vuota, scritto solo il nome utente). */
+        fun onLoginSubmitted(tab: Tab, view: WebView, username: String, password: String)
+    }
+
+    /** Lo script delle password (res/raw/varco_passwords.js), letto una volta. */
+    private val passwordScript: String by lazy { activity.resources.openRawResource(R.raw.varco_passwords).bufferedReader().use { it.readText() } }
+    private val main = Handler(Looper.getMainLooper())
+
+    /**
+     * Il ponte fra lo script delle password e VARCO. Lo può chiamare qualunque riquadro della pagina,
+     * quindi non si fida di niente: il sito lo legge VARCO da view.url, e la password non passa mai di qui verso la pagina.
+     */
+    private inner class PwBridge(val tab: Tab, val view: WebView) {
+        @JavascriptInterface fun focus() { main.post { if (awake[tab.id] === view) listener.onLoginField(tab, view, true) } }
+        @JavascriptInterface fun blur() { main.post { if (awake[tab.id] === view) listener.onLoginField(tab, view, false) } }
+        @JavascriptInterface fun submitted(username: String?, password: String?) {
+            val u = (username ?: "").take(200); val p = (password ?: "").take(1000)
+            main.post { if (awake[tab.id] === view && p.isNotEmpty()) listener.onLoginSubmitted(tab, view, u, p) }
+        }
+        @JavascriptInterface fun username(username: String?) {
+            val u = (username ?: "").take(200)
+            main.post { if (awake[tab.id] === view && u.isNotEmpty()) listener.onLoginSubmitted(tab, view, u, "") }
+        }
     }
 
     private val awake = LinkedHashMap<String, WebView>()
@@ -148,6 +174,7 @@ class Pages(private val activity: Activity, private val state: BrowserState, pri
         configure(v)
         v.setBackgroundColor(0xFFFFFFFF.toInt())
         CookieManager.getInstance().setAcceptThirdPartyCookies(v, true)
+        v.addJavascriptInterface(PwBridge(tab, v), "VarcoPw")
         v.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
@@ -161,7 +188,12 @@ class Pages(private val activity: Activity, private val state: BrowserState, pri
                 listener.onPageChanged(tab)
             }
 
+            override fun onPageCommitVisible(view: WebView, url: String) {
+                if (SyncRules.originOf(url).isNotEmpty()) view.evaluateJavascript(passwordScript, null)
+            }
+
             override fun onPageFinished(view: WebView, url: String) {
+                if (SyncRules.originOf(url).isNotEmpty()) view.evaluateJavascript(passwordScript, null)
                 tab.title = view.title?.takeIf { it.isNotBlank() && it != url } ?: tab.title
                 listener.onPageChanged(tab)
                 restore.remove(tab.id)?.let { (scroll, time) -> view.evaluateJavascript(LinkRules.restoreScript(scroll, time), null) }

@@ -16,16 +16,21 @@ import java.util.concurrent.Executors
  * - Il PC si cerca prima all'ultimo indirizzo buono, poi a quelli del QR, poi con un broadcast UDP (se il router gli ha dato un altro IP).
  * - Beta 0.32: se il PC non si trova (sei fuori casa) e il PC ha acceso "Anche fuori casa", le schede passano da ntfy.sh,
  *   cifrate come in casa, e si leggono lì quelle che il PC ti ha mandato.
+ * - Beta 0.33: in casa sincronizza anche preferiti e password (mai dal relay). L'hello porta le impronte degli
+ *   elenchi del PC: se sono cambiate, o qui c'è qualcosa di nuovo, si mandano gli elenchi e si ricevono quelli fusi.
  *
  * La rete gira su un thread a parte; lo stato (state.link, state.outbox) si tocca solo sul thread principale.
  */
-class Link(private val state: BrowserState, private val listener: Listener) {
+class Link(private val state: BrowserState, private val vault: Vault, private val listener: Listener) {
     interface Listener {
         fun onLinkChanged()
         fun onIncoming(tabs: List<Incoming>)
         fun onSent(tab: OutTab, viaRelay: Boolean)
         fun onUnpaired(reason: String)
+        fun onSynced(bookmarks: Boolean, passwords: Boolean)
     }
+
+    private class SyncResult(val bookmarks: List<Bookmark>?, val passwords: List<PwEntry>?, val bm: String, val pw: String?, val bmRev: Int, val pwRev: Int)
 
     data class Incoming(val id: String, val url: String, val title: String, val scroll: Double, val time: Double)
 
@@ -119,9 +124,15 @@ class Link(private val state: BrowserState, private val listener: Listener) {
         if (busy) return
         busy = true
         val outbox = state.outbox.toList()
+        // Fotografia degli elenchi, presa qui sul thread principale; si mandano solo se serve.
+        val bookmarks = state.bookmarks.toList()
+        val passwords = vault.entries.toList()
+        val bmRev = state.bmRev
+        val pwRev = state.pwRev
         net.execute {
             var host: Pair<String, Int>? = null
             var reply: JSONObject? = null
+            var synced: SyncResult? = null
             val sent = mutableListOf<OutTab>()
             val incoming = mutableListOf<JSONObject>()
             var viaRelay = false
@@ -144,6 +155,21 @@ class Link(private val state: BrowserState, private val listener: Listener) {
                     for (t in outbox) {
                         val r = client.post(config, host.first, host.second, "tab", tabFields(t))
                         if (r.optBoolean("ok", true)) sent += t
+                    }
+                    reply.optJSONObject("sync")?.let { s ->
+                        val pwOn = !s.isNull("pw")
+                        val needBm = s.optString("bm") != config.syncBm || bmRev != config.sentBmRev
+                        val needPw = pwOn && (s.optString("pw") != config.syncPw || pwRev != config.sentPwRev)
+                        if (needBm || needPw) {
+                            val fields = JSONObject().put("bookmarks", SyncRules.bookmarksToJson(bookmarks))
+                            if (needPw) fields.put("passwords", SyncRules.passwordsToJson(passwords))
+                            val r = client.post(config, host.first, host.second, "sync", fields)
+                            val after = r.optJSONObject("sync")
+                            synced = SyncResult(
+                                if (r.has("bookmarks")) SyncRules.bookmarksFromJson(r.optJSONArray("bookmarks")) else null,
+                                if (r.has("passwords")) SyncRules.passwordsFromJson(r.optJSONArray("passwords")) else null,
+                                after?.optString("bm") ?: "", after?.takeIf { !it.isNull("pw") }?.optString("pw"), bmRev, pwRev)
+                        }
                     }
                 } else if (config.relay.isNotEmpty()) {
                     viaRelay = true
@@ -171,6 +197,7 @@ class Link(private val state: BrowserState, private val listener: Listener) {
             catch (e: Exception) { error = if (viaRelay && e is java.net.UnknownHostException) "Niente internet" else message(e) }
             val finalHost = host
             val finalReply = reply
+            val finalSync = synced
             main.post {
                 busy = false
                 val current = state.link
@@ -187,6 +214,24 @@ class Link(private val state: BrowserState, private val listener: Listener) {
                     applyPcInfo(current, finalReply)
                     current.lastContact = System.currentTimeMillis()
                 }
+                if (finalSync != null) {
+                    // Si fonde con quello che c'è adesso: se nel frattempo hai cambiato qualcosa, non si perde.
+                    val bmChanged = finalSync.bookmarks != null && run {
+                        val before = state.bookmarks.toList()
+                        state.applyBookmarks(SyncRules.mergeBookmarks(state.bookmarks, finalSync.bookmarks))
+                        current.syncBm = finalSync.bm
+                        current.sentBmRev = finalSync.bmRev
+                        before != state.bookmarks
+                    }
+                    val pwChanged = finalSync.passwords != null && run {
+                        val before = vault.entries.map { it.copy(used = 0) }
+                        vault.merge(finalSync.passwords)
+                        current.syncPw = finalSync.pw ?: ""
+                        current.sentPwRev = finalSync.pwRev
+                        before != vault.entries.map { it.copy(used = 0) }
+                    }
+                    listener.onSynced(bmChanged, pwChanged)
+                }
                 // La stessa scheda può arrivare due volte (dalla rete di casa e dal relay): si apre una volta sola.
                 val fresh = incoming.map {
                     Incoming(it.optString("id"), it.optString("url"), it.optString("title"), it.optDouble("scroll", 0.0), it.optDouble("time", 0.0))
@@ -198,7 +243,7 @@ class Link(private val state: BrowserState, private val listener: Listener) {
                 }
                 state.outbox.removeAll { t -> sent.any { it.id == t.id } }
                 sent.forEach { listener.onSent(it, viaRelay) }
-                if (sent.isNotEmpty() || fresh.isNotEmpty() || wasReachable != reachable || wasRelay != relayOk || finalReply != null || relaySince.isNotEmpty()) listener.onLinkChanged()
+                if (sent.isNotEmpty() || fresh.isNotEmpty() || finalSync != null || wasReachable != reachable || wasRelay != relayOk || finalReply != null || relaySince.isNotEmpty()) listener.onLinkChanged()
             }
         }
     }

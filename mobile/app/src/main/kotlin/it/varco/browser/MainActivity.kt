@@ -31,6 +31,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebView
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
@@ -55,6 +56,7 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
     private lateinit var store: Store
     private lateinit var pages: Pages
     private lateinit var link: Link
+    private lateinit var vault: Vault
     private val ui = Ui(this)
     private val handler = Handler(Looper.getMainLooper())
     private val italian = Locale.ITALIAN
@@ -66,6 +68,7 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
     private lateinit var clock: TextView
     private lateinit var date: TextView
     private lateinit var homeWorkspace: LinearLayout
+    private lateinit var homeBookmarks: LinearLayout
     private lateinit var pageHost: FrameLayout
     private lateinit var bar: LinearLayout
     private lateinit var progress: View
@@ -91,7 +94,8 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
         state = store.load()
         ui.theme = Themes.byId(state.settings.theme)
         pages = Pages(this, state, this)
-        link = Link(state, this)
+        vault = Vault(this).apply { load() }
+        link = Link(state, vault, this)
         pages.canCapture = { layer.visibility != View.VISIBLE && fullscreen.visibility != View.VISIBLE }
         build()
         if (Build.VERSION.SDK_INT >= 33) {
@@ -116,6 +120,7 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
         state.current()?.let { pages.snapshot(it.id) }
         pages.pauseAll()
         link.stopPolling()
+        hidePwChip()
         save()
     }
 
@@ -157,6 +162,12 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
             clock, date.apply { setPadding(0, dp(6), 0, dp(28)) },
         ).apply { gravity = Gravity.CENTER_HORIZONTAL }
         center.addView(search, LinearLayout.LayoutParams(ui.MATCH, dp(52)))
+        // Beta 0.33: i preferiti sotto la ricerca, in una fila che scorre.
+        homeBookmarks = ui.row().apply { setPadding(0, dp(14), 0, 0) }
+        center.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(homeBookmarks)
+        }, LinearLayout.LayoutParams(ui.WRAP, ui.WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL })
         home.addView(center, FrameLayout.LayoutParams(ui.MATCH, ui.WRAP, Gravity.CENTER).apply { leftMargin = dp(24); rightMargin = dp(24); bottomMargin = dp(60) })
         homeWorkspace = ui.row()
         home.addView(homeWorkspace, FrameLayout.LayoutParams(ui.WRAP, ui.WRAP, Gravity.TOP or Gravity.START))
@@ -253,6 +264,10 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
             homeWorkspace.layoutParams = this
         }
         layer.setPadding(0, sysTop, 0, 0)
+        pwChip?.let { c ->
+            (c.layoutParams as FrameLayout.LayoutParams).bottomMargin = maxOf(imeBottom, sysBottom + dp(8 + BAR)) + dp(10)
+            c.requestLayout()
+        }
         editPanel?.let { p ->
             (p.layoutParams as FrameLayout.LayoutParams).bottomMargin = maxOf(imeBottom, sysBottom) + dp(8)
             p.requestLayout()
@@ -291,7 +306,9 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
         val isHome = tab.url == UrlRules.HOME
         updateWallpaper()
         updateWorkspaceChip()
+        if (pwChip != null && SyncRules.originOf(tab.url) != pwChipOrigin) hidePwChip()
         if (isHome) {
+            updateHomeBookmarks()
             pageHost.removeAllViews()
             pageHost.visibility = View.GONE
             home.visibility = View.VISIBLE
@@ -400,6 +417,7 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
 
     override fun onPageChanged(tab: Tab) {
         if (tab.id == state.current()?.id) updateBar()
+        if (pwChip != null && (tab.id != state.current()?.id || SyncRules.originOf(tab.url) != pwChipOrigin)) hidePwChip()
         scheduleSave()
     }
 
@@ -841,6 +859,17 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
             link.relayOk -> "via internet"
             else -> "non raggiungibile"
         }) { openLinkSheet() })
+        if (onPage) {
+            val starred = state.isBookmarked(tab!!.url)
+            list.addView(ui.menuRow(R.drawable.ic_bookmark, if (starred) "Togli dai preferiti" else "Aggiungi ai preferiti") {
+                closeLayer()
+                if (starred) state.removeBookmark(tab.url) else state.addBookmark(tab.url, tab.title.ifBlank { UrlRules.displayHost(tab.url) })
+                toast(if (starred) "Tolto dai preferiti" else "Aggiunto ai preferiti")
+                scheduleSave(); link.sync()
+            })
+        }
+        list.addView(ui.menuRow(R.drawable.ic_bookmarks, "Preferiti", state.liveBookmarks.size.takeIf { it > 0 }?.toString()) { openBookmarks() })
+        list.addView(ui.menuRow(R.drawable.ic_key, "Password", vault.live.size.takeIf { it > 0 }?.toString()) { openPasswords() })
         if (onPage) list.addView(ui.menuRow(R.drawable.ic_forward, "Condividi") {
             closeLayer()
             startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, tab!!.url).putExtra(Intent.EXTRA_SUBJECT, tab.title), "Condividi"))
@@ -1112,22 +1141,212 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
 
     private var banner: View? = null
 
+    // ------------------------------------------------------------------ preferiti (Beta 0.33)
+
+    private fun updateHomeBookmarks() {
+        homeBookmarks.removeAllViews()
+        for (b in state.liveBookmarks.take(12)) {
+            homeBookmarks.addView(ui.chip(b.title.ifBlank { UrlRules.displayHost(b.url) }.take(24), null, false) { navigate(b.url) }.apply {
+                setOnLongClickListener { bookmarkOptions(b); true }
+            }, LinearLayout.LayoutParams(ui.WRAP, ui.WRAP).apply { marginEnd = dp(8) })
+        }
+    }
+
+    private fun openBookmarks() {
+        openLayer(dim = .5f)
+        val list = ui.column(title("Preferiti"))
+        val items = state.liveBookmarks
+        if (items.isEmpty()) list.addView(ui.label("Ancora nessun preferito. Apri una pagina, poi Menu → Aggiungi ai preferiti." +
+            if (state.link != null) " Quelli del PC arrivano da soli quando sei sulla Wi-Fi di casa." else "", 14f, ui.muted).apply {
+            setPadding(dp(14), 0, dp(14), dp(12)); setLineSpacing(0f, 1.2f)
+        })
+        for (b in items) list.addView(ui.menuRow(R.drawable.ic_bookmark, b.title.ifBlank { UrlRules.displayHost(b.url) }, UrlRules.displayHost(b.url)) {
+            closeLayer(); openUrl(b.url)
+        }.apply { setOnLongClickListener { bookmarkOptions(b); true } })
+        if (items.isNotEmpty()) list.addView(ui.label("Tieni premuto un preferito per aprirlo in una scheda nuova o toglierlo.", 12f, ui.muted).apply { setPadding(dp(14), dp(6), dp(14), dp(4)) })
+        sheet(ScrollView(this).apply { addView(list) }, bottomMargin = sysBottom + dp(8 + BAR + 8)).apply {
+            layoutParams = (layoutParams as FrameLayout.LayoutParams).apply { topMargin = sysTop + dp(60) }
+        }
+    }
+
+    private fun bookmarkOptions(b: Bookmark) {
+        openLayer(dim = .6f)
+        val list = ui.column(title(b.title.ifBlank { UrlRules.displayHost(b.url) }))
+        list.addView(ui.menuRow(R.drawable.ic_tab_new, "Apri in una scheda nuova") { closeLayer(); newTab(b.url) })
+        list.addView(ui.menuRow(R.drawable.ic_close, "Togli dai preferiti") {
+            state.removeBookmark(b.url); scheduleSave(); link.sync(); closeLayer(); show(); toast("Tolto dai preferiti")
+        })
+        sheet(list)
+    }
+
+    /** Apre un indirizzo: al posto della Home, altrimenti nella scheda aperta. */
+    private fun openUrl(url: String) {
+        navigate(url)
+    }
+
+    // ------------------------------------------------------------------ password (Beta 0.33)
+
+    private var pwChip: View? = null
+    private var pwChipOrigin = ""
+
+    /** Il sito della pagina, letto da VARCO dall'indirizzo vero della WebView (non da ciò che dice la pagina). */
+    private fun originOf(view: WebView) = SyncRules.originOf(view.url)
+
+    override fun onLoginField(tab: Tab, view: WebView, focused: Boolean) {
+        if (state.current()?.id != tab.id) return
+        val origin = originOf(view)
+        if (!focused) { handler.postDelayed({ if (pwChipOrigin == origin) hidePwChip() }, 400); return }
+        val accounts = vault.accountsFor(origin)
+        if (origin.isEmpty() || accounts.isEmpty()) return hidePwChip()
+        showPwChip(origin, if (accounts.size == 1) "Accedi come ${accounts[0].username.ifBlank { "(senza nome utente)" }}" else "Scegli un account (${accounts.size})") {
+            vault.unlock(this, SyncRules.hostOf(origin), ::toast) {
+                val fresh = vault.accountsFor(origin)
+                if (fresh.size == 1) fill(tab, view, origin, fresh[0]) else chooseAccount(tab, view, origin, fresh)
+            }
+        }
+    }
+
+    private fun showPwChip(origin: String, text: String, onTap: () -> Unit) {
+        hidePwChip()
+        val chip = ui.row(ui.icon(R.drawable.ic_key, 18, ui.accent).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = dp(10) }).apply {
+            background = ui.pressable(ui.glass, 20f, ui.lineStrong)
+            setPadding(dp(14), dp(10), dp(16), dp(10))
+            addView(ui.label(text, 14f).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END })
+            isClickable = true
+            setOnClickListener { onTap() }
+        }
+        root.addView(chip, root.indexOfChild(layer), FrameLayout.LayoutParams(ui.WRAP, ui.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+            bottomMargin = maxOf(imeBottom, sysBottom + dp(8 + BAR)) + dp(10)
+        })
+        pwChip = chip
+        pwChipOrigin = origin
+    }
+
+    private fun hidePwChip() {
+        pwChip?.let { root.removeView(it) }
+        pwChip = null
+        pwChipOrigin = ""
+    }
+
+    private fun chooseAccount(tab: Tab, view: WebView, origin: String, accounts: List<PwEntry>) {
+        openLayer(dim = .5f)
+        val list = ui.column(title("Account per ${SyncRules.hostOf(origin)}"))
+        for (a in accounts) list.addView(ui.menuRow(R.drawable.ic_key, a.username.ifBlank { "(senza nome utente)" }) { closeLayer(); fill(tab, view, origin, a) })
+        sheet(list, bottomMargin = maxOf(imeBottom, sysBottom) + dp(8))
+    }
+
+    /** Compila nome utente e password. Solo se la pagina è ancora sullo stesso sito di quando hai scelto. */
+    private fun fill(tab: Tab, view: WebView, origin: String, entry: PwEntry) {
+        hidePwChip()
+        if (pages.viewOf(tab.id) !== view || originOf(view) != origin || entry.origin != origin) return toast("La pagina è cambiata: tocca di nuovo il campo")
+        view.evaluateJavascript("window.__varcoPwFill&&window.__varcoPwFill(${org.json.JSONObject.quote(entry.username)},${org.json.JSONObject.quote(entry.password)})", null)
+        vault.markUsed(entry)
+    }
+
+    /** Accesso in due passaggi: il nome utente scritto nella pagina prima della password. */
+    private var lastUsername: Triple<String, String, Long>? = null
+
+    override fun onLoginSubmitted(tab: Tab, view: WebView, username: String, password: String) {
+        val origin = originOf(view)
+        if (origin.isEmpty()) return
+        if (password.isEmpty()) { lastUsername = Triple(origin, username, System.currentTimeMillis()); return }
+        var user = username
+        val before = lastUsername
+        if (user.isEmpty() && before != null && before.first == origin && System.currentTimeMillis() - before.third < 10 * 60 * 1000) user = before.second
+        val decision = SyncRules.decideSave(vault.live, vault.never, origin, user, password)
+        if (decision != "new" && decision != "update") return
+        val host = SyncRules.hostOf(origin)
+        showBanner(if (decision == "new") "Salvare la password per $host?" else "Aggiornare la password di $host?",
+            action = if (decision == "new") "Salva" else "Aggiorna", icon = R.drawable.ic_key, timeout = 20000,
+            second = if (decision == "new") "Mai" to {
+                vault.never += origin; vault.save(); toast("Non chiederò più per $host")
+            } else null) {
+            vault.put(origin, user, password)
+            state.pwRev++
+            scheduleSave(); link.sync()
+            toast("Password salvata")
+        }
+    }
+
+    /** Menu → Password: serve lo sblocco del telefono. */
+    private fun openPasswords() {
+        closeLayer()
+        vault.unlock(this, "Le tue password salvate", ::toast) { showPasswords() }
+    }
+
+    private fun showPasswords() {
+        openLayer(dim = .5f)
+        val list = ui.column(title("Password"))
+        val items = vault.live.sortedWith(compareBy({ SyncRules.hostOf(it.origin) }, { it.username }))
+        if (items.isEmpty()) list.addView(ui.label("Nessuna password salvata. VARCO chiede se salvarla dopo un accesso." +
+            if (state.link != null) " Quelle del PC arrivano da sole quando sei sulla Wi-Fi di casa (se sul PC è acceso Impostazioni → Telefono → Sincronizza le password)." else "",
+            14f, ui.muted).apply { setPadding(dp(14), 0, dp(14), dp(12)); setLineSpacing(0f, 1.2f) })
+        for (e in items) list.addView(ui.menuRow(R.drawable.ic_key, SyncRules.hostOf(e.origin), e.username.ifBlank { "(senza nome utente)" }) { passwordOptions(e) })
+        if (vault.never.isNotEmpty()) list.addView(ui.menuRow(R.drawable.ic_close, "Siti esclusi", vault.never.size.toString()) { neverOptions() })
+        sheet(ScrollView(this).apply { addView(list) }, bottomMargin = sysBottom + dp(8 + BAR + 8)).apply {
+            layoutParams = (layoutParams as FrameLayout.LayoutParams).apply { topMargin = sysTop + dp(60) }
+        }
+    }
+
+    private fun passwordOptions(e: PwEntry) {
+        openLayer(dim = .6f)
+        val shown = ui.label("••••••••", 16f).apply { setPadding(dp(14), 0, dp(14), dp(10)); setTextIsSelectable(true) }
+        val list = ui.column(title("${SyncRules.hostOf(e.origin)} · ${e.username.ifBlank { "(senza nome utente)" }}"), shown)
+        list.addView(ui.menuRow(R.drawable.ic_search, "Mostra") { shown.text = e.password })
+        list.addView(ui.menuRow(R.drawable.ic_check, "Copia la password") {
+            val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("password", e.password).apply {
+                description.extras = android.os.PersistableBundle().apply { putBoolean("android.content.extra.IS_SENSITIVE", true) }
+            })
+            toast("Password copiata")
+        })
+        if (e.username.isNotEmpty()) list.addView(ui.menuRow(R.drawable.ic_check, "Copia il nome utente") {
+            (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("nome utente", e.username))
+            toast("Nome utente copiato")
+        })
+        list.addView(ui.menuRow(R.drawable.ic_external, "Apri il sito") { closeLayer(); newTab(e.origin) })
+        list.addView(ui.menuRow(R.drawable.ic_close, "Elimina") {
+            vault.remove(e.origin, e.username); state.pwRev++; scheduleSave(); link.sync()
+            toast("Password eliminata" + if (state.link != null) ": la elimino anche dal PC" else ""); showPasswords()
+        })
+        sheet(list)
+    }
+
+    private fun neverOptions() {
+        openLayer(dim = .6f)
+        val list = ui.column(title("Siti per cui non chiedo di salvare"))
+        for (o in vault.never.sorted()) list.addView(ui.menuRow(R.drawable.ic_close, SyncRules.hostOf(o), "Togli") {
+            vault.never -= o; vault.save(); neverOptions()
+        })
+        sheet(list)
+    }
+
+    override fun onSynced(bookmarks: Boolean, passwords: Boolean) {
+        scheduleSave()
+        if (bookmarks && state.current()?.url == UrlRules.HOME) updateHomeBookmarks()
+    }
+
     /** Avviso sopra la barra, con un pulsante; sparisce da solo dopo 8 secondi. */
-    private fun showBanner(text: String, onOpen: () -> Unit) {
+    private fun showBanner(text: String, action: String = "Apri", icon: Int = R.drawable.ic_external, timeout: Long = 8000,
+                           second: Pair<String, () -> Unit>? = null, onOpen: () -> Unit) {
         banner?.let { root.removeView(it) }
-        val card = ui.row(ui.icon(R.drawable.ic_external, 18, ui.accent).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = dp(10) }).apply {
+        val card = ui.row(ui.icon(icon, 18, ui.accent).apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = dp(10) }).apply {
             background = ui.round(ui.glass, 18f, ui.lineStrong)
             setPadding(dp(14), dp(6), dp(6), dp(6))
             addView(ui.label(text, 14f).apply { maxLines = 2; ellipsize = TextUtils.TruncateAt.END }, ui.lp(0, ui.WRAP, 1f))
         }
-        card.addView(ui.button("Apri", primary = true) { root.removeView(card); banner = null; onOpen() }.apply { minHeight = dp(38) })
+        if (second != null) {
+            card.addView(ui.button(second.first) { root.removeView(card); banner = null; second.second() }.apply { minHeight = dp(38) })
+            card.addView(View(this), ui.lp(dp(6), 1))
+        }
+        card.addView(ui.button(action, primary = true) { root.removeView(card); banner = null; onOpen() }.apply { minHeight = dp(38) })
         root.addView(card, root.indexOfChild(layer), FrameLayout.LayoutParams(ui.MATCH, ui.WRAP, Gravity.BOTTOM).apply {
             leftMargin = dp(14); rightMargin = dp(14); bottomMargin = sysBottom + dp(8 + BAR + 10)
         })
         banner = card
         card.translationY = dp(30).toFloat(); card.alpha = 0f
         card.animate().translationY(0f).alpha(1f).setDuration(220).start()
-        handler.postDelayed({ if (banner === card) { banner = null; card.animate().alpha(0f).setDuration(200).withEndAction { root.removeView(card) }.start() } }, 8000)
+        handler.postDelayed({ if (banner === card) { banner = null; card.animate().alpha(0f).setDuration(200).withEndAction { root.removeView(card) }.start() } }, timeout)
     }
 
     companion object {
@@ -1139,5 +1358,5 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
 
 /** La versione scritta nel menu, senza attivare BuildConfig in Gradle. */
 object BuildConfigLite {
-    const val VERSION = "0.32.0"
+    const val VERSION = "0.33.0"
 }

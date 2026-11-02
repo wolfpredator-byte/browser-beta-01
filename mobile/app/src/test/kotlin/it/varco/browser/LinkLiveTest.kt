@@ -43,5 +43,16 @@ class LinkLiveTest {
             .put("target", JSONObject().put("kind", "tab"))).toString()))!!
         client.publish(server, topics.pc, body)
         assertTrue(client.poll(server, topics.phone, "12h").all { it.id.isNotEmpty() })
+
+        // Beta 0.33: preferiti e password, solo sulla rete di casa. Il PC risponde con gli elenchi fusi.
+        val now = System.currentTimeMillis()
+        val s = hello.getJSONObject("sync")
+        assertTrue(s.optString("bm").length == 16)
+        val synced = client.post(config, host.first, host.second, "sync", JSONObject()
+            .put("bookmarks", SyncRules.bookmarksToJson(listOf(Bookmark("https://example.net/preferito-junit", "Preferito JUnit", now))))
+            .put("passwords", SyncRules.passwordsToJson(listOf(PwEntry("https://example.net", "junit", "segreta-junit", now)))))
+        assertTrue(SyncRules.bookmarksFromJson(synced.getJSONArray("bookmarks")).any { it.url == "https://example.net/preferito-junit" })
+        if (!s.isNull("pw")) assertTrue(SyncRules.passwordsFromJson(synced.getJSONArray("passwords")).any { it.username == "junit" && it.password == "segreta-junit" })
+        assertTrue(synced.getJSONObject("sync").optString("bm") != s.optString("bm"))
     }
 }

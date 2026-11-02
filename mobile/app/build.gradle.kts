@@ -10,8 +10,8 @@ android {
         applicationId = "it.varco.browser"
         minSdk = 30
         targetSdk = 36
-        versionCode = 32000
-        versionName = "0.32.0"
+        versionCode = 33000
+        versionName = "0.33.0"
     }
 
     buildTypes {

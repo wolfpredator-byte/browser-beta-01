@@ -39,6 +39,11 @@ class LinkConfig(
     /** Beta 0.32: il server del relay (lo dice il PC; vuoto = solo rete di casa) e l'ultimo messaggio letto lì. */
     var relay: String = "",
     var relaySince: String = "",
+    /** Beta 0.33: impronte degli elenchi del PC all'ultima sincronizzazione, e quale versione locale gli abbiamo mandato. */
+    var syncBm: String = "",
+    var syncPw: String = "",
+    var sentBmRev: Int = -1,
+    var sentPwRev: Int = -1,
 )
 
 /** Una scheda da mandare al PC. target: tab | window | ask | ws:<nome del workspace>. Resta in coda finché il PC non risponde. */
@@ -49,6 +54,33 @@ class BrowserState {
     val outbox = mutableListOf<OutTab>()
     /** Id delle schede arrivate dal PC: la stessa scheda può arrivare dalla rete di casa e dal relay. */
     val seenIncoming = mutableListOf<String>()
+    /** Beta 0.33: preferiti, con le lapidi di quelli tolti (servono al PC). bmRev/pwRev crescono a ogni modifica fatta qui. */
+    val bookmarks = mutableListOf<Bookmark>()
+    var bmRev = 0
+    var pwRev = 0
+    val liveBookmarks: List<Bookmark> get() = bookmarks.filter { !it.del }
+    fun isBookmarked(url: String) = bookmarks.any { it.url == url && !it.del }
+
+    fun addBookmark(url: String, title: String, now: Long = System.currentTimeMillis()) {
+        bookmarks.removeAll { it.url == url }
+        bookmarks.add(0, Bookmark(url, title.take(300), now))
+        bmRev++
+    }
+
+    fun removeBookmark(url: String, now: Long = System.currentTimeMillis()) {
+        if (!isBookmarked(url)) return
+        bookmarks.removeAll { it.url == url }
+        bookmarks += Bookmark(url, "", now, del = true)
+        bmRev++
+    }
+
+    /** I preferiti fusi col PC: i nuovi in cima, gli altri restano dove li avevi. */
+    fun applyBookmarks(merged: List<Bookmark>) {
+        val order = bookmarks.withIndex().associate { it.value.url to it.index }
+        val (known, fresh) = merged.partition { it.url in order }
+        bookmarks.clear()
+        bookmarks += fresh.sortedByDescending { it.at } + known.sortedBy { order[it.url] }
+    }
     val workspaces = mutableListOf<Workspace>()
     val tabs = mutableListOf<Tab>()
     var activeWorkspace = ""
