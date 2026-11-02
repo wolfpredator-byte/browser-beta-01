@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- V3 — Cerca prima di tutto: una grande barra di ricerca; i risultati sono già i controlli. Sotto, le più usate e le categorie. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V3 · Cerca prima di tutto</title>
+<link rel="stylesheet" href="../shared/kit.css">
+<style>
+  .page{height:100vh;overflow:auto}
+  .col{max-width:720px;margin:0 auto;padding:9vh 24px 120px}
+  h1{text-align:center;margin:0 0 22px}
+  .bar{position:sticky;top:16px;z-index:5}
+  .bar input{width:100%;font-size:var(--fs-lg);padding:16px 20px 16px 48px;border-radius:var(--r-xl);background:var(--v-glass-strong);border:1px solid var(--v-line-strong);outline:none;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  .bar input:focus{border-color:var(--v-accent);box-shadow:0 0 0 4px rgba(var(--v-accent-rgb),.2),0 18px 50px rgba(0,0,0,.45)}
+  .bar svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--v-muted)}
+  .bar kbd{position:absolute;right:16px;top:50%;transform:translateY(-50%);font:var(--fs-xs) ui-monospace,monospace;color:var(--v-muted);border:1px solid var(--v-line);border-radius:5px;padding:2px 6px}
+  .block{margin-top:34px}
+  .panel{padding:8px 20px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .tile{display:grid;grid-template-columns:20px 1fr;gap:2px 12px;text-align:left;padding:14px;border-radius:var(--r-md);border:1px solid var(--v-line);background:rgba(7,7,14,.45)}
+  .tile svg{color:var(--v-accent-2);grid-row:span 2}
+  .tile small{color:var(--v-muted);font-size:var(--fs-xs);line-height:1.35}
+  .tile.err small{color:var(--v-danger)}
+  .hit{padding:4px 20px 10px;margin-bottom:10px}
+  .hit .crumb{font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--v-muted);padding-top:12px;display:flex;justify-content:space-between}
+  .hit .crumb button{font-size:var(--fs-xs);padding:2px 8px;color:var(--v-accent-2);text-transform:none;letter-spacing:0}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--v-muted);margin-bottom:14px;padding-left:4px}
+  .count{color:var(--v-muted);font-size:var(--fs-sm);margin:0 4px 10px}
+</style>
+</head>
+<body>
+<div class="page"><div class="col">
+  <h1 class="k-title">Impostazioni</h1>
+  <div class="bar">
+    <input id="q" type="search" placeholder="Cosa vuoi cambiare? (tema, password, schede, telefono…)" autocomplete="off" autofocus>
+    <kbd>Ctrl+F</kbd>
+  </div>
+  <div id="out"></div>
+</div></div>
+<script src="../shared/data.js"></script>
+<script src="../shared/kit.js"></script>
+<script>
+  const {el,icon,item,group,search,highlight,empty}=K;
+  const q=document.getElementById('q'),out=document.getElementById('out');
+  document.querySelector('.bar').prepend(icon('search',20));
+  let open=null;
+
+  function home(){
+    const freq=FREQUENT.map(([cid,label])=>SETTINGS.find(c=>c.id===cid).groups.flatMap(g=>g.items).find(i=>i.label===label));
+    out.replaceChildren(
+      el('div',{className:'block'},el('h4',{className:'k-h',textContent:'Usate spesso'}),el('div',{className:'panel k-glass'},freq.map(item))),
+      el('div',{className:'block'},el('h4',{className:'k-h',textContent:'Tutte le categorie'}),
+        el('div',{className:'tiles'},SETTINGS.map(c=>{
+          const t=el('button',{type:'button',className:'tile'+(c.status?.()==='error'?' err':'')},icon(c.icon),el('span',{textContent:c.title}),el('small',{textContent:c.summary()}));
+          t.onclick=()=>{open=c.id;draw();};return t;
+        }))));
+  }
+  function category(){
+    const c=SETTINGS.find(x=>x.id===open);
+    const back=el('button',{type:'button',className:'back'},icon('back',16),'Tutte le impostazioni');back.onclick=()=>{open=null;draw();};
+    out.replaceChildren(el('div',{className:'block'},back,el('h2',{className:'k-title',textContent:c.title,style:'margin:0 4px 16px'}),
+      ...c.groups.map(g=>el('div',{className:'panel k-glass',style:'margin-bottom:12px;padding-top:16px'},group(g)))));
+  }
+  function results(){
+    const hits=search(q.value);
+    if(!hits.length){out.replaceChildren(el('div',{className:'block'},empty(q.value)));return;}
+    // Un riquadro per gruppo: i controlli si usano direttamente dal risultato.
+    const byGroup=new Map();for(const h of hits){const k=h.cat.id+'/'+h.group.title;(byGroup.get(k)||byGroup.set(k,{...h,items:[]}).get(k)).items.push(h.item);}
+    out.replaceChildren(el('div',{className:'block'},el('p',{className:'count',textContent:`${hits.length} ${hits.length===1?'risultato':'risultati'}`}),
+      ...[...byGroup.values()].map(h=>{
+        const go=el('button',{type:'button',textContent:'Apri '+h.cat.title+' →'});go.onclick=()=>{q.value='';open=h.cat.id;draw();};
+        const rows=h.items.map(item);
+        rows.forEach(r=>{const s=r.querySelector('.k-label>span');if(s)s.replaceWith(highlight(s.textContent,q.value));});
+        return el('div',{className:'hit k-glass'},el('div',{className:'crumb'},el('span',{textContent:`${h.cat.title} › ${h.group.title}`}),go),rows);
+      })));
+  }
+  function draw(){q.value?results():open?category():home();}
+  q.oninput=()=>{open=null;draw();};
+  addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}if(e.key==='Escape'){q.value='';open=null;draw();}});
+  draw();
+</script>
+</body>
+</html>

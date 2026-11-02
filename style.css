@@ -772,12 +772,63 @@ body.wall-in::before{animation:v-wall-in calc(var(--dur-3) * 2) var(--ease-out)}
   border-radius:var(--r-lg);background:rgba(var(--v-bg-rgb),.72);backdrop-filter:blur(18px);border:1px solid var(--v-line)}
 #settingsSearch{width:100%;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--v-line);background:rgba(var(--v-field-rgb),.25);color:inherit;font-size:var(--fs-md);outline:none}
 #settingsSearch:focus{border-color:var(--v-accent)}
-#settingsIndex{display:flex;flex-wrap:wrap;gap:6px}
-.settings-chip{padding:4px 11px;font-size:var(--fs-xs);border:1px solid var(--v-line);border-radius:999px;background:rgba(var(--v-accent-rgb),.08)}
-.settings-chip:hover{border-color:var(--v-line-strong);background:rgba(var(--v-accent-rgb),.2)}
-.settings-chip[hidden],#settingsBody section[hidden]{display:none}
 @keyframes v-flash{0%{box-shadow:0 0 0 2px var(--v-accent)}100%{box-shadow:0 0 0 2px transparent}}
-#settingsBody section.flash{animation:v-flash 1.2s var(--ease-out)}
+#settingsBody section.flash,#settingsSheet section.flash{animation:v-flash 1.2s var(--ease-out)}
+
+/* ── Impostazioni, Beta 0.34: panoramica a riquadri + pannello della categoria ──
+   Token scelti col pannello Tweaks (design/explore/LOG.md). Accento e sfondo restano quelli dell'Aspetto. */
+#settingsPage,#settingsSheet{--s-cols:4;--s-gap:6px;--s-tile-pad:10px;--s-tile-min:175px;--s-hover-glow:.5;
+  --s-glass-a:.5;--s-glass-blur:40px;--s-line-a:.28;--s-sheet-w:570px;--s-sheet-a:.65;--s-dim:.46;
+  --s-title-weight:400;--s-title-track:.28em;--s-sum-size:14px;--s-dur:700ms}
+#settingsPage{transition:padding-right var(--s-dur) var(--ease-out)}
+#settingsPage.sheet-open{padding-right:calc(min(var(--s-sheet-w),55%) + 24px)}
+.settings-inner{max-width:1180px}
+.settings-nav{flex-direction:row;align-items:center;gap:24px;border:0;border-radius:0 0 var(--r-lg) var(--r-lg);background:rgba(var(--v-bg-rgb),.6);padding:12px;margin:0 -12px 22px;top:-28px}
+.settings-nav h1{margin:0;font-size:20px;font-weight:var(--s-title-weight);letter-spacing:var(--s-title-track);text-transform:uppercase}
+#settingsSearch{max-width:340px;margin-left:auto;background:rgba(var(--v-field-rgb),.35)}
+#settingsPage:not(.searching) #settingsBody{columns:auto}
+.settings-alert{display:flex;gap:16px;align-items:flex-start;padding:12px 16px;margin-bottom:16px;border-radius:var(--r-lg);
+  border:1px solid rgba(255,122,138,.35);background:rgba(60,14,24,.5);backdrop-filter:blur(var(--s-glass-blur))}
+.settings-alert>strong{color:#ff8b98;font-weight:600;padding-top:6px;white-space:nowrap}
+.settings-alert ul{margin:0;padding:0;list-style:none;flex:1}
+.settings-alert li button{display:flex;gap:10px;width:100%;text-align:left;padding:6px 8px}
+.settings-alert li button span:first-child{color:var(--v-muted);min-width:80px}
+.settings-alert li button span:last-child{margin-left:auto;color:#ff8b98;white-space:nowrap}
+.settings-grid{display:grid;grid-template-columns:repeat(var(--s-cols),minmax(0,1fr));gap:var(--s-gap)}
+.settings-tile{display:flex;flex-direction:column;gap:10px;min-height:var(--s-tile-min);padding:var(--s-tile-pad) calc(var(--s-tile-pad) + 2px);cursor:pointer;
+  border-radius:var(--r-lg);background:rgba(24,23,44,var(--s-glass-a));border:1px solid rgba(var(--v-accent-rgb),var(--s-line-a));
+  backdrop-filter:blur(var(--s-glass-blur)) saturate(1.2);
+  transition:border-color var(--dur-2) var(--ease-out),background var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out),opacity var(--s-dur) var(--ease-out)}
+.settings-tile.wide{grid-column:span 2}
+.settings-tile:hover{border-color:var(--v-line-strong);background:rgba(34,32,62,calc(var(--s-glass-a) + .1));
+  box-shadow:0 0 calc(30px*var(--s-hover-glow)) rgba(var(--v-accent-rgb),calc(.35*var(--s-hover-glow)))}
+.settings-tile[aria-current="true"]{border-color:var(--v-accent);box-shadow:inset 0 0 0 1px var(--v-accent)}
+.settings-tile>header{display:flex;align-items:center;gap:10px;color:var(--v-muted)}
+.settings-tile>header span:last-child{font-size:var(--fs-xs);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.settings-tile>p{margin:0;font-size:var(--s-sum-size);line-height:1.35}
+.settings-tile.error>p,.settings-tile.error>header .i{color:#ff8b98}
+.settings-quick{margin-top:auto;display:flex;flex-direction:column;gap:4px;cursor:default}
+.settings-quick .check-row{font-size:var(--fs-sm);color:var(--v-muted)}
+#settingsPage.sheet-open .settings-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+#settingsPage.sheet-open .settings-tile.wide{grid-column:auto}
+#settingsPage.sheet-open .settings-tile:not([aria-current="true"]){opacity:var(--s-dim)}
+#settingsSheet{position:absolute;top:0;right:0;bottom:0;z-index:4;width:min(var(--s-sheet-w),55%);overflow:auto;padding:28px 30px 60px;
+  background:rgba(var(--v-bg-rgb),var(--s-sheet-a));border-left:1px solid var(--v-line-strong);backdrop-filter:blur(24px);
+  box-shadow:-30px 0 60px rgba(0,0,0,.35);transform:translateX(105%);visibility:hidden;
+  transition:transform var(--s-dur) var(--ease-out),visibility 0s linear var(--s-dur);zoom:var(--v-ui-scale)}
+#settingsSheet.open{transform:none;visibility:visible;transition:transform var(--s-dur) var(--ease-out)}
+#settingsSheet[hidden]{display:none}
+.settings-sheet-head{display:flex;align-items:center;gap:12px}
+.settings-sheet-head h2{margin:0;font-size:18px;font-weight:var(--s-title-weight);letter-spacing:var(--s-title-track);text-transform:uppercase}
+.settings-sheet-close{margin-left:auto}
+.settings-sheet-sum{color:var(--v-muted);margin:6px 0 18px}
+.settings-sheet-sum.error{color:#ff8b98}
+#settingsSheet .project-section{border-top:1px solid var(--v-line);margin-top:16px;padding-top:12px}
+@media(max-width:1100px){#settingsPage{--s-cols:3}}
+@media(max-width:760px){#settingsPage{--s-cols:1}.settings-tile.wide{grid-column:auto}}
+body[data-motion="off"] #settingsSheet,body[data-motion="off"] #settingsPage{transition:none}
+body[data-motion="reduced"] :is(#settingsPage,#settingsSheet){--s-dur:130ms}
+@media(prefers-reduced-motion:reduce){body[data-motion="auto"] :is(#settingsPage,#settingsSheet){--s-dur:130ms}}
 /* Barra laterale in gruppi: etichetta con la barra espansa, una linea sottile con le sole icone. */
 .side-group{height:1px;margin:8px 14px;background:var(--v-line);font-size:0;overflow:hidden}
 body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;background:none;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.45}

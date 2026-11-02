@@ -1,0 +1,97 @@
+<!doctype html>
+<!-- V4 — Panoramica di stato: prima si vede com'è messo VARCO (in parole, non numeri), un clic apre la categoria in un pannello laterale. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V4 · Panoramica di stato</title>
+<link rel="stylesheet" href="../shared/kit.css">
+<style>
+  .page{height:100vh;overflow:auto}
+  .col{max-width:1040px;margin:0 auto;padding:44px 32px 100px}
+  .top{display:flex;align-items:center;gap:24px;margin-bottom:28px}
+  .top .k-input{max-width:340px;margin-left:auto}
+  .alert{display:flex;gap:14px;align-items:center;padding:14px 18px;margin-bottom:22px;border-color:rgba(255,122,138,.35);background:rgba(60,14,24,.5)}
+  .alert strong{color:var(--v-danger);font-weight:600}
+  .alert ul{margin:0;padding:0;list-style:none;flex:1}
+  .alert button{color:var(--v-danger)}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .grid .wide{grid-column:span 2}
+  .tile{display:flex;flex-direction:column;gap:10px;text-align:left;padding:18px 20px;min-height:140px;border-radius:var(--r-lg);background:var(--v-glass);border:1px solid var(--v-line)}
+  .tile:hover{border-color:var(--v-line-strong);background:rgba(34,32,62,.6)}
+  .tile header{display:flex;align-items:center;gap:10px;color:var(--v-muted)}
+  .tile header span{font-size:var(--fs-xs);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  .tile header svg:last-child{margin-left:auto;opacity:.5}
+  .tile p{margin:0;font-size:var(--fs-lg);line-height:1.35}
+  .tile.err p{color:var(--v-danger)}
+  .tile .quick{margin-top:auto}
+  .tile .quick .k-row{min-height:auto;padding:0;border:0;font-size:var(--fs-sm);color:var(--v-muted)}
+  .tile .quick .k-hint{display:none}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity var(--dur-3)}
+  .sheet{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--v-glass-strong);border-left:1px solid var(--v-line-strong);
+    transform:translateX(100%);transition:transform var(--dur-3) var(--ease-out);overflow:auto;padding:28px 30px 80px;backdrop-filter:blur(24px)}
+  body.open .scrim{opacity:1;pointer-events:auto}
+  body.open .sheet{transform:none}
+  .sheet header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .results .tile{min-height:auto}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}.grid .wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="page"><div class="col">
+  <div class="top">
+    <h1 class="k-title">Impostazioni</h1>
+    <input class="k-input" id="q" type="search" placeholder="Cerca… (Ctrl+F)" autocomplete="off">
+  </div>
+  <div id="main"></div>
+</div></div>
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-label="Categoria"></aside>
+<script src="../shared/data.js"></script>
+<script src="../shared/kit.js"></script>
+<script>
+  const {el,icon,item,group,search,highlight,empty,flash}=K;
+  const main=document.getElementById('main'),sheet=document.getElementById('sheet'),q=document.getElementById('q');
+  // Un interruttore rapido per categoria, quando ha senso.
+  const QUICK={privacy:'Blocca pubblicità e tracker',telefono:'Collegamento col telefono sulla rete di casa',sistema:'Avvia con Windows (solo l’icona, nessuna finestra)',schede:'Video in finestrella quando cambi scheda'};
+  const find=(c,label)=>c.groups.flatMap(g=>g.items).find(i=>i.label===label);
+
+  function openSheet(id,label){
+    const c=SETTINGS.find(x=>x.id===id);
+    const close=el('button',{type:'button',textContent:'Chiudi ✕'});close.onclick=closeSheet;
+    sheet.replaceChildren(el('header',{},el('h2',{className:'k-title',textContent:c.title}),close),...c.groups.map(g=>group(g)));
+    document.body.classList.add('open');sheet.scrollTop=0;
+    if(label){const n=[...sheet.querySelectorAll('[data-label]')].find(x=>x.dataset.label===label);if(n)setTimeout(()=>flash(n),300);}
+  }
+  function closeSheet(){document.body.classList.remove('open');}
+  document.getElementById('scrim').onclick=closeSheet;
+
+  function overview(){
+    const problems=SETTINGS.filter(c=>c.status?.()==='error');
+    main.replaceChildren(
+      ...(problems.length?[el('div',{className:'alert k-glass'},el('strong',{textContent:'Da sistemare'}),
+        el('ul',{},problems.map(c=>el('li',{textContent:`${c.title}: ${c.summary()}`}))),
+        (()=>{const b=el('button',{type:'button',textContent:'Vedi →'});b.onclick=()=>openSheet(problems[0].id);return b;})())]:[]),
+      el('div',{className:'grid'},SETTINGS.map((c,i)=>{
+        const t=el('div',{className:'tile'+(c.status?.()==='error'?' err':'')+(i===0||i===3?' wide':''),tabIndex:0,role:'button'},
+          el('header',{},icon(c.icon),el('span',{textContent:c.title}),icon('chevron',16)),
+          el('p',{textContent:c.summary()}),
+          QUICK[c.id]?el('div',{className:'quick'},item(find(c,QUICK[c.id]))):null);
+        t.onclick=e=>{if(!e.target.closest('.quick'))openSheet(c.id);};
+        t.onkeydown=e=>{if(e.key==='Enter')openSheet(c.id);};
+        return t;
+      })));
+  }
+  function results(){
+    const hits=search(q.value);
+    main.replaceChildren(hits.length?el('div',{className:'grid results'},hits.map(h=>{
+      const t=el('button',{type:'button',className:'tile'},el('header',{},icon(h.cat.icon),el('span',{textContent:`${h.cat.title} › ${h.group.title}`})),
+        el('p',{},highlight(h.item.label||h.item.text||h.group.title,q.value)));
+      t.onclick=()=>openSheet(h.cat.id,h.item.label||h.item.text);return t;
+    })):empty(q.value));
+  }
+  q.oninput=()=>q.value?results():overview();
+  addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+  overview();
+</script>
+</body>
+</html>

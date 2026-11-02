@@ -1,0 +1,82 @@
+<!doctype html>
+<!-- V2 — Registro con indice: una sola pagina che scorre, sezioni numerate, indice fisso a sinistra che segue lo scorrimento. -->
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2 · Registro con indice</title>
+<link rel="stylesheet" href="../shared/kit.css">
+<style>
+  .page{height:100vh;overflow:auto;scroll-behavior:smooth}
+  .wrap{display:grid;grid-template-columns:220px minmax(0,720px);gap:56px;max-width:1080px;margin:0 auto;padding:48px 32px 120px}
+  .index{position:sticky;top:48px;align-self:start;display:flex;flex-direction:column;gap:2px}
+  .index h1{font-size:var(--fs-lg);letter-spacing:.2em;text-transform:uppercase;font-weight:500;margin:0 0 18px}
+  .index .k-input{margin-bottom:18px}
+  .index a{display:flex;gap:12px;align-items:baseline;color:var(--v-muted);text-decoration:none;padding:5px 0;border-left:1px solid var(--v-line);padding-left:14px;transition:color var(--dur-2),border-color var(--dur-2)}
+  .index a span:first-child{font-variant-numeric:tabular-nums;font-size:var(--fs-xs);opacity:.7}
+  .index a.on{color:var(--v-text);border-left-color:var(--v-accent)}
+  .index a.dim{opacity:.3}
+  .index a .err{margin-left:auto;color:var(--v-danger);font-size:var(--fs-xs)}
+  .chapter{padding-top:8px;margin-bottom:64px;scroll-margin-top:32px}
+  .chapter>header{display:grid;grid-template-columns:64px 1fr;align-items:end;border-bottom:1px solid var(--v-line-strong);padding-bottom:12px;margin-bottom:22px}
+  .num{font-size:40px;line-height:.9;font-weight:200;color:var(--v-accent-2);font-variant-numeric:tabular-nums}
+  .chapter header p{grid-column:2;margin:4px 0 0;color:var(--v-muted);font-size:var(--fs-sm)}
+  .chapter .k-group{display:grid;grid-template-columns:150px 1fr;gap:0 24px;margin-bottom:26px}
+  .chapter .k-group>.k-h{padding-top:14px;margin:0}
+  .chapter .k-group>:not(.k-h){grid-column:2}
+  .chapter .k-group>.k-row:nth-child(2){border-top:0}
+  .hide{display:none!important}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr}.index{position:static}.chapter .k-group{grid-template-columns:1fr}.chapter .k-group>:not(.k-h){grid-column:1}}
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <div class="wrap">
+    <nav class="index" aria-label="Indice">
+      <h1>Impostazioni</h1>
+      <input class="k-input" id="q" type="search" placeholder="Filtra… (Ctrl+F)" autocomplete="off">
+      <div id="idx"></div>
+    </nav>
+    <main id="body"></main>
+  </div>
+</div>
+<script src="../shared/data.js"></script>
+<script src="../shared/kit.js"></script>
+<script>
+  const {el,group,search,empty}=K;
+  const page=document.getElementById('page'),body=document.getElementById('body'),idx=document.getElementById('idx'),q=document.getElementById('q');
+  const pad=n=>String(n).padStart(2,'0');
+
+  body.append(...SETTINGS.map((c,i)=>el('section',{className:'chapter',id:c.id},
+    el('header',{},el('span',{className:'num',textContent:pad(i+1)}),el('h2',{className:'k-title',textContent:c.title}),el('p',{textContent:c.summary()})),
+    ...c.groups.map(g=>group(g)))));
+  const none=el('div',{className:'hide'});body.append(none);
+  idx.append(...SETTINGS.map((c,i)=>el('a',{href:'#'+c.id},el('span',{textContent:pad(i+1)}),el('span',{textContent:c.title}),
+    c.status?.()==='error'?el('span',{className:'err',textContent:'●'}):null)));
+
+  // Indice che segue lo scorrimento.
+  const links=[...idx.children];
+  const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting)links.forEach(a=>a.classList.toggle('on',a.hash==='#'+e.target.id));},{root:page,rootMargin:'-15% 0px -75% 0px'});
+  document.querySelectorAll('.chapter').forEach(s=>io.observe(s));
+
+  // Filtro sul posto: restano visibili solo le righe che corrispondono.
+  q.oninput=()=>{
+    const text=q.value.trim().toLowerCase();
+    const hits=new Set(search(q.value).map(h=>h.item.label||h.item.text));
+    for(const ch of document.querySelectorAll('.chapter')){
+      let any=false;
+      for(const g of ch.querySelectorAll('.k-group')){
+        const gHit=text&&g.querySelector('.k-h').textContent.toLowerCase().includes(text);
+        let gAny=false;
+        for(const r of g.querySelectorAll(':scope>[data-label]')){const ok=!text||gHit||hits.has(r.dataset.label);r.classList.toggle('hide',!ok);gAny||=ok&&!!r.dataset.label;}
+        g.classList.toggle('hide',!!text&&!gAny);any||=!text||gAny;
+      }
+      ch.classList.toggle('hide',!any);
+      links.find(a=>a.hash==='#'+ch.id).classList.toggle('dim',!any);
+    }
+    none.classList.toggle('hide',!text||!!document.querySelector('.chapter:not(.hide)'));
+    none.replaceChildren(empty(q.value));
+  };
+  addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='f'){e.preventDefault();q.focus();}});
+</script>
+</body>
+</html>

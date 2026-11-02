@@ -677,17 +677,16 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
  function renderSettings(){
    const s=state.settings;
    const list=$('settingsBody');
-   if(list.contains(document.activeElement)&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
+   if((list.contains(document.activeElement)||$('settingsSheet').contains(document.activeElement))&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
    const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords,state.extensions,state.link]);
    if(key===renderedSettings)return;
    renderedSettings=key;
-   const panel=$('settingsPage'),scroll=panel.scrollTop;
+   const panel=$('settingsPage'),scroll=panel.scrollTop,sheetScroll=$('settingsSheet').scrollTop;
    list.replaceChildren();
    if(!s)return;
    const row=(label,control)=>el('label',{className:'permission-row'},el('span',{textContent:label}),control);
    const hint=text=>el('p',{className:'panel-hint',textContent:text});
-   if(settingsUi.status)list.append(el('p',{className:settingsUi.statusError?'panel-error':'settings-status',role:'status',textContent:settingsUi.status}));
-   list.append(
+   settingsSections=[
      ...appearanceSections(),
      section('Ricerca',
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
@@ -735,38 +734,91 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        el('p',{className:s.errors?'panel-error':'game-meta',textContent:s.errors?`${s.errors} ${s.errors===1?'errore registrato':'errori registrati'} in questa sessione.`:'Nessun errore in questa sessione.'}),
        projectButtons(['Copia la diagnostica',()=>settingsAction('copyDiagnostics','Diagnostica copiata negli appunti: incollala dove ti serve.')]),
        hint('Versioni, memoria, impostazioni e ultimi errori. Non contiene token né segreti.'))
-   );
-   panel.scrollTop=scroll;
-   decorateSettings();
+   ].filter(n=>n.matches('section'));
+   layoutSettings();
+   panel.scrollTop=scroll;$('settingsSheet').scrollTop=sheetScroll;
  }
- // Beta 0.27: indice delle sezioni (un clic ci porta) e ricerca dentro le Impostazioni.
- function decorateSettings(){
-   const sections=[...$('settingsBody').children].filter(n=>n.matches('section'));
-   $('settingsIndex').replaceChildren(...sections.map(sec=>{
-     const chip=el('button',{type:'button',className:'settings-chip',textContent:sec.querySelector('h4')?.textContent||''});
-     chip.onclick=()=>{
-       $('settingsSearch').value='';filterSettings();
-       sec.scrollIntoView({behavior:document.body.dataset.motion==='off'?'auto':'smooth',block:'start'});
-       sec.classList.remove('flash');void sec.offsetWidth;sec.classList.add('flash');
-     };
-     return chip;
-   }));
-   filterSettings();
+ // Beta 0.34: panoramica a riquadri (settings-rules.js). Ogni riquadro dice in parole com'è messa
+ // la categoria; un clic la apre nel pannello a destra. Le sezioni restano quelle di sempre:
+ // cambia solo dove stanno. Con un testo nella ricerca si vedono intere tutte quelle che lo contengono.
+ let settingsSections=[];
+ const settingsView={category:null};
+ // Fino a due interruttori per riquadro, con gli stessi comandi delle sezioni.
+ function quickToggles(id){
+   const s=state.settings,p=state.passwords,l=state.link,u=state.update,a=state.appearanceSettings;
+   const rows={
+     aspetto:[a&&['Tema chiaro',a.mode==='chiaro',v=>act('setMode',{mode:v?'chiaro':'scuro'})]],
+     schede:[['Video in finestrella',s.autoPip,enabled=>act('setAutoPip',{enabled})],['Archivio automatico',s.autoArchive.enabled,enabled=>act('setAutoArchive',{enabled})]],
+     privacy:[['Blocca pubblicità e tracker',s.adblock.enabled,enabled=>act('setAdblockEnabled',{enabled})],
+       p?.available&&['Proponi di salvare le password',p.enabled,enabled=>act('setPasswordSaving',{enabled})]],
+     telefono:[l&&['Collegamento in casa',l.enabled,enabled=>act('linkSetEnabled',{enabled})],l?.enabled&&['Anche fuori casa',l.relay,enabled=>act('linkSetRelay',{enabled})]],
+     sistema:[['Avvia con Windows',s.openAtLogin,enabled=>act('setOpenAtLogin',{enabled})],u?.supported&&['Aggiornamenti automatici',u.auto,enabled=>act('setAutoUpdate',{enabled})]],
+   }[id]||[];
+   return rows.filter(Boolean).map(([text,checked,fn])=>checkRow(text,checked,fn));
  }
- function filterSettings(){
+ function openSettingsCategory(id,{problem=false}={}){
+   settingsView.category=id;$('settingsSearch').value='';
+   layoutSettings();$('settingsSheet').scrollTop=0;
+   if(problem){
+     const sec=$('settingsSheet').querySelector('.panel-error')?.closest('section');
+     if(sec){sec.scrollIntoView({block:'center'});sec.classList.remove('flash');void sec.offsetWidth;sec.classList.add('flash');}
+   }
+ }
+ function closeSettingsCategory(){settingsView.category=null;layoutSettings();}
+ function layoutSettings(){
+   const list=$('settingsBody'),sheet=$('settingsSheet');
    const q=$('settingsSearch').value.trim().toLowerCase();
-   const sections=[...$('settingsBody').children].filter(n=>n.matches('section'));
-   const chips=[...$('settingsIndex').children];
-   let shown=0;
-   sections.forEach((sec,i)=>{
-     const match=!q||sec.innerText.toLowerCase().includes(q);
-     sec.hidden=!match;if(chips[i])chips[i].hidden=!match;
-     if(match)shown++;
-   });
-   $('settingsEmpty').hidden=!q||shown>0;
+   const open=!q&&settingsView.category;
+   const status=settingsUi.status?el('p',{className:settingsUi.statusError?'panel-error':'settings-status',role:'status',textContent:settingsUi.status}):'';
+   const rules=window.settingsRules;
+   $('settingsPage').classList.toggle('searching',!!q);
+   $('settingsPage').classList.toggle('sheet-open',!!open);
+   sheet.classList.toggle('open',!!open);
+   if(q){
+     const hits=settingsSections.filter(sec=>sec.textContent.toLowerCase().includes(q));
+     list.replaceChildren(status,...hits);
+     $('settingsEmpty').hidden=hits.length>0;
+     sheet.replaceChildren();
+     return;
+   }
+   $('settingsEmpty').hidden=true;
+   const sum=rules.summaries(state,timeAgo);
+   const problems=rules.problems(state);
+   const alert=problems.length?el('div',{className:'settings-alert'},el('strong',{textContent:'Da sistemare'}),
+     el('ul',{},...problems.map(pr=>{
+       const b=el('button',{type:'button'},el('span',{textContent:pr.title}),el('span',{textContent:pr.text}),el('span',{textContent:'Risolvi →'}));
+       b.onclick=()=>openSettingsCategory(pr.id,{problem:true});
+       return el('li',{},b);
+     }))):'';
+   const grid=el('div',{className:'settings-grid'},...rules.CATEGORIES.map((c,i)=>{
+     const quick=quickToggles(c.id);
+     const tile=el('div',{className:'settings-tile'+(sum[c.id]?.error?' error':'')+(i===0||i===3?' wide':''),tabIndex:0,role:'button'},
+       el('header',{},icon(sum[c.id]?.error&&c.id==='privacy'?'shield-warning':c.icon),el('span',{textContent:c.title})),
+       el('p',{textContent:sum[c.id]?.text||''}),
+       ...(quick.length?[el('div',{className:'settings-quick'},...quick)]:[]));
+     tile.setAttribute('aria-current',String(c.id===open));
+     tile.setAttribute('aria-label',`${c.title}: ${sum[c.id]?.text||''}`);
+     tile.onclick=e=>{if(!e.target.closest('.settings-quick'))openSettingsCategory(c.id);};
+     tile.onkeydown=e=>{if(e.key==='Enter'&&e.target===tile)openSettingsCategory(c.id);};
+     return tile;
+   }));
+   list.replaceChildren(open?'':status,alert,grid);
+   if(!open){sheet.replaceChildren();return;}
+   const cat=rules.CATEGORIES.find(c=>c.id===open);
+   const close=el('button',{type:'button',className:'settings-sheet-close',textContent:'Chiudi',title:'Chiudi (Esc)'});close.onclick=closeSettingsCategory;
+   sheet.replaceChildren(
+     el('div',{className:'settings-sheet-head'},icon(cat.icon),el('h2',{textContent:cat.title}),close),
+     el('p',{className:'settings-sheet-sum'+(sum[open]?.error?' error':''),textContent:sum[open]?.text||''}),
+     status,
+     ...settingsSections.filter(sec=>rules.categoryOf(sec.querySelector('h4')?.textContent)===open)
+       .sort((x,y)=>cat.sections.indexOf(x.querySelector('h4')?.textContent)-cat.sections.indexOf(y.querySelector('h4')?.textContent)));
  }
- $('settingsSearch').oninput=filterSettings;
- $('settingsSearch').onkeydown=e=>{if(e.key==='Escape'){$('settingsSearch').value='';filterSettings();}};
+ $('settingsSearch').oninput=layoutSettings;
+ $('settingsSearch').onkeydown=e=>{if(e.key==='Escape'){$('settingsSearch').value='';layoutSettings();}};
+ document.addEventListener('keydown',e=>{
+   if(e.key!=='Escape'||!settingsView.category||$('settingsPage').hidden||e.target.closest?.('input,select,textarea'))return;
+   closeSettingsCategory();
+ });
  // ── Personalizzazione (Beta 0.21) ─────────────────────────────────────────
  // Il processo principale manda le variabili CSS già calcolate (tema, sfondo, testo, angoli):
  // qui le applichiamo e nascondiamo i pulsanti e i riquadri della Home che hai tolto.
@@ -1769,7 +1821,8 @@ function render(){
  const onSettings=state.internalPage==='settings';
  document.querySelector('.home-content').hidden=onSettings;
  $('settingsPage').hidden=!onSettings;
- if(onSettings)renderSettings();else{renderedSettings=null;settingsUi.status='';pwUi.shown={};}
+ $('settingsSheet').hidden=!onSettings;
+ if(onSettings)renderSettings();else{renderedSettings=null;settingsUi.status='';pwUi.shown={};settingsView.category=null;}
  // Con più finestre dello stesso workspace: "Destiny Builder · 2".
  $('footerWorkspaceName').textContent=(state.activeWorkspace||'Personale')+(state.pane?' · '+(state.pane+1):'');
  renderLayoutInfo();

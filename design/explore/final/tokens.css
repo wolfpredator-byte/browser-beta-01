@@ -1,0 +1,27 @@
+/* Token della pagina Impostazioni (4a). Il pannello Tweaks cambia questi valori; "Copia token" li esporta. */
+:root{
+  --t-accent:#6f8cff;--v-accent:var(--t-accent);--v-accent-rgb:111,140,255;--v-accent-2:#9aaeff;
+  --t-cols:4;--t-cols-open:3;
+  --t-tile-pad:10px;--t-tile-min:175px;--t-gap:6px;
+  --t-radius:16px;
+  --t-glass-a:.5;--t-glass-blur:40px;--t-line-a:.28;
+  --t-wall-blur:23px;--t-wall-bright:.49;
+  --t-sheet-w:570px;--t-sheet-a:.65;--t-dim:.46;
+  --t-title-font:'Segoe UI Variable','Segoe UI',system-ui,sans-serif;--t-title-weight:400;--t-title-track:.28em;
+  --t-sum-size:14px;
+  --t-dur:700ms;
+  --t-hover-glow:.5;
+}
+
+/* Collegamento dei token alla pagina */
+:root{--v-glass:rgba(24,23,44,var(--t-glass-a));--v-glass-strong:rgba(18,17,34,var(--t-sheet-a));--v-line:rgba(150,140,255,var(--t-line-a));
+  --r-lg:var(--t-radius);--r-md:calc(var(--t-radius)*.75);--dur-3:var(--t-dur)}
+body::before{filter:blur(var(--t-wall-blur)) brightness(var(--t-wall-bright))}
+.k-glass,.tile{backdrop-filter:blur(var(--t-glass-blur)) saturate(1.2)}
+.k-title{font-family:var(--t-title-font);font-weight:var(--t-title-weight);letter-spacing:var(--t-title-track)}
+.grid{grid-template-columns:repeat(var(--t-cols),minmax(0,1fr));gap:var(--t-gap)}
+.tile{padding:var(--t-tile-pad) calc(var(--t-tile-pad) + 2px);min-height:var(--t-tile-min)}
+.tile>p{font-size:var(--t-sum-size)}
+.tile:hover{box-shadow:0 0 calc(30px*var(--t-hover-glow)) rgba(var(--v-accent-rgb),calc(.35*var(--t-hover-glow)))}
+body[data-quick="off"] .quick{display:none}
+body[data-wide="off"] .grid .wide{grid-column:auto}

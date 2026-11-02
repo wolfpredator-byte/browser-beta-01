@@ -73,7 +73,9 @@
 </section>
 <main id="dashboard">
  <!-- Pagina Impostazioni (Beta 0.12): una scheda interna come la Home. -->
- <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><h1>Impostazioni</h1><div class="settings-nav"><input id="settingsSearch" type="search" placeholder="Cerca nelle impostazioni… (es. password, sfondo, schede)" autocomplete="off" spellcheck="false"><div id="settingsIndex"></div></div><p id="settingsEmpty" class="panel-hint" hidden>Nessuna impostazione trovata.</p><div id="settingsBody"></div></div></section>
+ <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><div class="settings-nav"><h1>Impostazioni</h1><input id="settingsSearch" type="search" placeholder="Cerca… (es. password, sfondo, schede)" autocomplete="off" spellcheck="false"></div><p id="settingsEmpty" class="panel-hint" hidden>Nessuna impostazione trovata. Prova con parole come password, sfondo, schede, telefono.</p><div id="settingsBody"></div></div></section>
+ <!-- Beta 0.34: la categoria aperta dalla panoramica delle Impostazioni. -->
+ <aside id="settingsSheet" hidden aria-label="Categoria delle impostazioni"></aside>
  <section class="home-content">
   <div class="home-center">
    <!-- Logo VARCO; quando JARVIS è collegato al suo posto compare la sfera animata. -->
@@ -142,5 +144,5 @@
  </div>
 </div>
 <div id="suggest" role="listbox" aria-label="Suggerimenti" hidden></div>
-<script src="palette-rules.js"></script><script src="split-rules.js"></script>
+<script src="palette-rules.js"></script><script src="split-rules.js"></script><script src="settings-rules.js"></script>
 <script src="renderer.js"></script></body></html>

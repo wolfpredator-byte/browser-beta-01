@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+  Pagina di confronto per /explore.
+  Copiala in design/explore/round-N/compare.html e compila VARIANTS:
+  path relativo all'index della variante, nome, famiglia/asse, una riga di nota.
+-->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confronto varianti</title>
+<style>
+  :root { --bg:#f4f3ef; --fg:#1b1b1a; --muted:#6d6b66; --line:#d9d6cf; --accent:#c2410c; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141413; --fg:#ecebe6; --muted:#9a978f; --line:#2c2b29; --accent:#fb923c; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 ui-sans-serif, system-ui, sans-serif; }
+  header { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+           padding:12px 16px; background:var(--bg); border-bottom:1px solid var(--line); }
+  h1 { font-size:15px; margin:0 auto 0 0; font-weight:600; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { background:none; border:0; color:var(--muted); padding:6px 10px; cursor:pointer; font:inherit; }
+  .seg button[aria-pressed="true"] { background:var(--fg); color:var(--bg); }
+  main { display:grid; gap:20px; padding:16px; grid-template-columns:repeat(var(--cols,3), minmax(0,1fr)); }
+  figure { margin:0; }
+  .frame { position:relative; width:100%; aspect-ratio:var(--ratio,16/10); overflow:hidden;
+           border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .frame iframe { position:absolute; top:0; left:0; border:0; transform-origin:0 0; pointer-events:none; }
+  figure.open .frame iframe { pointer-events:auto; }
+  figcaption { display:flex; gap:8px; align-items:baseline; padding:8px 2px 0; }
+  figcaption b { font-weight:600; }
+  figcaption span { color:var(--muted); }
+  figcaption a { margin-left:auto; color:var(--accent); text-decoration:none; white-space:nowrap; }
+  .note { color:var(--muted); padding:2px; }
+  .frame:hover { outline:2px solid var(--accent); outline-offset:2px; cursor:zoom-in; }
+  figure.open { grid-column:1 / -1; }
+  figure.open .frame { cursor:auto; }
+  @media (max-width: 700px) { main { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Round 1</h1>
+  <div class="seg" id="vp" aria-label="Viewport">
+    <button data-w="1440" data-r="16/10" aria-pressed="true">Desktop</button>
+    <button data-w="390" data-r="9/16">Mobile</button>
+  </div>
+  <div class="seg" id="cols" aria-label="Colonne">
+    <button data-c="1">1</button><button data-c="2">2</button><button data-c="3" aria-pressed="true">3</button>
+  </div>
+</header>
+<main id="grid"></main>
+<script>
+  // Compila questo array (path relativo a questa pagina).
+  const ROUND = "Impostazioni · Round 2 — dalla V4: come si apre una categoria";
+  const VARIANTS = [
+    { path: "4a-pannello/index.html?stato=error", name: "4a · Pannello laterale", family: "overlay affiancato", note: "Il dettaglio entra da destra; la panoramica si restringe a due colonne e resta cliccabile." },
+    { path: "4b-sul-posto/index.html?stato=error", name: "4b · Si allarga sul posto", family: "espansione inline", note: "Il riquadro diventa largo quanto la griglia con tutte le impostazioni su due colonne. Niente sovrapposizioni." },
+    { path: "4c-diventa-colonna/index.html?stato=error", name: "4c · La griglia diventa colonna", family: "overview → master/detail", note: "I riquadri si stringono in una colonna con lo stato; il dettaglio prende il resto." },
+  ];
+  document.getElementById("title").textContent = ROUND;
+  const grid = document.getElementById("grid");
+  let vw = 1440;
+
+  for (const v of VARIANTS) {
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<div class="frame"><iframe title="${v.name}"></iframe></div>
+      <figcaption><b>${v.name}</b><span>${v.family}</span><a href="${v.path}" target="_blank">apri ↗</a></figcaption>
+      <div class="note">${v.note || ""}</div>`;
+    fig.querySelector("iframe").src = v.path;
+    fig.querySelector(".frame").addEventListener("click", () => { fig.classList.toggle("open"); fit(); });
+    grid.appendChild(fig);
+  }
+
+  function fit() {
+    for (const f of grid.querySelectorAll(".frame")) {
+      const ifr = f.querySelector("iframe");
+      const s = f.clientWidth / vw;
+      ifr.style.width = vw + "px";
+      ifr.style.height = (f.clientHeight / s) + "px";
+      ifr.style.transform = `scale(${s})`;
+    }
+  }
+
+  function seg(id, apply) {
+    const el = document.getElementById(id);
+    el.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      el.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+      apply(b.dataset); fit();
+    });
+  }
+  seg("vp", d => { vw = +d.w; document.documentElement.style.setProperty("--ratio", d.r); });
+  seg("cols", d => document.documentElement.style.setProperty("--cols", d.c));
+  addEventListener("resize", fit);
+  fit();
+</script>
+</body>
+</html>
+
