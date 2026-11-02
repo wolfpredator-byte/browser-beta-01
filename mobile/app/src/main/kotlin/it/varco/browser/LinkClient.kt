@@ -52,6 +52,40 @@ class LinkClient {
         }
     } catch (_: Exception) { null }
 
+    /** Beta 0.32: pubblica una busta su ntfy (fuori casa). */
+    fun publish(server: String, topic: String, body: String) {
+        val c = URL("$server/$topic").openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 5000
+            c.readTimeout = 8000
+            c.requestMethod = "POST"
+            c.doOutput = true
+            c.setRequestProperty("Firebase", "no")
+            c.setRequestProperty("Content-Type", "text/plain")
+            c.outputStream.use { it.write(body.toByteArray()) }
+            if (c.responseCode != 200) throw Exception("ntfy ha risposto ${c.responseCode}")
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    data class RelayMessage(val id: String, val text: String)
+
+    /** I messaggi arrivati su un argomento di ntfy dopo since (id dell'ultimo letto, oppure "12h"). */
+    fun poll(server: String, topic: String, since: String): List<RelayMessage> {
+        val c = URL("$server/$topic/json?poll=1&since=${java.net.URLEncoder.encode(since, "UTF-8")}").openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 5000
+            c.readTimeout = 8000
+            if (c.responseCode != 200) throw Exception("ntfy ha risposto ${c.responseCode}")
+            return c.inputStream.bufferedReader().readLines().mapNotNull { line ->
+                runCatching { JSONObject(line) }.getOrNull()?.takeIf { it.optString("event") == "message" }?.let { RelayMessage(it.optString("id"), it.optString("message")) }
+            }
+        } finally {
+            c.disconnect()
+        }
+    }
+
     /** Manda un messaggio cifrato e restituisce la risposta decifrata. */
     fun post(config: LinkConfig, host: String, port: Int, type: String, fields: JSONObject): JSONObject {
         val key = LinkRules.deriveKey(LinkRules.fromB64u(config.secret))

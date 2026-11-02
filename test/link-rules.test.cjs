@@ -79,3 +79,28 @@ test('collegamento: dati salvati ripuliti', ()=>{
   assert.equal(l.inbox['a'.repeat(16)].length,1);
   assert.equal(r.normalizeLink({pcId:'0123456789abcdef'}).pcId,'0123456789abcdef');
 });
+
+test('relay: argomenti segreti uguali a quelli di Kotlin, diversi per verso', ()=>{
+  // Stesso vettore di LinkRulesTest.kt.
+  const t=r.relayTopics(Buffer.from(Array.from({length:32},(_,i)=>i)));
+  assert.equal(t.pc,'varco-3a5d5d12ad73eb5dcbb6534cc288162d');
+  assert.equal(t.phone,'varco-7b338f56ccf5636292767f9104be6d05');
+  assert.notEqual(r.relayTopics(r.newSecret()).pc,t.pc);
+});
+
+test('relay: buste fino a 13 ore, mai due volte, mai troppo lunghe', ()=>{
+  const seen={},now=Date.now();
+  assert.equal(r.checkFreshRelay({...r.message('tab'),t:now-12*3600*1000},seen,now),null);
+  assert.match(r.checkFreshRelay({...r.message('tab'),t:now-14*3600*1000},seen,now),/scaduto/);
+  assert.match(r.checkFreshRelay({...r.message('tab'),t:now+11*60*1000},seen,now),/scaduto/);
+  const m=r.message('tab');
+  assert.equal(r.checkFreshRelay(m,seen,now),null);
+  assert.match(r.checkFreshRelay(m,seen,now),/ripetuto/);
+  const key=r.deriveKey(r.newSecret());
+  assert.ok(r.relayBody('ab'.repeat(8),r.seal(key,'x',{url:'https://a.it/'})));
+  assert.equal(r.relayBody('ab'.repeat(8),r.seal(key,'x',{url:'https://a.it/'+'a'.repeat(3500)})),null);
+  const link=r.normalizeLink({relaySince:'8Leass06uiRO',relaySeen:{abcdef12:now,bad:1}});
+  assert.equal(link.relay,true);
+  assert.equal(link.relaySince,'8Leass06uiRO');
+  assert.deepEqual(Object.keys(link.relaySeen),['abcdef12']);
+});

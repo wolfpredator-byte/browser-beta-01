@@ -16,11 +16,16 @@ import javax.crypto.spec.SecretKeySpec
  * - QR: "varco-link:<base64url(JSON {v, pc, name, hosts, port, k})>", k = segreto di 32 byte.
  * - Chiave: HKDF-SHA256(segreto, salt "varco-link-v1", info "aes"), 32 byte.
  * - Busta: {d: id del telefono, n: nonce 12 byte, c: AES-256-GCM(testo) + tag}, base64url; AAD = id del telefono.
+ * - Beta 0.32, fuori casa: le stesse buste passano da ntfy.sh, su due argomenti segreti derivati dal segreto
+ *   (HKDF, info "relay-pc" e "relay-phone"). Lì possono aspettare fino a 12 ore.
  */
 object LinkRules {
     const val HTTP_PORT = 47820
     const val DISCOVERY_PORT = 47821
     private const val PREFIX = "varco-link:"
+    const val RELAY_MAX_AGE_MS = 13 * 60 * 60 * 1000L
+    /** ntfy.sh trasforma in allegato i messaggi oltre 4096 byte: le buste restano sotto. */
+    const val RELAY_MAX_BODY = 3900
     private val random = SecureRandom()
 
     fun b64u(bytes: ByteArray): String = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
@@ -32,14 +37,27 @@ object LinkRules {
         return b.joinToString("") { "%02x".format(it) }
     }
 
-    /** HKDF-SHA256 con un solo blocco (bastano 32 byte). */
-    fun deriveKey(secret: ByteArray): ByteArray {
+    /** HKDF-SHA256 con un solo blocco (bastano fino a 32 byte). */
+    private fun hkdf(secret: ByteArray, info: String, length: Int): ByteArray {
         val extract = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec("varco-link-v1".toByteArray(), "HmacSHA256")) }.doFinal(secret)
         val expand = Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(extract, "HmacSHA256")) }
-        expand.update("aes".toByteArray())
+        expand.update(info.toByteArray())
         expand.update(1)
-        return expand.doFinal().copyOf(32)
+        return expand.doFinal().copyOf(length)
     }
+
+    fun deriveKey(secret: ByteArray): ByteArray = hkdf(secret, "aes", 32)
+
+    /** Gli argomenti di ntfy: pc = messaggi per il PC, phone = per il telefono. Come relayTopics del PC. */
+    data class Topics(val pc: String, val phone: String)
+
+    fun relayTopics(secret: ByteArray): Topics = Topics(
+        "varco-" + hkdf(secret, "relay-pc", 16).joinToString("") { "%02x".format(it) },
+        "varco-" + hkdf(secret, "relay-phone", 16).joinToString("") { "%02x".format(it) })
+
+    /** Il testo da pubblicare su ntfy, oppure null se è troppo lungo. */
+    fun relayBody(deviceId: String, box: Envelope): String? =
+        JSONObject().put("d", deviceId).put("n", box.n).put("c", box.c).toString().takeIf { it.length <= RELAY_MAX_BODY }
 
     data class Envelope(val n: String, val c: String)
 

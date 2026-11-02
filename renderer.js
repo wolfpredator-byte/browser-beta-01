@@ -643,13 +643,17 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
          ['Annulla',()=>act('linkStopPairing')]))):null;
    const status=!l.enabled?null:el('p',{className:l.error?'panel-error':'game-meta',
      textContent:l.error?`Il PC non riesce a mettersi in ascolto: ${l.error}`:l.listening?`In ascolto sulla rete di casa: ${l.hosts.join(', ')||'nessuna rete trovata'} · porta ${l.port}`:'Avvio…'});
+   const relayStatus=!l.enabled||!l.relay||!l.devices.length?null:el('p',{className:'game-meta',
+     textContent:l.relayOk?`Fuori casa: in ascolto su ${l.relayServer}`:`Fuori casa: ${l.relayError||'mi collego a '+l.relayServer+'…'}`});
    return section('Telefono',
      checkRow('Collegamento col telefono (VARCO per Android) sulla rete di casa',l.enabled,enabled=>act('linkSetEnabled',{enabled})),
      ...(status?[status]:[]),
+     ...(l.enabled?[checkRow('Anche fuori casa (le schede passano da ntfy.sh, cifrate)',l.relay,enabled=>act('linkSetRelay',{enabled}))]:[]),
+     ...(relayStatus?[relayStatus]:[]),
      ...rows,
      ...(qr?[qr]:[]),
      ...(l.enabled&&!l.pairing?[projectButtons([l.devices.length?'Collega un altro telefono':'Collega un telefono',()=>settingsAction('linkStartPairing'),'primary'])]:[]),
-     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. Tutto resta sulla rete di casa, cifrato: nessun server esterno. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
+     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. In casa passa tutto sulla rete locale. Fuori casa le schede passano da ntfy.sh, un servizio pubblico che le tiene al massimo 12 ore: sono cifrate con la chiave del QR, quindi ntfy non può leggerle. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
  }
  function updateSection(row,hint){
    const u=state.update;

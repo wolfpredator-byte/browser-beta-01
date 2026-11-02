@@ -47,4 +47,13 @@ class LinkRulesTest {
         assertEquals("https://www.youtube.com/watch?v=abc", LinkRules.withTime("https://www.youtube.com/watch?v=abc", 2.0))
         assertEquals("https://example.com/v", LinkRules.withTime("https://example.com/v", 100.0))
     }
+
+    @Test fun argomentiDelRelayUgualiAlPC() {
+        val t = LinkRules.relayTopics(secret)
+        assertEquals("varco-3a5d5d12ad73eb5dcbb6534cc288162d", t.pc)
+        assertEquals("varco-7b338f56ccf5636292767f9104be6d05", t.phone)
+        val key = LinkRules.deriveKey(secret)
+        assertTrue(LinkRules.relayBody("ab".repeat(8), LinkRules.seal(key, "x", "https://a.it/")) != null)
+        assertNull(LinkRules.relayBody("ab".repeat(8), LinkRules.seal(key, "x", "https://a.it/" + "a".repeat(3500))))
+    }
 }

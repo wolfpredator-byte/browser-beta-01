@@ -36,6 +36,9 @@ class LinkConfig(
     var workspaces: List<Pair<String, Int?>> = emptyList(),
     var lastTarget: String = "tab",
     var lastContact: Long = 0,
+    /** Beta 0.32: il server del relay (lo dice il PC; vuoto = solo rete di casa) e l'ultimo messaggio letto lì. */
+    var relay: String = "",
+    var relaySince: String = "",
 )
 
 /** Una scheda da mandare al PC. target: tab | window | ask | ws:<nome del workspace>. Resta in coda finché il PC non risponde. */
@@ -44,6 +47,8 @@ data class OutTab(val id: String, val url: String, val title: String, val scroll
 class BrowserState {
     var link: LinkConfig? = null
     val outbox = mutableListOf<OutTab>()
+    /** Id delle schede arrivate dal PC: la stessa scheda può arrivare dalla rete di casa e dal relay. */
+    val seenIncoming = mutableListOf<String>()
     val workspaces = mutableListOf<Workspace>()
     val tabs = mutableListOf<Tab>()
     var activeWorkspace = ""

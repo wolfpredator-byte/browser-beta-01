@@ -838,6 +838,7 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
         else list.addView(ui.menuRow(R.drawable.ic_info, "PC collegato", when {
             state.outbox.isNotEmpty() -> "${state.outbox.size} in coda"
             link.reachable -> "raggiungibile"
+            link.relayOk -> "via internet"
             else -> "non raggiungibile"
         }) { openLinkSheet() })
         if (onPage) list.addView(ui.menuRow(R.drawable.ic_forward, "Condividi") {
@@ -1001,7 +1002,11 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
         val view = pages.viewOf(tab.id)
         val enqueue = { scroll: Double, time: Double ->
             link.send(OutTab(LinkRules.newId(), tab.url, tab.title, scroll, time, target))
-            toast(if (link.reachable) "${targetLabel(target)}: mandata" else "In coda: parte quando sei sulla Wi-Fi di casa")
+            toast(when {
+                link.reachable -> "${targetLabel(target)}: mandata"
+                pc.relay.isNotEmpty() -> "Mando via internet…"
+                else -> "In coda: parte quando sei sulla Wi-Fi di casa"
+            })
             scheduleSave()
         }
         if (view == null) return enqueue(0.0, 0.0)
@@ -1059,7 +1064,9 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
         openLayer(dim = .5f)
         val status = when {
             link.reachable -> "Raggiungibile" + (pc.lastHost.takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "")
+            link.relayOk -> "Fuori casa: le schede passano via internet (${pc.relay.removePrefix("https://")}), cifrate"
             link.lastError.isNotEmpty() -> link.lastError
+            pc.relay.isEmpty() -> "Non raggiungibile: VARCO deve essere aperto sul PC, sulla stessa Wi-Fi. Per mandare schede fuori casa, sul PC accendi Impostazioni → Telefono → Anche fuori casa"
             else -> "Non raggiungibile: VARCO deve essere aperto sul PC, sulla stessa Wi-Fi"
         }
         val list = ui.column(title(pc.pcName),
@@ -1077,7 +1084,9 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
 
     override fun onLinkChanged() { scheduleSave() }
 
-    override fun onSent(tab: OutTab) { }
+    override fun onSent(tab: OutTab, viaRelay: Boolean) {
+        if (viaRelay) toast("${targetLabel(tab.target)}: mandata via internet")
+    }
 
     override fun onUnpaired(reason: String) {
         toast(reason)
@@ -1130,5 +1139,5 @@ class MainActivity : Activity(), Pages.Listener, Link.Listener {
 
 /** La versione scritta nel menu, senza attivare BuildConfig in Gradle. */
 object BuildConfigLite {
-    const val VERSION = "0.31.0"
+    const val VERSION = "0.32.0"
 }

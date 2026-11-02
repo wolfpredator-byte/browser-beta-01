@@ -14,6 +14,8 @@ import java.util.concurrent.Executors
  * - Mentre VARCO è aperto chiede le novità al PC ogni pochi secondi (hello): così arrivano le schede mandate dal PC.
  * - Le schede da mandare stanno in state.outbox finché il PC non risponde: se sei fuori casa partono quando torni.
  * - Il PC si cerca prima all'ultimo indirizzo buono, poi a quelli del QR, poi con un broadcast UDP (se il router gli ha dato un altro IP).
+ * - Beta 0.32: se il PC non si trova (sei fuori casa) e il PC ha acceso "Anche fuori casa", le schede passano da ntfy.sh,
+ *   cifrate come in casa, e si leggono lì quelle che il PC ti ha mandato.
  *
  * La rete gira su un thread a parte; lo stato (state.link, state.outbox) si tocca solo sul thread principale.
  */
@@ -21,7 +23,7 @@ class Link(private val state: BrowserState, private val listener: Listener) {
     interface Listener {
         fun onLinkChanged()
         fun onIncoming(tabs: List<Incoming>)
-        fun onSent(tab: OutTab)
+        fun onSent(tab: OutTab, viaRelay: Boolean)
         fun onUnpaired(reason: String)
     }
 
@@ -37,6 +39,9 @@ class Link(private val state: BrowserState, private val listener: Listener) {
     var reachable = false
         private set
     var lastError = ""
+        private set
+    /** All'ultimo giro il PC non c'era ma il relay sì: le schede passano via internet. */
+    var relayOk = false
         private set
 
     val deviceName: String get() = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}".trim()
@@ -96,6 +101,7 @@ class Link(private val state: BrowserState, private val listener: Listener) {
         state.link = null
         state.outbox.clear()
         reachable = false
+        relayOk = false
         listener.onLinkChanged()
         if (tellPc) net.execute { try { if (config.lastHost.isNotEmpty()) client.post(config, config.lastHost, config.port, "unpair", JSONObject()) } catch (_: Exception) { } }
     }
@@ -107,7 +113,7 @@ class Link(private val state: BrowserState, private val listener: Listener) {
         sync()
     }
 
-    /** Un giro: trova il PC, prende le schede che ti ha mandato, manda quelle in coda. */
+    /** Un giro: trova il PC, prende le schede che ti ha mandato, manda quelle in coda. Fuori casa, lo stesso via relay. */
     fun sync() {
         val config = state.link ?: return
         if (busy) return
@@ -117,30 +123,52 @@ class Link(private val state: BrowserState, private val listener: Listener) {
             var host: Pair<String, Int>? = null
             var reply: JSONObject? = null
             val sent = mutableListOf<OutTab>()
+            val incoming = mutableListOf<JSONObject>()
+            var viaRelay = false
+            var relaySince = ""
             var error = ""
             var unknown = false
             try {
                 host = client.findHost(config)
-                if (host == null) error = "PC non raggiungibile"
-                else {
+                if (host != null) {
                     reply = client.post(config, host.first, host.second, "hello", JSONObject().put("name", deviceName))
                     val inbox = reply.optJSONArray("inbox")
                     if (inbox != null && inbox.length() > 0) {
                         val ids = JSONArray()
-                        for (i in 0 until inbox.length()) ids.put(inbox.getJSONObject(i).optString("id"))
+                        for (i in 0 until inbox.length()) {
+                            incoming += inbox.getJSONObject(i)
+                            ids.put(inbox.getJSONObject(i).optString("id"))
+                        }
                         client.post(config, host.first, host.second, "ack", JSONObject().put("ids", ids))
                     }
                     for (t in outbox) {
-                        val target = if (t.target.startsWith("ws:")) JSONObject().put("kind", "workspace").put("workspace", t.target.removePrefix("ws:"))
-                            else JSONObject().put("kind", t.target)
-                        val r = client.post(config, host.first, host.second, "tab", JSONObject()
-                            .put("tab", JSONObject().put("id", t.id).put("url", t.url).put("title", t.title).put("scroll", t.scroll).put("time", t.time))
-                            .put("target", target))
+                        val r = client.post(config, host.first, host.second, "tab", tabFields(t))
                         if (r.optBoolean("ok", true)) sent += t
                     }
-                }
+                } else if (config.relay.isNotEmpty()) {
+                    viaRelay = true
+                    val secret = LinkRules.fromB64u(config.secret)
+                    val key = LinkRules.deriveKey(secret)
+                    val topics = LinkRules.relayTopics(secret)
+                    for (t in outbox) {
+                        val body = LinkRules.relayBody(config.deviceId,
+                            LinkRules.seal(key, config.deviceId, LinkRules.message("tab", tabFields(t).put("name", deviceName)).toString())) ?: continue
+                        client.publish(config.relay, topics.pc, body)
+                        sent += t
+                    }
+                    val now = System.currentTimeMillis()
+                    for (m in client.poll(config.relay, topics.phone, config.relaySince.ifEmpty { "12h" })) {
+                        relaySince = m.id
+                        val env = runCatching { JSONObject(m.text) }.getOrNull() ?: continue
+                        if (env.optString("d") != config.deviceId) continue
+                        val msg = LinkRules.open(key, config.deviceId, env.optString("n"), env.optString("c"))?.let { runCatching { JSONObject(it) }.getOrNull() } ?: continue
+                        val t = msg.optLong("t")
+                        if (now - t > LinkRules.RELAY_MAX_AGE_MS || t - now > 10 * 60 * 1000L) continue
+                        if (msg.optString("type") == "tab") msg.optJSONObject("tab")?.let(incoming::add)
+                    }
+                } else error = "PC non raggiungibile"
             } catch (e: LinkClient.Unknown) { unknown = true; error = "Il PC non riconosce più questo telefono" }
-            catch (e: Exception) { error = message(e) }
+            catch (e: Exception) { error = if (viaRelay && e is java.net.UnknownHostException) "Niente internet" else message(e) }
             val finalHost = host
             val finalReply = reply
             main.post {
@@ -149,28 +177,44 @@ class Link(private val state: BrowserState, private val listener: Listener) {
                 if (current == null || current.pcId != config.pcId) return@post
                 if (unknown) { unpair(tellPc = false); listener.onUnpaired("Il PC non riconosce più questo telefono: ricollegalo dalle Impostazioni di VARCO sul PC."); return@post }
                 val wasReachable = reachable
+                val wasRelay = relayOk
                 reachable = finalHost != null && error.isEmpty()
+                relayOk = viaRelay && error.isEmpty()
                 lastError = error
                 if (finalHost != null) { current.lastHost = finalHost.first; current.port = finalHost.second }
+                if (relaySince.isNotEmpty()) current.relaySince = relaySince
                 if (finalReply != null) {
                     applyPcInfo(current, finalReply)
                     current.lastContact = System.currentTimeMillis()
-                    val inbox = finalReply.optJSONArray("inbox")
-                    if (inbox != null && inbox.length() > 0) {
-                        listener.onIncoming((0 until inbox.length()).map { inbox.getJSONObject(it) }.map {
-                            Incoming(it.optString("id"), it.optString("url"), it.optString("title"), it.optDouble("scroll", 0.0), it.optDouble("time", 0.0))
-                        }.filter { UrlRules.isWebUrl(it.url) })
-                    }
+                }
+                // La stessa scheda può arrivare due volte (dalla rete di casa e dal relay): si apre una volta sola.
+                val fresh = incoming.map {
+                    Incoming(it.optString("id"), it.optString("url"), it.optString("title"), it.optDouble("scroll", 0.0), it.optDouble("time", 0.0))
+                }.filter { UrlRules.isWebUrl(it.url) && (it.id.isEmpty() || it.id !in state.seenIncoming) }.distinctBy { it.id.ifEmpty { it.url } }
+                if (fresh.isNotEmpty()) {
+                    fresh.forEach { if (it.id.isNotEmpty()) state.seenIncoming += it.id }
+                    while (state.seenIncoming.size > 200) state.seenIncoming.removeAt(0)
+                    listener.onIncoming(fresh)
                 }
                 state.outbox.removeAll { t -> sent.any { it.id == t.id } }
-                sent.forEach(listener::onSent)
-                if (sent.isNotEmpty() || wasReachable != reachable || finalReply != null) listener.onLinkChanged()
+                sent.forEach { listener.onSent(it, viaRelay) }
+                if (sent.isNotEmpty() || fresh.isNotEmpty() || wasReachable != reachable || wasRelay != relayOk || finalReply != null || relaySince.isNotEmpty()) listener.onLinkChanged()
             }
         }
     }
 
+    /** La scheda come la vuole il PC: indirizzo, dove eri, e dove aprirla. */
+    private fun tabFields(t: OutTab): JSONObject {
+        val target = if (t.target.startsWith("ws:")) JSONObject().put("kind", "workspace").put("workspace", t.target.removePrefix("ws:"))
+            else JSONObject().put("kind", t.target)
+        return JSONObject()
+            .put("tab", JSONObject().put("id", t.id).put("url", t.url).put("title", t.title).put("scroll", t.scroll).put("time", t.time))
+            .put("target", target)
+    }
+
     private fun applyPcInfo(config: LinkConfig, reply: JSONObject) {
         reply.optJSONObject("pc")?.optString("name")?.takeIf { it.isNotBlank() }?.let { config.pcName = it }
+        if (reply.has("relay")) config.relay = reply.optString("relay").takeIf { it.startsWith("https://") } ?: ""
         reply.optJSONArray("workspaces")?.let { a ->
             config.workspaces = (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map { w ->
                 val hex = w.optString("color")

@@ -32,5 +32,16 @@ class LinkLiveTest {
         // Scoperta via broadcast, come quando il PC cambia indirizzo.
         val found = client.findHost(LinkConfig(p.pcId, p.name, emptyList(), p.port, LinkRules.b64u(p.secret), config.deviceId))
         assertEquals(host.second, found?.second)
+
+        // Beta 0.32, fuori casa: la stessa scheda passa da ntfy.sh, e si legge quella che il PC manda al telefono.
+        val server = pair.optString("relay")
+        assertTrue("il PC non ha il relay acceso", server.startsWith("https://"))
+        val topics = LinkRules.relayTopics(p.secret)
+        val key = LinkRules.deriveKey(p.secret)
+        val body = LinkRules.relayBody(config.deviceId, LinkRules.seal(key, config.deviceId, LinkRules.message("tab", JSONObject()
+            .put("tab", JSONObject().put("url", "https://example.net/?relay=junit").put("title", "Da JUnit via relay").put("scroll", 0).put("time", 0))
+            .put("target", JSONObject().put("kind", "tab"))).toString()))!!
+        client.publish(server, topics.pc, body)
+        assertTrue(client.poll(server, topics.phone, "12h").all { it.id.isNotEmpty() })
     }
 }
