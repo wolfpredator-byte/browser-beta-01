@@ -120,3 +120,14 @@ test('Beta 0.29: colori presi da un\'immagine', ()=>{
   assert.ok(parseInt(p.bg.slice(1,3),16)<20);
   assert.equal(paletteFromPixels(Buffer.alloc(16)).accent,'#7c6cff'); // niente colori vivi: quello di VARCO
 });
+
+test('Beta 0.35: modalità OLED, nero puro e niente sfondo', ()=>{
+  const r=require('../lib/appearance-rules.cjs');
+  assert.equal(r.normalizeAppearance({mode:'oled'}).mode,'oled');
+  const v=r.cssVariables({mode:'oled',wallpaper:{kind:'gradient',gradient:'mesh'}});
+  assert.equal(v['--v-bg'],'#000000');
+  assert.equal(v['--v-bg2'],'#000000');
+  assert.equal(v['--v-wallpaper'],'none');
+  assert.equal(v['--v-bar-alpha'],'1');
+  assert.equal(v['--v-text'],r.cssVariables({mode:'scuro'})['--v-text']); // testo come il tema scuro
+});

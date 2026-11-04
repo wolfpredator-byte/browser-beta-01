@@ -15,7 +15,8 @@ const quiet=fn=>{const original=console.error;console.error=()=>{};try{return fn
 test('primo avvio: crea i workspace predefiniti',t=>{
   const {file,store}=tempStore(t);
   const data=store.load();
-  assert.deepEqual(data.workspaces.map(w=>w.name),['Personale','Destiny Builder','Gaming']);
+  assert.deepEqual(data.workspaces.map(w=>w.name),['Personale']);
+  assert.deepEqual(data.workspaces[0].resources,[]);
   assert.equal(fs.existsSync(file),true);
 });
 
@@ -64,7 +65,7 @@ test('migrazione da 0.5: background e rilevamento attivi, giochi rovinati scarta
     {id:1,name:'Destiny 2',exe:'destiny2.exe',workspace:'Gaming',sites:[],enabled:true},
     {id:'x',name:'Rotto'},null]});
   assert.deepEqual(data.settings,{runInBackground:true,gameWatcher:true,backgroundNoticeShown:false,
-    jarvis:{enabled:false,readPages:true},adblock:{enabled:true,allowlist:[]},sleepAfterMinutes:30,searchEngine:'google',tabAnimations:true,scanFolders:[],autoUpdate:true,autoGroupTabs:false,passwordSaving:true,motion:'auto',bangs:[],autoPip:true,autoArchive:{enabled:false,days:7}});
+    jarvis:{enabled:false,readPages:true},adblock:{enabled:true,allowlist:[]},sleepAfterMinutes:30,searchEngine:'google',tabAnimations:true,scanFolders:[],autoUpdate:true,autoGroupTabs:false,passwordSaving:true,motion:'auto',bangs:[],autoPip:true,toasts:{download:true,sito:true,jarvis:true,sistema:true},autoArchive:{enabled:false,days:7}});
   assert.deepEqual(data.sitePermissions,{});
   assert.deepEqual(data.games.map(g=>g.id),[1]);
   assert.equal(normalize({workspaces:[{name:'A'}],settings:{runInBackground:false}}).settings.runInBackground,false);

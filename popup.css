@@ -64,3 +64,8 @@ html,body,button{font-family:var(--v-font,'Segoe UI Variable','Segoe UI',Arial,s
   button.primary,button.danger{color:#fff}
   .chosen-mark{color:var(--v-accent)}
 }
+/* Beta 0.35: modalità OLED, nero puro. */
+@container style(--v-mode: oled){
+  .menu,.dialog{background:#000;border-color:rgba(255,255,255,.14)}
+  .backdrop{background:rgba(0,0,0,.6)}
+}

@@ -722,6 +722,9 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
          confirmButton(`Cancella la cronologia (${s.historyCount})`,'Conferma: cancella la cronologia',()=>settingsAction('clearHistory','Cronologia cancellata.')),
          confirmButton('Cancella cookie e dati dei siti','Conferma: esci da tutti i siti',()=>settingsAction('clearSiteData','Cookie, dati dei siti e cache cancellati. Le pagine aperte sono state ricaricate.'))),
        hint('Cancellare i cookie ti fa uscire da tutti gli account (Google, Discord…).')),
+     section('Notifiche',
+       ...Object.entries(s.toastLabels||{}).map(([category,label])=>checkRow(label,s.toasts?.[category]!==false,enabled=>act('setToastCategory',{category,enabled}))),
+       hint('Le categorie spente non mostrano toast, ma le notifiche restano nel centro notifiche. Le domande (es. "Salvare la password?") compaiono sempre.')),
      section('JARVIS',
        hint(s.jarvisEnabled?'Server MCP attivo.':'Server MCP spento: nessun programma può comandare il browser.'),
        projectButtons(['Apri il pannello JARVIS',()=>act('openSidePanel',{panel:'jarvis'})])),
@@ -1014,7 +1017,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        hint('Ogni preset porta colori, sfondo, logo e icona della finestra. Scegline uno diverso per un singolo workspace qui sotto.'),wsRow,
        ...(a.workspacePreset?[hint('Questo workspace ha un suo preset: le scelte qui sotto valgono per gli altri workspace.')]:[])),
      section('Tema e colori',
-       el('label',{className:'permission-row'},el('span',{textContent:'Tema'}),selectBox([['scuro','Scuro'],['chiaro','Chiaro']],a.mode,mode=>act('setMode',{mode}))),
+       el('label',{className:'permission-row'},el('span',{textContent:'Tema'}),selectBox([['scuro','Scuro'],['chiaro','Chiaro'],['oled','OLED (nero puro)']],a.mode,mode=>act('setMode',{mode}))),
        sub('Tinte (solo colori)'),grid,accentRow,accent2Row,
        el('div',{className:'inline-buttons'},addButton(el('span'),'Prendi i colori dallo sfondo',
          ()=>settingsAction('accentFromWallpaper',r=>r.accent?`Colori presi: ${r.accent} e ${r.accent2}.`:''))),
@@ -1594,7 +1597,8 @@ function renderWebPanels(){
  }
  const head=$('webPanelHead');
  const visible=!!open&&!open.hidden;
- if(!visible){head.hidden=true;return;}
+ const grip=$('webPanelGrip');
+ if(!visible){head.hidden=true;if(!panelDrag)grip.hidden=true;return;}
  const wasHidden=head.hidden;
  head.hidden=false;
  if(wasHidden){head.classList.remove('enter');void head.offsetWidth;head.classList.add('enter');}
@@ -1603,7 +1607,40 @@ function renderWebPanels(){
  const panel=panels.find(p=>p.id===open.id);
  $('webPanelIcon').hidden=!panel?.favicon;if(panel?.favicon)$('webPanelIcon').src=panel.favicon;
  $('webPanelTitle').textContent=open.title||panel?.title||'';
+ // Beta 0.35: maniglia nello spazio tra pagina e pannello.
+ if(!panelDrag){grip.hidden=false;Object.assign(grip.style,{left:(r.x-10)+'px',top:(r.y-40)+'px',height:(r.height+40)+'px'});}
 }
+// ── Beta 0.35: larghezza del pannello web trascinando il bordo ──
+// Come il divisore della vista divisa: pagina e pannello si nascondono e la cornice disegna l'anteprima.
+let panelDrag=null;
+$('webPanelGrip').onpointerdown=e=>{
+ const open=state.webPanelOpen;if(!open||e.button!==0)return;
+ e.preventDefault();
+ const grip=$('webPanelGrip');grip.setPointerCapture(e.pointerId);
+ const r=open.rect,right=r.x+r.width;
+ panelDrag={right,width:r.width,top:r.y-40,height:r.height+40};
+ act('webPanelDragging',{on:true});
+ const ghost=$('webPanelGhost');ghost.hidden=false;
+ const draw=()=>{Object.assign(ghost.style,{left:(panelDrag.right-panelDrag.width)+'px',top:panelDrag.top+'px',width:panelDrag.width+'px',height:panelDrag.height+'px'});
+   ghost.textContent=panelDrag.width+' px';grip.style.left=(panelDrag.right-panelDrag.width-10)+'px';};
+ draw();
+ grip.onpointermove=ev=>{
+   if(!panelDrag)return;
+   const max=Math.min(1400,Math.max(280,window.innerWidth-420));
+   panelDrag.width=Math.round(Math.min(max,Math.max(280,panelDrag.right-ev.clientX)));
+   draw();
+ };
+};
+const endPanelDrag=async()=>{
+ if(!panelDrag)return;
+ const {width}=panelDrag;panelDrag=null;
+ $('webPanelGrip').onpointermove=null;$('webPanelGhost').hidden=true;
+ await act('webPanelResize',{width});
+ act('webPanelDragging',{on:false});
+};
+window.addEventListener('pointerup',endPanelDrag);
+window.addEventListener('blur',endPanelDrag);
+$('webPanelGrip').ondblclick=()=>{const id=state.webPanelOpen?.id;if(id)act('webPanelSize',{id,size:'medio'});};
 $('webPanelReload').onclick=()=>act('webPanelReload');
 $('webPanelTab').onclick=()=>act('webPanelOpenInTab');
 $('webPanelClose').onclick=()=>act('webPanelClose');

@@ -862,6 +862,13 @@ body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;
 #webPanelHead{position:fixed;z-index:20;display:flex;align-items:center;gap:6px;height:34px;padding:0 4px 0 10px;border-radius:var(--r-md);
   background:rgba(var(--v-bg-rgb),.82);backdrop-filter:blur(16px);border:1px solid var(--v-line);box-shadow:var(--shadow-1)}
 #webPanelHead[hidden]{display:none}
+/* Beta 0.35: bordo trascinabile del pannello web e anteprima della larghezza. */
+#webPanelGrip{position:fixed;z-index:21;width:10px;cursor:ew-resize;border-radius:5px}
+#webPanelGrip::after{content:'';position:absolute;left:4px;top:50%;width:2px;height:44px;margin-top:-22px;border-radius:2px;background:var(--v-line-strong);opacity:0;transition:opacity var(--dur-1,.15s)}
+#webPanelGrip:hover::after{opacity:1;background:var(--v-accent)}
+#webPanelGrip[hidden],#webPanelGhost[hidden]{display:none}
+#webPanelGhost{position:fixed;z-index:20;display:flex;align-items:center;justify-content:center;border-radius:12px;
+  border:2px dashed rgba(var(--v-accent-rgb),.7);background:rgba(var(--v-accent-rgb),.10);color:var(--v-text);font-weight:600;pointer-events:none}
 #webPanelHead.enter{animation:v-drawer-in var(--dur-2) var(--ease-out)}
 #webPanelIcon{width:16px;height:16px;border-radius:4px}
 #webPanelTitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-sm)}
@@ -1043,6 +1050,10 @@ body,button,input,select,textarea{font-family:var(--v-font,'Segoe UI Variable','
 body::after{content:'';position:fixed;inset:0;z-index:2147483000;pointer-events:none;opacity:var(--v-grain);mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 body[data-mode="chiaro"]{color-scheme:light}
+/* Beta 0.35: OLED. color-scheme dark sulla radice: lo scuro forzato di Chromium non tocca la cornice. */
+:root:has(body[data-mode="oled"]){color-scheme:dark;background:#000}
+body[data-mode="oled"],body[data-mode="oled"] #dashboard,body[data-mode="oled"] .home-content,body[data-mode="oled"] #loadError{background:#000}
+body[data-mode="oled"] #suggest,body[data-mode="oled"] .palette-float,body[data-mode="oled"] .split-ghost{background:#000}
 body[data-mode="chiaro"] ::placeholder{color:var(--v-muted)}
 /* Sfondi generati: anteprime con i colori attuali. */
 .gradient-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 0 10px}

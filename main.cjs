@@ -53,6 +53,8 @@ require('electron-chrome-extensions');
 // sessioni, segreti e jarvis-mcp.json restano in %APPDATA%\personal-workspace-browser.
 // --user-data-dir (profili di prova) ha la precedenza.
 if(!app.commandLine.hasSwitch('user-data-dir'))app.setPath('userData',path.join(app.getPath('appData'),'personal-workspace-browser'));
+// Beta 0.35: modalità OLED → Chromium scurisce anche i siti. Si decide all'avvio (cambiarla chiede un riavvio).
+require('./lib/force-dark.cjs').applyAtStartup();
 const bus=createCommandBus();
 
 /** Trova la finestra di una cornice o di una pagina web che ha il focus. */
@@ -72,6 +74,7 @@ function start(){
   app.setAppUserModelId(app.isPackaged?'local.personal-workspace-browser':process.execPath);
   state.store=createStore(path.join(app.getPath('userData'),'browser-data.json'));
   state.data=state.store.load();
+  require('./lib/force-dark.cjs').syncTheme();
   require('./lib/web-rules.cjs').setCustomBangs(state.data.settings.bangs); // Beta 0.28: scorciatoie di ricerca tue
   setupWebSession();
   registerCommands(bus);

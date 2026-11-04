@@ -14,7 +14,7 @@
     {id:'privacy',title:'Privacy e sicurezza',icon:'shield',sections:['Privacy e sicurezza','Password']},
     {id:'telefono',title:'Telefono',icon:'external',sections:['Telefono']},
     {id:'estensioni',title:'Estensioni',icon:'commands',sections:['Estensioni']},
-    {id:'sistema',title:'Sistema',icon:'settings',sections:['Aggiornamenti','Avvio e background','Browser e file','JARVIS','Dati','Informazioni']},
+    {id:'sistema',title:'Sistema',icon:'settings',sections:['Aggiornamenti','Avvio e background','Notifiche','Browser e file','JARVIS','Dati','Informazioni']},
   ];
 
   /** Categoria di una sezione dal suo titolo; le sezioni nuove finiscono in Sistema finché non le si assegna. */
@@ -37,7 +37,7 @@
     if(a){
       const theme=a.themes?.find(t=>t.id===a.theme)?.label;
       const wall=a.wallpaper?.kind==='image'?a.wallpaperName:a.wallpaper?.kind==='none'?'tinta unita':a.wallpaper?.kind==='gradient'?'sfondo generato':'sfondo del tema';
-      out.aspetto={text:[theme,a.mode==='chiaro'?'tema chiaro':'tema scuro',wall].filter(Boolean).join(' · ')};
+      out.aspetto={text:[theme,a.mode==='chiaro'?'tema chiaro':a.mode==='oled'?'OLED nero puro':'tema scuro',wall].filter(Boolean).join(' · ')};
     }else out.aspetto={text:'Preset, colori, sfondo e disposizione'};
     const engine=s.engines?.find(e=>e.id===s.searchEngine)?.label;
     const bangs=b?(b.builtIn?.length||0)+(b.custom?.length||0):0;

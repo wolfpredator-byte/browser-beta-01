@@ -37,3 +37,22 @@ test('il pannello web fa posto a destra, la pagina si restringe', ()=>{
   assert.equal(panel.width,420);
   assert.ok(panel.x>=narrow.x+narrow.width,'non si sovrappone alla pagina');
 });
+
+test('Beta 0.35: larghezza trascinata, taglia molto largo e adattamento del sito', ()=>{
+  const r=require('../lib/webpanel-rules.cjs');
+  const [a,b]=r.normalizePanels([{id:'a',url:'https://x.it',width:5000},{id:'b',url:'https://y.it',size:'moltoLargo',fit:false}]);
+  assert.equal(a.width,r.MAX_WIDTH);
+  assert.equal(a.fit,true);
+  assert.equal(r.panelWidth(a),r.MAX_WIDTH);
+  assert.equal(r.panelWidth(b),720);
+  assert.equal(b.fit,false);
+  assert.equal('width' in b,false);
+  assert.equal(r.clampWidth(10),r.MIN_WIDTH);
+  const fit=r.fitFor(450,600);
+  assert.equal(fit.width,r.DESKTOP_WIDTH);
+  assert.equal(fit.scale,0.5);
+  assert.equal(fit.height,1200);
+  assert.equal(r.fitFor(450,600,{mobile:true}),null);
+  assert.equal(r.fitFor(450,600,{fit:false}),null);
+  assert.equal(r.fitFor(1000,600),null);
+});

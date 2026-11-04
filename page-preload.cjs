@@ -3,8 +3,6 @@
 /**
  * Script eseguito prima delle pagine web (non della cornice), in un mondo isolato.
  * Agisce SOLO sulle pagine di accesso di Google; su tutti gli altri siti non fa nulla.
- * - Completa l'identità "Firefox" (vedi FIREFOX_UA in lib/web-rules.cjs) togliendo
- *   navigator.userAgentData, che Firefox non ha e che rivelerebbe Chromium.
  * - Nasconde le passkey (WebAuthn): Google prova subito l'accesso con passkey, che
  *   in Electron fallisce con la finestra "Sicurezza di Windows". Senza, Google usa
  *   il flusso classico email + password (+ verifica in due passaggi sul telefono).
@@ -18,7 +16,8 @@ const {contextBridge,ipcRenderer}=require('electron');
  * Qui mostriamo alla pagina lo stato vero: "default" finché non decidi; la richiesta
  * vera passa comunque dal dialogo VARCO (lib/permissions.cjs).
  */
-if(/^https?:$/.test(location.protocol)){
+// Beta 0.35: page-preload gira anche nei riquadri (per il login Google): le notifiche restano solo nella pagina principale, come prima.
+if(window.top===window&&/^https?:$/.test(location.protocol)){
   let choice='ask';
   try{choice=ipcRenderer.sendSync('varco:notification-permission')||'ask';}catch{}
   contextBridge.executeInMainWorld({args:[choice],func:initial=>{
@@ -48,9 +47,10 @@ if(/^https?:$/.test(location.protocol)){
   }});
 }
 
-if(location.hostname==='accounts.google.com'){
+// Login Google: niente passkey (Beta 0.35: l'identità resta quella originale, vedi lib/web-rules.cjs).
+// Senza PublicKeyCredential Google propone la password invece di una passkey che qui non funzionerebbe.
+if(window.top===window&&location.hostname==='accounts.google.com'){
   contextBridge.executeInMainWorld({func:()=>{
-    try{Object.defineProperty(Navigator.prototype,'userAgentData',{get:()=>undefined,configurable:true});}catch{}
     try{delete window.PublicKeyCredential;}catch{}
     try{
       // navigator.credentials resta (serve anche alle password), ma senza passkey.
@@ -218,7 +218,7 @@ if(window.top===window&&(location.protocol==='https:'||
  * Beta 0.27 — anteprima dei link: Shift+clic su un link apre la pagina in un riquadro sopra quella
  * attuale (lib/glance.cjs) invece che in una nuova finestra. Solo nelle pagine web.
  */
-if(/^https?:$/.test(location.protocol)){
+if(window.top===window&&/^https?:$/.test(location.protocol)){
   document.addEventListener('click',event=>{
     if(!event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.button!==0||!event.isTrusted)return;
     const link=event.target?.closest?.('a[href]');

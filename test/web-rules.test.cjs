@@ -49,12 +49,16 @@ test('risorse: domini e URL sono indirizzi, le frasi no',()=>{
   assert.equal(looksLikeAddress(undefined),false);
 });
 
-test('login Google: identità Firefox solo su accounts.google.com',()=>{
-  const {userAgentFor,firefoxHeaders,FIREFOX_UA,isGoogleLogin}=require('../lib/web-rules.cjs');
-  const chrome='Mozilla/5.0 Chrome/142';
-  assert.equal(userAgentFor('https://accounts.google.com/v3/signin/identifier',chrome),FIREFOX_UA);
-  assert.equal(userAgentFor('https://www.youtube.com/',chrome),chrome);
+test('Beta 0.35 login Google: identità originale di Electron solo sulle pagine di accesso',()=>{
+  const {userAgentFor,loginHeaders,isGoogleLogin,GOOGLE_LOGIN_URLS,cleanUserAgent}=require('../lib/web-rules.cjs');
+  const original='Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) personal-workspace-browser/0.34.0 Chrome/142.0 Electron/39.8.10 Safari/537.36';
+  const clean=cleanUserAgent(original,'personal-workspace-browser');
+  assert.equal(clean,'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0 Safari/537.36');
+  assert.equal(userAgentFor('https://accounts.google.com/v3/signin/identifier',clean,original),original);
+  assert.equal(userAgentFor('https://accounts.youtube.com/accounts/CheckConnection',clean,original),original);
+  assert.equal(userAgentFor('https://www.youtube.com/',clean,original),clean);
   assert.equal(isGoogleLogin('https://accounts.google.com.evil.example/'),false);
-  const headers=firefoxHeaders({'User-Agent':chrome,'sec-ch-ua':'"Chromium";v="142"','Sec-CH-UA-Platform':'"Windows"',Accept:'*/*'});
-  assert.deepEqual(headers,{Accept:'*/*','User-Agent':FIREFOX_UA});
+  assert.deepEqual(GOOGLE_LOGIN_URLS,['https://accounts.google.com/*','https://accounts.youtube.com/*']);
+  const headers=loginHeaders({'user-agent':clean,'sec-ch-ua':'"Chromium";v="142"',Accept:'*/*'},original);
+  assert.deepEqual(headers,{'sec-ch-ua':'"Chromium";v="142"',Accept:'*/*','User-Agent':original});
 });

@@ -2,7 +2,7 @@
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: crx:; object-src 'none'"><title>VARCO</title><link rel="stylesheet" href="style.css"><script src="viewer/vendor/frame/browser-action-element.js"></script></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.33</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.35</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" class="tool" title="Nascondi / mostra la barra laterale" aria-label="Nascondi o mostra la barra laterale"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button>
   <button id="back" class="tool" title="Indietro (Alt+←)" aria-label="Indietro"><span class="i i-back" aria-hidden="true"></span></button><button id="forward" class="tool" title="Avanti (Alt+→)" aria-label="Avanti"><span class="i i-forward" aria-hidden="true"></span></button><button id="reload" class="tool" title="Ricarica (F5)" aria-label="Ricarica"><span class="i i-reload" aria-hidden="true"></span></button>
@@ -122,6 +122,7 @@
 <!-- Palette (Beta 0.12.1): solo una barra di ricerca fluttuante; i risultati compaiono mentre scrivi. -->
 <!-- Beta 0.27: anteprima dei link (Shift+clic). La pagina dell'anteprima la disegna lib/glance.cjs sopra il riquadro. -->
 <!-- Beta 0.27: barra del pannello web aperto (la pagina la mette lib/webpanels.cjs sotto la barra). -->
+<div id="webPanelGrip" hidden title="Trascina per cambiare la larghezza · doppio clic: larghezza media"></div><div id="webPanelGhost" hidden></div>
 <div id="webPanelHead" hidden><img id="webPanelIcon" alt=""><strong id="webPanelTitle"></strong>
  <button id="webPanelReload" class="tool" title="Ricarica" aria-label="Ricarica il pannello"><span class="i i-reload" aria-hidden="true"></span></button>
  <button id="webPanelTab" class="tool" title="Apri in una scheda" aria-label="Apri in una scheda"><span class="i i-external" aria-hidden="true"></span></button>

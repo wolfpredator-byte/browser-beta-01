@@ -37,3 +37,7 @@ html,body,button{font-family:var(--v-font,'Segoe UI Variable','Segoe UI',Arial,s
   .text{color:#5d5b72}.bar{background:rgba(20,20,40,.08)}
   button{color:#1c1b29}button.close{color:#6a6788}button.close:hover{color:#1c1b29;background:rgba(20,20,40,.06)}
 }
+/* Beta 0.35: modalità OLED, nero puro. */
+@container style(--v-mode: oled){
+  .toast{background:#000;border-color:rgba(255,255,255,.14)}
+}
