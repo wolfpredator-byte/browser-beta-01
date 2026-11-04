@@ -47,3 +47,8 @@ test('nomi duplicati vengono rifiutati; list() descrive i comandi',()=>{
   assert.throws(()=>bus.register('newTab',{run:()=>{}}));
   assert.deepEqual(bus.list(),[{name:'newTab',args:{url:'string?'},description:'Apre una scheda'}]);
 });
+
+test('Beta 0.36: tipo array', ()=>{
+  assert.deepEqual(validateArgs({items:'array'},{items:[1]}),{ok:true,args:{items:[1]}});
+  assert.equal(validateArgs({items:'array'},{items:'x'}).ok,false);
+});

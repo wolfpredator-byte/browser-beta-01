@@ -487,6 +487,237 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      quick.append(b);
    }
  }
+ // ── Widget della Home (Beta 0.36) ──────────────────────────────────────
+ // Ogni widget ha il suo nodo, rifatto solo se i suoi dati cambiano (la pagina web non si ricarica).
+ let homeEditing=false;const widgetNodes=new Map();
+ const hostLabel=url=>{try{return new URL(url).hostname.replace(/^www\./,'');}catch{return url;}};
+ // Beta 0.36: icona vera del sito (se c'è) e anteprima del sito dopo mezzo secondo con il mouse sopra.
+ let previewTimer=null,previewOn=false;
+ const hidePreview=()=>{clearTimeout(previewTimer);previewTimer=null;if(previewOn){previewOn=false;act('sitePreviewHide');}};
+ function siteTile(item,onclick){
+   const b=el('button',{className:'widget-site',title:item.url});
+   const badge=item.icon?el('span',{className:'widget-site-letter has-icon'},el('img',{src:item.icon,alt:''}))
+     :el('span',{className:'widget-site-letter',textContent:(hostLabel(item.url)[0]||'?').toUpperCase()});
+   b.append(badge,el('span',{className:'widget-site-name',textContent:item.title||hostLabel(item.url)}));
+   b.onclick=()=>{hidePreview();onclick();};
+   b.onmouseenter=()=>{
+     clearTimeout(previewTimer);
+     previewTimer=setTimeout(()=>{
+       const r=b.getBoundingClientRect();
+       previewOn=true;act('sitePreview',{url:item.url,x:Math.round(r.left+r.width/2),y:Math.round(r.bottom+6)});
+     },previewOn?120:500);
+   };
+   b.onmouseleave=hidePreview;
+   return b;
+ }
+ window.addEventListener('blur',hidePreview);
+ function clockText(w){
+   const now=new Date();
+   return {time:now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',...(w.seconds?{second:'2-digit'}:{})}),
+     date:now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})};
+ }
+ function weatherBody(w){
+   const box=el('div',{className:'widget-weather'});
+   const form=el('form',{className:'link-form'});
+   const input=el('input',{type:'text',placeholder:'Città (es. Milano)',value:w.city||'',autocomplete:'off',spellcheck:false});
+   const msg=el('p',{className:'panel-hint'});
+   form.append(input,el('button',{type:'submit',textContent:'Imposta'}));
+   form.onsubmit=async e=>{e.preventDefault();if(!input.value.trim())return;msg.textContent='Cerco…';
+     const r=await act('homeWidgetCity',{id:w.id,city:input.value.trim()});
+     if(!r?.result?.ok)msg.textContent=r?.result?.error||r?.error||'Non riuscito.';};
+   if(!w.place||homeEditing){box.append(form,msg);if(!w.place)return box;}
+   if(w.weatherError){box.append(el('p',{className:'panel-error',textContent:w.weatherError}));return box;}
+   if(!w.weather){box.append(el('p',{className:'panel-hint',textContent:'Carico il meteo di '+w.place+'…'}));return box;}
+   const x=w.weather;
+   box.append(el('div',{className:'widget-weather-now'},el('span',{className:'widget-weather-icon',textContent:x.icon}),
+     el('span',{className:'widget-weather-temp',textContent:x.temp+'°'}),el('span',{className:'widget-weather-text',textContent:x.text})),
+     el('div',{className:'widget-weather-place',textContent:w.place}),
+     el('div',{className:'widget-weather-days'},...x.days.map(d=>el('div',{className:'widget-weather-day'},
+       el('span',{textContent:new Date(d.date).toLocaleDateString('it-IT',{weekday:'short'})}),el('span',{textContent:d.icon}),el('span',{textContent:`${d.max}° / ${d.min}°`})))));
+   return box;
+ }
+ function webBody(w){
+   const box=el('div',{className:'widget-web'});
+   if(homeEditing||!w.url){
+     const form=el('form',{className:'link-form'});
+     const input=el('input',{type:'text',placeholder:'Indirizzo (es. calendar.google.com)',value:w.url||'',autocomplete:'off',spellcheck:false});
+     form.append(input,el('button',{type:'submit',textContent:'Mostra'}));
+     form.onsubmit=e=>{e.preventDefault();if(input.value.trim())act('homeWidgetSet',{id:w.id,url:input.value.trim()});};
+     box.append(form);
+     if(!w.url)return box;
+   }
+   // Spotify & co.: senza Widevine (DRM) la musica e i film non partono. Lo diciamo subito.
+   if(w.drm)box.append(el('p',{className:'widget-drm',textContent:`${w.drm} non può riprodurre musica o video in VARCO: manca il modulo di protezione dei contenuti (Widevine). Puoi sfogliare il sito; per ascoltare usa l’app di ${w.drm} o un altro browser.`}));
+   const view=document.createElement('webview');
+   view.setAttribute('src',w.url);view.className='widget-webview';
+   view.style.height=(w.height||380)+'px';
+   box.append(view);
+   return box;
+ }
+ /**
+  * Beta 0.36: l'angolo in basso a destra del widget web si trascina. In orizzontale scatta a 1, 2 o 3 colonne,
+  * in verticale l'altezza è libera (160–1000 px). Si salva al rilascio.
+  */
+ function webResizer(card,w){
+   const grip=el('div',{className:'widget-resize',title:'Trascina per cambiare larghezza e altezza'});
+   grip.onpointerdown=e=>{
+     if(e.button!==0)return;
+     e.preventDefault();grip.setPointerCapture(e.pointerId);
+     const grid=$('homeWidgets'),view=card.querySelector('.widget-webview');
+     const colW=(grid.getBoundingClientRect().width+16)/3;
+     const left=card.getBoundingClientRect().left,top=view?view.getBoundingClientRect().top:e.clientY;
+     let cols=w.cols||3,height=w.height||380;
+     const label=el('span',{className:'widget-size-label'});card.append(label);
+     card.classList.add('widget-resizing');
+     const show=()=>{label.textContent=`${cols} ${cols===1?'colonna':'colonne'} · ${height} px`;card.style.gridColumn='span '+cols;if(view)view.style.height=height+'px';};
+     show();
+     grip.onpointermove=ev=>{
+       cols=Math.min(3,Math.max(1,Math.round((ev.clientX-left)/colW)));
+       height=Math.round(Math.min(1000,Math.max(160,ev.clientY-top)));
+       show();
+     };
+     grip.onpointerup=grip.onpointercancel=()=>{
+       grip.onpointermove=grip.onpointerup=grip.onpointercancel=null;
+       label.remove();card.classList.remove('widget-resizing');
+       act('homeWidgetSet',{id:w.id,cols,height});
+     };
+   };
+   return grip;
+ }
+ function widgetBody(w){
+   if(w.type==='clock'){
+     const t=clockText(w);
+     const box=el('div',{className:'widget-clock'},el('div',{className:'widget-clock-time',textContent:t.time}),el('div',{className:'widget-clock-date',textContent:t.date}));
+     box.dataset.clock=w.id;
+     if(homeEditing)box.append(checkRow('Secondi',!!w.seconds,seconds=>act('homeWidgetSet',{id:w.id,seconds})));
+     return box;
+   }
+   if(w.type==='weather')return weatherBody(w);
+   if(w.type==='webframe')return webBody(w);
+   if(w.type==='notes'){
+     const area=el('textarea',{className:'widget-notes',placeholder:'Scrivi qui… (si salva da solo)',maxLength:4000,spellcheck:true});
+     area.value=w.text||'';
+     let t=null;area.oninput=()=>{clearTimeout(t);t=setTimeout(()=>act('homeWidgetNotes',{id:w.id,text:area.value}),400);};
+     return area;
+   }
+   if(w.type==='sites'){
+     const s=state.homeSites||{bookmarks:[],top:[]};
+     const grid=list=>el('div',{className:'widget-sites'},...list.map(item=>siteTile(item,()=>act('resource',{url:item.url}))));
+     return el('div',{},
+       ...(s.bookmarks.length?[el('h5',{className:'widget-sub',textContent:'Preferiti'}),grid(s.bookmarks)]:[]),
+       ...(s.top.length?[el('h5',{className:'widget-sub',textContent:'Più visitati'}),grid(s.top)]:[]),
+       ...(!s.bookmarks.length&&!s.top.length?[el('p',{className:'panel-hint',textContent:'Ancora niente: i preferiti e i siti che visiti di più compariranno qui.'})]:[]));
+   }
+   if(w.type==='recent'){
+     const list=el('div',{className:'widget-recent'});
+     for(const t of state.homeRecent||[]){
+       const b=el('button',{className:'card-link',title:t.url},t.favicon?el('img',{src:t.favicon,alt:'',className:'widget-favicon'}):icon('tabs'),el('span',{textContent:t.title}));
+       b.onclick=()=>act('activateTab',{id:t.id});list.append(b);
+     }
+     if((state.homeClosed||[]).length){
+       list.append(el('h5',{className:'widget-sub',textContent:'Chiuse di recente'}));
+       for(const t of state.homeClosed){const b=el('button',{className:'card-link',title:t.url},icon('tab-reopen'),el('span',{textContent:t.title}));b.onclick=()=>act('resource',{url:t.url});list.append(b);}
+     }
+     if(!list.childElementCount)list.append(el('p',{className:'panel-hint',textContent:'Le schede che apri in questo workspace compariranno qui.'}));
+     return list;
+   }
+   return el('div');
+ }
+ // Beta 0.36: i riquadri di sempre (link, progetti, accesso rapido, JARVIS, workspace) sono i nodi di index.html,
+ // spostati nella griglia dei widget: il loro contenuto lo aggiornano le funzioni di sempre.
+ // Scorrendo la Home l'anteprima resterebbe ferma mentre il riquadro si sposta: si chiude.
+ document.querySelector('.home-content').addEventListener('scroll',()=>hidePreview(),{passive:true});
+ const BUILTIN_NODES={links:()=>$('linksCard'),projects:()=>$('homeProjects').closest('.card'),quick:()=>$('homeQuick').closest('.card'),
+   jarvis:()=>document.querySelector('.jarvis-card'),workspace:()=>document.querySelector('.workspace-panel')};
+ function builtinNode(w){
+   const node=BUILTIN_NODES[w.type]();
+   node.classList.add('widget','widget--'+w.type);
+   if(w.type==='links'||w.type==='workspace')node.classList.add('widget-full');
+   node.querySelector(':scope>.widget-tools')?.remove();
+   if(homeEditing){
+     const tools=el('div',{className:'widget-tools widget-tools-float'});
+     iconButton(tools,'back','Sposta prima',()=>act('homeWidgetMove',{id:w.id,dir:-1}));
+     iconButton(tools,'forward','Sposta dopo',()=>act('homeWidgetMove',{id:w.id,dir:1}));
+     iconButton(tools,'close','Togli dalla Home',()=>act('homeWidgetRemove',{id:w.id}));
+     node.append(tools);
+   }
+   return node;
+ }
+ function widgetNode(w){
+   if(BUILTIN_NODES[w.type])return builtinNode(w);
+   const titles=state.widgetTypes||{};
+   const title=w.type==='webframe'&&w.url?hostLabel(w.url):titles[w.type]||w.type;
+   const head=el('div',{className:'widget-head'},el('h3',{textContent:title}));
+   const tools=el('div',{className:'widget-tools'});
+   if(w.type==='webframe'&&w.url&&!homeEditing)iconButton(tools,'external','Apri in una scheda',()=>act('newTab',{url:w.url}));
+   if(homeEditing){
+     iconButton(tools,'back','Sposta prima',()=>act('homeWidgetMove',{id:w.id,dir:-1}));
+     iconButton(tools,'forward','Sposta dopo',()=>act('homeWidgetMove',{id:w.id,dir:1}));
+     iconButton(tools,'close','Togli il widget',()=>act('homeWidgetRemove',{id:w.id}));
+   }
+   head.append(tools);
+   const card=el('article',{className:'card glass widget widget--'+w.type+(w.type==='sites'?' widget-wide':'')},head,widgetBody(w));
+   if(w.type==='webframe'){card.style.gridColumn='span '+(w.cols||3);if(w.url)card.append(webResizer(card,w));}
+   return card;
+ }
+ function renderHomeWidgets(){
+   const box=$('homeWidgets');if(!box)return;
+   const m=state.homeMotion||{};
+   document.body.dataset.homeEnter=m.enter===false?'false':'true';
+   document.body.dataset.homeBg=m.background===false?'false':'true';
+   document.body.dataset.homeHover=m.hover===false?'false':'true';
+   if(!state.homeActive)hidePreview();
+   $('homeCustomize').classList.toggle('chosen',homeEditing);
+   $('homeCustomize').lastChild.textContent=homeEditing?'Fatto':'Personalizza la Home';
+   // Mentre scrivi (note, città, indirizzo) non si ricostruisce nulla.
+   if(box.contains(document.activeElement)&&document.activeElement.matches('input,textarea,select'))return;
+   const widgets=state.homeWidgets||[];
+   const extra=w=>w.type==='sites'?state.homeSites:w.type==='recent'?[state.homeRecent,state.homeClosed]:null;
+   const wanted=[];
+   for(const w of widgets){
+     const key=JSON.stringify([w,extra(w),homeEditing]);
+     let entry=widgetNodes.get(w.id);
+     if(!entry||entry.key!==key){entry={key,node:widgetNode(w)};widgetNodes.set(w.id,entry);}
+     wanted.push(entry.node);
+   }
+   for(const [id] of widgetNodes)if(!widgets.some(w=>w.id===id))widgetNodes.delete(id);
+   const store=$('homeBuiltinStore');
+   if(homeEditing){
+     let adder=box.querySelector('.widget-adder');
+     const missing=(state.builtinWidgets||[]).filter(t=>!widgets.some(w=>w.type===t));
+     const adderKey=JSON.stringify(missing);
+     if(!adder||adder.dataset.key!==adderKey){
+       adder=el('div',{className:'card glass widget widget-adder widget-full'},el('h3',{textContent:'Aggiungi un widget'}));
+       adder.dataset.key=adderKey;
+       const row=el('div',{className:'widget-adder-list'});
+       for(const [type,label] of Object.entries(state.widgetTypes||{})){
+         if((state.builtinWidgets||[]).includes(type)&&!missing.includes(type))continue; // già nella Home
+         addButton(row,'+ '+label,()=>act('homeWidgetAdd',{type}));
+       }
+       adder.append(row,el('p',{className:'panel-hint',textContent:'Frecce: sposta · ×: togli. Il widget Pagina web si allarga e si allunga trascinando l’angolo in basso a destra. Animazioni: Impostazioni → Aspetto → Home.'}));
+     }
+     wanted.push(adder);
+   }
+   // Riordina senza staccare i nodi che restano (un webview staccato si ricaricherebbe).
+   // I riquadri di sempre tolti dalla Home tornano nel deposito nascosto (non si distruggono).
+   [...box.children].forEach(n=>{if(!wanted.includes(n)){if(n.matches('#linksCard,.card:has(#homeProjects),.card:has(#homeQuick),.jarvis-card,.workspace-panel'))store.append(n);else n.remove();}});
+   wanted.forEach((n,i)=>{if(box.children[i]!==n)box.insertBefore(n,box.children[i]||null);});
+   box.hidden=!wanted.length;
+ }
+ $('homeCustomize').onclick=()=>{
+   homeEditing=!homeEditing;widgetNodes.clear();
+   // I riquadri di sempre si mettono da parte (non si cancellano), gli altri si rifanno.
+   for(const n of [...$('homeWidgets').children]){if(n.matches('#linksCard,.card:has(#homeProjects),.card:has(#homeQuick),.jarvis-card,.workspace-panel'))$('homeBuiltinStore').append(n);else n.remove();}
+   renderHomeWidgets();
+ };
+ // L'orologio si aggiorna da solo, solo quando la Home si vede.
+ setInterval(()=>{
+   if(!state.homeActive)return;
+   for(const node of document.querySelectorAll('[data-clock]')){
+     const w=(state.homeWidgets||[]).find(x=>x.id===node.dataset.clock);if(!w)continue;
+     const t=clockText(w);node.firstChild.textContent=t.time;node.children[1].textContent=t.date;
+   }
+ },1000);
  $('jarvisCardButton').onclick=()=>act('openSidePanel',{panel:'jarvis'});
 
  // ── Pannello del sito (Beta 0.10): permessi e blocco pubblicità ──────────
@@ -543,7 +774,62 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
 
  // ── Pannello Impostazioni (Beta 0.11) ───────────────────────────────────
  let renderedSettings=null;
- const settingsUi={status:'',statusError:false};
+ const settingsUi={status:'',statusError:false,
+   // Beta 0.36: import da altri browser (stato della procedura guidata).
+   importer:{browsers:null,scanning:false,pick:'',parts:{bookmarks:true,search:false,startup:false},extensions:[],running:false,result:null}};
+ const importerRerender=()=>{renderedSettings=null;renderSettings();};
+ async function importerScan(){
+   const im=settingsUi.importer;im.scanning=true;im.result=null;importerRerender();
+   const r=await act('importScan');
+   im.scanning=false;im.browsers=r?.result?.browsers||[];
+   if(!r?.ok)im.result={ok:false,text:r?.error||'Ricerca dei browser non riuscita.'};
+   const first=im.browsers[0];im.pick=first?first.key+'|'+first.profiles[0].dir:'';im.extensions=[];
+   importerRerender();
+ }
+ function importerSection(){
+   const im=settingsUi.importer;
+   const hintEl=text=>el('p',{className:'panel-hint',textContent:text});
+   if(!im.browsers)return section('Importa da un altro browser',
+     hintEl('Preferiti, estensioni, motore di ricerca e pagine di avvio da Chrome, Edge, Opera, Brave o Vivaldi. Scegli tu cosa importare.'),
+     projectButtons([im.scanning?'Cerco i browser…':'Cerca i browser installati',()=>{if(!im.scanning)importerScan();}]));
+   if(!im.browsers.length)return section('Importa da un altro browser',hintEl('Nessun browser trovato su questo PC.'),
+     ...(im.result?[el('p',{className:'panel-error',textContent:im.result.text})]:[]),projectButtons(['Cerca di nuovo',importerScan]));
+   const options=im.browsers.flatMap(b=>b.profiles.map(p=>[b.key+'|'+p.dir,b.profiles.length>1?`${b.label} · ${p.name}`:b.label]));
+   const [bkey,pdir]=im.pick.split('|');
+   const prof=im.browsers.find(b=>b.key===bkey)?.profiles.find(p=>p.dir===pdir);
+   const parts=[];
+   if(prof){
+     const part=(key,label)=>checkRow(label,!!im.parts[key],v=>{im.parts[key]=v;importerRerender();});
+     parts.push(part('bookmarks',`Preferiti (${prof.bookmarks})`));
+     parts.push(part('search',prof.search?`Motore di ricerca (${prof.search})`:'Motore di ricerca (non riconosciuto)'));
+     parts.push(part('startup',`Pagine di avvio → link della Home (${prof.startup})`));
+     const store=prof.extensions.filter(e=>e.store==='chrome');
+     if(store.length){
+       parts.push(el('h5',{className:'import-sub',textContent:'Estensioni dal Chrome Web Store'}));
+       parts.push(hintEl('Attenzione: alcune estensioni potrebbero non funzionare in VARCO. Usano funzioni di Chrome che VARCO non ha ancora (es. cookie o notifiche delle estensioni): si installano, ma possono restare ferme. Se una non va, toglila da Impostazioni → Estensioni.'));
+       for(const e of store)parts.push(e.installed?el('p',{className:'panel-hint',textContent:`✓ ${e.name} (già in VARCO)`}):
+         checkRow(e.name+(e.enabled?'':' (spenta in quel browser)'),im.extensions.includes(e.id),v=>{im.extensions=v?[...im.extensions,e.id]:im.extensions.filter(x=>x!==e.id);importerRerender();}));
+     }
+     const other=prof.extensions.filter(e=>e.store!=='chrome');
+     if(other.length)parts.push(hintEl(`Non disponibili (non sono del Chrome Web Store): ${other.map(e=>e.name).join(', ')}.`));
+   }
+   const nothing=!Object.values(im.parts).some(Boolean)&&!im.extensions.length;
+   const go=projectButtons([im.running?'Importo…':'Importa',async()=>{
+     if(im.running||nothing||!prof)return;
+     im.running=true;im.result=null;importerRerender();
+     const r=await act('importRun',{browser:bkey,profile:pdir,...im.parts,extensions:im.extensions});
+     im.running=false;
+     im.result=r?.result?.ok?{ok:true,text:'Fatto: '+r.result.summary.join(' · ')+'.'}:{ok:false,text:r?.result?.error||r?.error||'Importazione non riuscita.'};
+     im.extensions=[];
+     await importerScan();
+     settingsUi.importer.result=im.result;importerRerender();
+   }],['Chiudi',()=>{im.browsers=null;im.result=null;importerRerender();}]);
+   return section('Importa da un altro browser',
+     el('label',{className:'permission-row'},el('span',{textContent:'Da'}),selectBox(options,im.pick,v=>{im.pick=v;im.extensions=[];im.result=null;importerRerender();})),
+     ...parts,go,
+     ...(im.result?[el('p',{className:im.result.ok?'game-meta':'panel-error',textContent:im.result.text})]:[]),
+     hintEl('Le password non si possono leggere da altri browser: esportale come CSV (es. Chrome → Impostazioni → Password → Esporta) e usa Privacy e sicurezza → Password → Importa. Il browser d’origine non viene modificato.'));
+ }
  const SLEEP_LABELS=[[0,'Mai'],[15,'Dopo 15 minuti'],[30,'Dopo 30 minuti'],[60,'Dopo 1 ora'],[120,'Dopo 2 ore']];
  function selectBox(options,value,onchange){
    const select=el('select',{className:'permission-select'});
@@ -678,7 +964,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const s=state.settings;
    const list=$('settingsBody');
    if((list.contains(document.activeElement)||$('settingsSheet').contains(document.activeElement))&&document.activeElement.matches('select,input[type=range],input[type=color],input[type=text]'))return;
-   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords,state.extensions,state.link]);
+   const key=JSON.stringify([s,settingsUi,state.appearanceSettings,state.update,state.passwords,state.extensions,state.link,state.homeMotion,state.frame?.config]);
    if(key===renderedSettings)return;
    renderedSettings=key;
    const panel=$('settingsPage'),scroll=panel.scrollTop,sheetScroll=$('settingsSheet').scrollTop;
@@ -728,6 +1014,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('JARVIS',
        hint(s.jarvisEnabled?'Server MCP attivo.':'Server MCP spento: nessun programma può comandare il browser.'),
        projectButtons(['Apri il pannello JARVIS',()=>act('openSidePanel',{panel:'jarvis'})])),
+     importerSection(),
      section('Dati',
        projectButtons(['Esporta…',()=>settingsAction('exportData',r=>'Backup salvato: '+r.file)],
          ['Importa…',()=>settingsAction('importData')],['Apri la cartella dei dati',()=>act('showDataFolder')]),
@@ -851,12 +1138,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      document.body.dataset.mode=a.mode||'scuro'; // Beta 0.29: tema chiaro
      for(const node of document.querySelectorAll('.user-hidden'))node.classList.remove('user-hidden');
      for(const id of a.hidden)$(id)?.classList.add('user-hidden');
-     for(const [card,nodes] of Object.entries(HOME_CARD_NODES))if(a.home[card]===false)for(const node of nodes())node?.classList.add('user-hidden');
-     const cards=document.querySelector('.home-cards');
-     cards.classList.toggle('user-hidden',[...cards.children].every(c=>c.classList.contains('user-hidden')));
-     // I riquadri rimasti si allargano a tutta la riga (i link rapidi ne hanno una tutta loro).
-     const visible=[...cards.children].filter(c=>c.id!=='linksCard'&&!c.classList.contains('user-hidden')).length;
-     cards.style.setProperty('--home-cols',String(Math.max(1,visible)));
+     // Beta 0.36: logo e ricerca si nascondono da qui; gli altri riquadri sono widget (Personalizza la Home).
+     for(const card of ['hero','search'])if(a.home[card]===false)for(const node of HOME_CARD_NODES[card]())node?.classList.add('user-hidden');
    }
    renderHomeLinks();
  }
@@ -945,6 +1228,9 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      el('label',{className:'permission-row'},el('span',{textContent:'Barra laterale (workspace e strumenti)'}),selectBox(sides,c.sidebar,sidebar=>act('setLayout',{sidebar}))),
      ...(sameSide?[checkRow('Unisci in una colonna sola (come Arc e Zen)',c.merge,merge=>act('setLayout',{merge}))]:[]),
      checkRow('Modalità compatta: pagina a tutta finestra, le barre compaiono sopra col mouse sul bordo (Ctrl+Shift+K)',!!c.compact,()=>act('toggleCompact')),
+     // Beta 0.36: sempre visibile (vale quando la modalità compatta è accesa).
+     el('label',{className:'permission-row'},el('span',{textContent:'Modalità compatta: bordo che fa comparire le barre'}),
+       selectBox(Object.entries(state.frame?.compactEdges||{}),c.compactEdge||'medio',edge=>act('setCompactEdge',{edge}))),
      hint('Se schede e barra laterale stanno dallo stesso lato, si uniscono: workspace in alto, schede al centro, strumenti in basso.'));
  }
  function appearanceSections(){
@@ -1057,6 +1343,10 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Home',
        el('div',{className:'toggle-grid'},...Object.entries(a.homeCards).map(([card,label])=>checkRow(label,a.home[card],visible=>act('setHomeCard',{card,visible})))),
        hint('I link rapidi sono diversi per ogni workspace: si aggiungono dal riquadro sulla Home.'),
+       sub('Animazioni della Home'),
+       el('div',{className:'toggle-grid'},...Object.entries({enter:'Entrata morbida dei riquadri',background:'Sfondo animato',hover:'Effetto al passaggio del mouse'})
+         .map(([key,label])=>checkRow(label,state.homeMotion?.[key]!==false,enabled=>act('setHomeMotion',{key,enabled})))),
+       hint('Widget (orologio, meteo, note, siti, schede recenti, pagina web): pulsante «Personalizza la Home» sulla Home.'),
        el('div',{className:'inline-buttons'},confirmButton('Ripristina l’aspetto predefinito','Conferma: torna all’aspetto di VARCO',()=>act('resetAppearance'))))
    ];
  }
@@ -1170,6 +1460,75 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    if(!shown.length)list.append(el('p',{className:'panel-hint',textContent:all.length?'Niente in questa categoria.':'Nessuna notifica in questa sessione.'}));
    if(all.length)list.append(projectButtons(['Cancella tutto',()=>act('clearNotifications')]));
  }
+ // ── Cronologia (Beta 0.36): ricerca, giorni, selezione, elimina un sito o un periodo ──
+ let renderedHistory=null,historySelected=new Set(),historyRangeOpen=false;
+ const historyKey=h=>h.url+'|'+h.time;
+ function renderHistory(){
+   const v=state.historyView;
+   $('sidePanelTitle').textContent='Cronologia';
+   if(!v)return;
+   const key=JSON.stringify([v.query,v.total,v.items.length,v.items[0]?.time,v.items.at(-1)?.time,[...historySelected],historyRangeOpen]);
+   if(key===renderedHistory)return;
+   renderedHistory=key;
+   const list=$('sidePanelItems');
+   // La casella di ricerca resta la stessa (non perde il cursore mentre scrivi).
+   let search=list.querySelector('.history-search');
+   if(!search){
+     list.replaceChildren();
+     search=el('input',{className:'history-search',type:'search',placeholder:'Cerca nella cronologia',value:v.query});
+     let t=null;search.oninput=()=>{clearTimeout(t);t=setTimeout(()=>act('historySearch',{query:search.value}),160);};
+     list.append(search);
+   }
+   while(search.nextSibling)search.nextSibling.remove();
+   const visible=new Set(v.items.map(historyKey));
+   for(const k of [...historySelected])if(!visible.has(k))historySelected.delete(k);
+   // Barra: elimina i selezionati, oppure un periodo.
+   const bar=el('div',{className:'history-bar'});
+   if(historySelected.size){
+     addButton(bar,`Elimina selezionati (${historySelected.size})`,async()=>{
+       const items=v.items.filter(h=>historySelected.has(historyKey(h))).map(h=>({url:h.url,time:h.time}));
+       historySelected.clear();await act('historyRemove',{items});
+     },'danger');
+     addButton(bar,'Annulla selezione',()=>{historySelected.clear();renderedHistory=null;renderHistory();});
+   }else{
+     addButton(bar,'Elimina un periodo…',()=>{historyRangeOpen=!historyRangeOpen;renderedHistory=null;renderHistory();});
+   }
+   list.append(bar);
+   if(historyRangeOpen&&!historySelected.size){
+     const ranges=el('div',{className:'notify-filters'});
+     for(const [range,label] of Object.entries(v.ranges)){
+       const b=el('button',{className:'filter',textContent:label});
+       b.onclick=async()=>{
+         if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Conferma: '+label.toLowerCase();b.classList.add('chosen');return;}
+         historyRangeOpen=false;await act('historyRemoveRange',{range});
+       };
+       ranges.append(b);
+     }
+     list.append(ranges);
+   }
+   let day=null;
+   for(const h of v.items){
+     if(h.day!==day){day=h.day;list.append(el('div',{className:'history-day',textContent:day}));}
+     const k=historyKey(h);
+     const row=el('div',{className:'history-row'+(historySelected.has(k)?' selected':'')});
+     const check=el('input',{type:'checkbox',checked:historySelected.has(k),title:'Seleziona'});
+     check.onchange=()=>{check.checked?historySelected.add(k):historySelected.delete(k);renderedHistory=null;renderHistory();};
+     const time=new Date(h.time).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+     const open=el('button',{className:'history-open',title:h.url},
+       el('span',{className:'history-title',textContent:h.title||h.url}),
+       el('span',{className:'history-meta',textContent:time+' · '+h.host}));
+     open.onclick=()=>act('resource',{url:h.url});
+     row.append(check,open);
+     iconButton(row,'close','Elimina questa visita',()=>act('historyRemove',{items:[{url:h.url,time:h.time}]}),'history-action');
+     if(h.host)iconButton(row,'trash','Elimina tutto di '+h.host,()=>{
+       if(row.dataset.confirm!==h.host){row.dataset.confirm=h.host;row.querySelector('.history-meta').textContent='Clic di nuovo per eliminare tutto di '+h.host;return;}
+       act('historyRemoveSite',{host:h.host});
+     },'history-action');
+     list.append(row);
+   }
+   if(!v.items.length)list.append(el('p',{className:'panel-hint',textContent:v.query?'Nessuna pagina trovata.':'La cronologia è vuota.'}));
+   else if(v.items.length<v.total&&!v.query)list.append(el('p',{className:'panel-hint',textContent:`Le ${v.items.length} visite più recenti su ${v.total}. Cerca per trovare le altre.`}));
+ }
  function renderNotifyBadge(){
    const n=state.notificationsUnread||0,badge=$('notifyBadge');
    badge.hidden=!n;badge.textContent=n>9?'9+':String(n);
@@ -1206,6 +1565,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else return renderProject();
    if(mode!=='games'){gamesView={mode:'list'};renderedGames=null;}
    else return renderGames();
+   if(mode!=='history')renderedHistory=null;
+   else return renderHistory();
    if(FORMS[mode])return renderForm(mode);
    renderedForm=null;
    if(!mode)return;
@@ -1518,6 +1879,14 @@ function showCompactPeek(message){
    return;
  }
  body.classList.remove('peek-leaving');
+ // Beta 0.36: niente foto, la pagina vera scivola di lato (lib/compact.cjs): la barra entra subito.
+ if(!message.shots?.length){
+   layer.replaceChildren();layer.hidden=true;
+   for(const n of document.querySelectorAll('[data-peek-on]'))n.removeAttribute('data-peek-on');
+   for(const n of peekBlocks(message.side))n.setAttribute('data-peek-on','');
+   body.dataset.peek=message.side;
+   return;
+ }
  const images=message.shots.map(shot=>{const img=el('img',{src:shot.image,alt:''});placeRect(img,shot.bounds);return img;});
  layer.replaceChildren(...images);layer.hidden=false;
  // setTimeout e non requestAnimationFrame: con la pagina che copre tutta la cornice, Chromium sospende i fotogrammi.
@@ -1832,6 +2201,7 @@ function closeSplitDrop(){
 function render(){
  // Il CSS nasconde le etichette quando sidebarMode è compact e libera lo spazio se hidden.
  document.body.dataset.sidebarMode=state.sidebarMode||'compact';
+ document.body.dataset.incognito=state.incognito?'true':'false'; // Beta 0.36
  document.body.dataset.zen=state.zen?'true':'false';
  // Beta 0.17: il colore del workspace attivo colora la scheda attiva e il selettore in basso.
  const activeColor=state.workspaces.find(x=>x.name===state.activeWorkspace)?.color;
@@ -1865,6 +2235,7 @@ function render(){
  renderLayoutInfo();
  renderOrb();
  renderHomeCards();
+ renderHomeWidgets(); // Beta 0.36
  renderWebPanels(); // Beta 0.27
  applyFrame(); // Beta 0.28: disposizione dell'interfaccia
  // Le icone delle estensioni della sessione di questo workspace (account separati = sessione sua).

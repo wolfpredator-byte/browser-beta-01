@@ -2,7 +2,7 @@
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: crx:; object-src 'none'"><title>VARCO</title><link rel="stylesheet" href="style.css"><script src="viewer/vendor/frame/browser-action-element.js"></script></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.35</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.36</span><span class="titlebar-incognito"><span class="i i-incognito" aria-hidden="true"></span>In incognito</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" class="tool" title="Nascondi / mostra la barra laterale" aria-label="Nascondi o mostra la barra laterale"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button>
   <button id="back" class="tool" title="Indietro (Alt+←)" aria-label="Indietro"><span class="i i-back" aria-hidden="true"></span></button><button id="forward" class="tool" title="Avanti (Alt+→)" aria-label="Avanti"><span class="i i-forward" aria-hidden="true"></span></button><button id="reload" class="tool" title="Ricarica (F5)" aria-label="Ricarica"><span class="i i-reload" aria-hidden="true"></span></button>
@@ -72,6 +72,7 @@
  <div id="sidePanelItems"></div>
 </section>
 <main id="dashboard">
+ <div class="home-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
  <!-- Pagina Impostazioni (Beta 0.12): una scheda interna come la Home. -->
  <section id="settingsPage" hidden aria-label="Impostazioni"><div class="settings-inner"><div class="settings-nav"><h1>Impostazioni</h1><input id="settingsSearch" type="search" placeholder="Cerca… (es. password, sfondo, schede)" autocomplete="off" spellcheck="false"></div><p id="settingsEmpty" class="panel-hint" hidden>Nessuna impostazione trovata. Prova con parole come password, sfondo, schede, telefono.</p><div id="settingsBody"></div></div></section>
  <!-- Beta 0.34: la categoria aperta dalla panoramica delle Impostazioni. -->
@@ -89,13 +90,16 @@
    <p class="offline" hidden></p>
    <div class="orb-controls" hidden aria-label="Anteprima animazione sfera"><button data-orb="idle" class="chosen">Idle</button><button data-orb="thinking">Thinking</button><button data-orb="speaking">Speaking</button></div>
   </div>
-  <div class="home-cards">
+  <!-- Beta 0.36: widget della Home (orologio, meteo, note, siti, schede recenti, pagina web). -->
+  <div class="home-widgets-bar"><button id="homeCustomize" class="home-customize"><span class="i i-settings" aria-hidden="true"></span><span>Personalizza la Home</span></button></div>
+  <div id="homeWidgets" class="home-widgets"></div>
+  <!-- Beta 0.36: i riquadri di sempre aspettano qui; renderHomeWidgets li sposta nella griglia dei widget. -->
+  <div id="homeBuiltinStore" hidden>
    <!-- Beta 0.21: link rapidi del workspace (si aggiungono qui sotto). -->
    <article class="card glass" id="linksCard"><h3><span class="i i-bookmarks" aria-hidden="true"></span>Link rapidi</h3><div id="homeLinks"></div></article>
    <article class="card glass"><h3><span class="i i-project" aria-hidden="true"></span>Progetti</h3><div id="homeProjects"></div></article>
    <article class="card glass"><h3><span class="i i-external" aria-hidden="true"></span>Accesso rapido</h3><div id="homeQuick"></div></article>
    <article class="card glass jarvis-card"><div class="jarvis-card-head"><span class="orb-dot"></span><h3>JARVIS</h3></div><p id="jarvisCardTitle">JARVIS è spento.</p><p id="jarvisCardText" class="muted"></p><button id="jarvisCardButton"><span class="i i-jarvis-panel" aria-hidden="true"></span><span>Apri JARVIS</span></button></article>
-  </div>
   <section class="workspace-panel glass">
     <div class="workspace-head"><div><span class="eyebrow">WORKSPACE ATTIVO</span><h2 id="title">Personale</h2></div><span class="status-dot">● Locale</span></div>
     <p id="folder" class="muted">Nessuna cartella locale associata</p>
@@ -103,6 +107,7 @@
     <div class="actions"><button id="chooseFolder">Collega cartella</button><button id="openFolder">Apri cartella</button><button id="addResource"><span class="i i-workspace-add" aria-hidden="true"></span> Risorsa web</button><button id="openProject"><span class="i i-project" aria-hidden="true"></span> Progetto</button><button id="saveLayout" title="Ricorda su quale monitor sta ogni finestra di questo workspace e le sue schede">▦ Salva disposizione</button><button id="applyLayout" hidden>▦ Ripristina disposizione</button></div>
     <div class="columns"><article><h3>Risorse salvate</h3><div id="resources"></div></article><article><h3 id="secondaryTitle">Preferiti</h3><div id="secondary"></div></article></div>
   </section>
+  </div>
  </section>
 </main>
 <section id="downloadDrawer" class="download-drawer" hidden aria-label="Gestione download">

@@ -121,6 +121,20 @@ body[data-panel-name="tabs"] #tabCount{background:rgba(var(--v-accent-rgb),.18)}
 .panel-form button[disabled]{opacity:.5;cursor:default}
 .panel-error{min-height:16px;margin:0;color:#f28b82;font-size:12px}
 .panel-error:empty{min-height:0}
+.history-search{width:100%;margin:2px 0 10px;padding:8px 12px;border-radius:10px;border:1px solid var(--v-line);background:rgba(var(--v-field-rgb),.25);color:var(--v-text);outline:none}
+.history-search:focus{border-color:var(--v-accent)}
+.history-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.history-bar button{font-size:12px;padding:5px 11px;border:1px solid var(--v-line);background:rgba(var(--v-ink-rgb),.03)}
+.history-bar button.danger{background:#c2334d;color:#fff;border-color:transparent}
+.history-day{font-size:11px;font-weight:650;letter-spacing:.4px;text-transform:capitalize;color:var(--v-muted);margin:12px 4px 4px}
+.history-row{display:flex;align-items:center;gap:4px;border-radius:9px;padding:0 2px 0 6px}
+.history-row:hover,.history-row.selected{background:rgba(var(--v-ink-rgb),.06)}
+.history-row input{accent-color:var(--v-accent);flex:none}
+.history-open{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:6px 6px}
+.history-title,.history-meta{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-meta{font-size:11px;color:var(--v-muted)}
+.history-row .history-action{opacity:0;padding:4px 6px}
+.history-row:hover .history-action,.history-row[data-confirm] .history-action{opacity:1}
 .panel-hint{margin:2px 0 0;color:rgba(var(--v-ink-rgb),0.47);font-size:11px}
 
 /* BETA 0.6 — pannello Giochi. */
@@ -276,7 +290,7 @@ body[data-downloads-open="true"] #loadError{right:340px}
 .i{display:inline-block;flex:0 0 auto;width:18px;height:18px;background-color:currentColor;vertical-align:-4px;
   -webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
 .i-back{--i:url(assets/icons/back.svg)}.i-bookmark{--i:url(assets/icons/bookmark.svg)}.i-bookmark-filled{--i:url(assets/icons/bookmark-filled.svg)}.i-bookmarks{--i:url(assets/icons/bookmarks.svg)}
-.i-close{--i:url(assets/icons/close.svg)}.i-command{--i:url(assets/icons/command.svg)}.i-commands{--i:url(assets/icons/commands.svg)}.i-download{--i:url(assets/icons/download.svg)}
+.i-close{--i:url(assets/icons/close.svg)}.i-trash{--i:url(assets/icons/trash.svg)}.i-incognito{--i:url(assets/icons/incognito.svg)}.i-command{--i:url(assets/icons/command.svg)}.i-commands{--i:url(assets/icons/commands.svg)}.i-download{--i:url(assets/icons/download.svg)}
 .i-downloads{--i:url(assets/icons/downloads.svg)}.i-external{--i:url(assets/icons/external.svg)}.i-find-next{--i:url(assets/icons/find-next.svg)}.i-find-prev{--i:url(assets/icons/find-prev.svg)}
 .i-forward{--i:url(assets/icons/forward.svg)}.i-games{--i:url(assets/icons/games.svg)}.i-history{--i:url(assets/icons/history.svg)}.i-home{--i:url(assets/icons/home.svg)}
 .i-home-tab{--i:url(assets/icons/home-tab.svg)}.i-jarvis{--i:url(assets/icons/jarvis.svg)}.i-jarvis-panel{--i:url(assets/icons/jarvis-panel.svg)}.i-lock{--i:url(assets/icons/lock.svg)}
@@ -1052,7 +1066,7 @@ body::after{content:'';position:fixed;inset:0;z-index:2147483000;pointer-events:
 body[data-mode="chiaro"]{color-scheme:light}
 /* Beta 0.35: OLED. color-scheme dark sulla radice: lo scuro forzato di Chromium non tocca la cornice. */
 :root:has(body[data-mode="oled"]){color-scheme:dark;background:#000}
-body[data-mode="oled"],body[data-mode="oled"] #dashboard,body[data-mode="oled"] .home-content,body[data-mode="oled"] #loadError{background:#000}
+body[data-mode="oled"] #loadError{background:#000} /* Beta 0.36: Home e cornice tengono lo sfondo scelto */
 body[data-mode="oled"] #suggest,body[data-mode="oled"] .palette-float,body[data-mode="oled"] .split-ghost{background:#000}
 body[data-mode="chiaro"] ::placeholder{color:var(--v-muted)}
 /* Sfondi generati: anteprime con i colori attuali. */
@@ -1073,3 +1087,100 @@ body[data-mode="chiaro"] .card-row.current .card-link,body[data-mode="chiaro"] .
 body[data-mode="chiaro"] .tab-spinner{border-top-color:var(--v-accent)}
 body[data-mode="chiaro"] .split-head{background:rgba(255,255,255,.75)}
 body[data-mode="chiaro"] #globalSidebar{background:rgba(var(--v-bg-rgb),var(--v-bar-alpha))}
+
+/* Beta 0.36: finestra in incognito. Riconoscibile (fascia e scritta), senza workspace. */
+.titlebar-incognito{display:none}
+body[data-incognito="true"] .titlebar-incognito{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:2px 9px;border-radius:999px;
+  font-size:11px;font-weight:600;color:#fff;background:linear-gradient(90deg,#5b3df5,#a23be0)}
+body[data-incognito="true"] .titlebar-incognito .i{width:14px;height:14px}
+body[data-incognito="true"] .window-titlebar,body[data-incognito="true"] .toolbar{background:linear-gradient(90deg,rgba(60,30,110,.92),rgba(30,18,60,.92))}
+body[data-incognito="true"] #workspaces,body[data-incognito="true"] #addWorkspace{display:none}
+
+/* Beta 0.36: import da altri browser */
+.import-sub{margin:12px 0 4px;font-size:12px;font-weight:600;color:var(--v-muted)}
+
+/* ── Beta 0.36: widget della Home ── */
+.home-widgets-bar{width:min(980px,100%);display:flex;justify-content:flex-end;margin-bottom:-6px}
+/* Pulsante ben leggibile anche sopra gli sfondi chiari o pieni di dettagli. */
+.home-customize{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;
+  border:1px solid rgba(var(--v-accent-rgb),.55);background:rgba(10,10,18,.72);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.35);
+  backdrop-filter:blur(10px)}
+.home-customize:hover{background:rgba(var(--v-accent-rgb),.35);border-color:var(--v-accent)}
+body[data-mode="chiaro"] .home-customize{background:rgba(255,255,255,.85);color:#1c1b29}
+.home-customize .i{width:15px;height:15px}
+.home-customize.chosen{background:var(--v-accent);color:#fff;border-color:transparent}
+.home-widgets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:min(980px,100%)}
+.home-widgets[hidden]{display:none}
+.widget{display:flex;flex-direction:column;gap:8px}
+.widget-wide{grid-column:span 2}
+.widget-full,.home-widgets>.workspace-panel{grid-column:1 / -1;width:auto}
+.home-widgets>.card{margin:0}
+.widget{position:relative}
+.widget-tools-float{position:absolute;top:8px;right:10px;z-index:3;background:rgba(10,10,18,.75);border-radius:10px;padding:2px}
+/* Widget web: l'angolo in basso a destra si trascina (larghezza a colonne, altezza libera). */
+.widget-resize{position:absolute;right:4px;bottom:4px;width:18px;height:18px;cursor:nwse-resize;border-radius:4px;z-index:3;
+  background:linear-gradient(135deg,transparent 50%,rgba(var(--v-accent-rgb),.85) 50%)}
+.widget-resizing .widget-webview{pointer-events:none}
+.widget-size-label{position:absolute;right:28px;bottom:6px;font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;z-index:3}
+.widget-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.widget-head h3{margin:0;font-size:12px;font-weight:600;color:var(--v-muted);letter-spacing:.3px;text-transform:uppercase}
+.widget-tools{display:flex;gap:2px}
+.widget-tools .tool{padding:3px 6px}
+.widget-clock-time{font-size:46px;font-weight:300;letter-spacing:-1.5px;line-height:1.05;font-variant-numeric:tabular-nums}
+.widget-clock-date{color:var(--v-muted);text-transform:capitalize}
+.widget-weather-now{display:flex;align-items:baseline;gap:10px}
+.widget-weather-icon{font-size:34px}
+.widget-weather-temp{font-size:40px;font-weight:300}
+.widget-weather-text{color:var(--v-muted)}
+.widget-weather-place{font-size:11px;color:var(--v-muted)}
+.widget-weather-days{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.widget-weather-day{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:10px;background:rgba(var(--v-ink-rgb),.04);font-size:12px;text-transform:capitalize}
+.widget-notes{width:100%;min-height:130px;resize:vertical;border-radius:10px;border:1px solid var(--v-line);padding:10px 12px;
+  background:rgba(var(--v-field-rgb),.22);color:var(--v-text);font:inherit;line-height:1.5;outline:none}
+.widget-notes:focus{border-color:var(--v-accent)}
+.widget-sub{margin:6px 0 4px;font-size:11px;font-weight:600;color:var(--v-muted)}
+.widget-sites{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+.widget-site{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:12px;min-width:0}
+.widget-site-letter{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:650;font-size:16px;color:#fff;
+  background:linear-gradient(135deg,var(--v-accent),var(--v-accent-alt,var(--v-accent-2)))}
+.widget-site-name{max-width:100%;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.widget-recent{display:flex;flex-direction:column}
+.widget-favicon{width:16px;height:16px;border-radius:3px}
+.widget-webview{display:flex;width:100%;border-radius:10px;overflow:hidden;background:#fff}
+.widget--webframe{padding-bottom:16px}
+.widget-adder{border-style:dashed}
+.widget-adder-list{display:flex;flex-wrap:wrap;gap:6px}
+.widget-adder-list button{font-size:12px;padding:6px 10px;border:1px solid var(--v-line);background:rgba(var(--v-ink-rgb),.04)}
+@media(max-width:900px){.home-widgets{grid-template-columns:1fr}.widget-wide,.home-widgets>.widget--webframe{grid-column:auto!important}}
+
+/* Entrata a scaglioni anche per i widget; spenta da Impostazioni → Aspetto → Home. */
+.home-enter .home-widgets>*{animation:v-rise var(--dur-3) var(--ease-out) both}
+.home-enter .home-widgets>*:nth-child(1){animation-delay:120ms}.home-enter .home-widgets>*:nth-child(2){animation-delay:150ms}
+.home-enter .home-widgets>*:nth-child(3){animation-delay:180ms}.home-enter .home-widgets>*:nth-child(n+4){animation-delay:210ms}
+body[data-home-enter="false"] .home-enter *{animation:none!important}
+
+/* Effetto al passaggio del mouse: i riquadri si sollevano e prendono luce. */
+body[data-home-hover="true"] .home-content .card{transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out),border-color var(--dur-2)}
+body[data-home-hover="true"] .home-content .card:hover{transform:translateY(-3px);border-color:rgba(var(--v-accent-rgb),.45);
+  box-shadow:0 14px 34px rgba(0,0,0,.35),0 0 0 1px rgba(var(--v-accent-rgb),.15)}
+body[data-home-hover="true"] .home-content .widget--webframe:hover{transform:none}
+
+/* Sfondo animato: tre bagliori del colore del tema che si muovono piano dietro la Home. */
+.home-aurora{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;display:none}
+body[data-home-bg="true"] #dashboard:not([hidden]) .home-aurora{display:block}
+.home-aurora i{position:absolute;width:46vmax;height:46vmax;border-radius:50%;filter:blur(70px);opacity:.30;mix-blend-mode:screen}
+.home-aurora i:nth-child(1){background:var(--v-accent);left:-12vmax;top:-14vmax;animation:v-aurora-a 26s ease-in-out infinite alternate}
+.home-aurora i:nth-child(2){background:var(--v-accent-alt,var(--v-accent-2));right:-14vmax;top:10vmax;animation:v-aurora-b 32s ease-in-out infinite alternate}
+.home-aurora i:nth-child(3){background:var(--v-accent-2);left:20vmax;bottom:-22vmax;opacity:.22;animation:v-aurora-c 38s ease-in-out infinite alternate}
+@keyframes v-aurora-a{to{transform:translate(18vmax,12vmax) scale(1.15)}}
+@keyframes v-aurora-b{to{transform:translate(-16vmax,8vmax) scale(.9)}}
+@keyframes v-aurora-c{to{transform:translate(-10vmax,-14vmax) scale(1.2)}}
+body[data-mode="chiaro"] .home-aurora i{mix-blend-mode:multiply;opacity:.16}
+body[data-motion="off"] .home-aurora i,body[data-motion="reduced"] .home-aurora i{animation:none}
+@media(prefers-reduced-motion:reduce){.home-aurora i{animation:none}}
+#dashboard>.home-content{position:relative;z-index:1}
+
+.widget-site-letter.has-icon{background:rgba(255,255,255,.92);padding:7px}
+.widget-site-letter.has-icon img{width:100%;height:100%;object-fit:contain}
+.widget-drm{margin:0 0 8px;padding:8px 12px;border-radius:10px;font-size:12px;line-height:1.45;
+  background:rgba(255,184,77,.12);border:1px solid rgba(255,184,77,.45);color:var(--v-text)}

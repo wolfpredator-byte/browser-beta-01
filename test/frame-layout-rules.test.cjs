@@ -41,7 +41,7 @@ test('workspace in basso, tutto a destra, barra nascosta', ()=>{
 });
 
 test('valori sbagliati e combinazioni pronte', ()=>{
-  assert.deepEqual(normalizeLayout({tabs:'sopra',sidebar:42}),{tabs:'bottom',sidebar:'left',merge:true,compact:false});
+  assert.deepEqual(normalizeLayout({tabs:'sopra',sidebar:42}),{tabs:'bottom',sidebar:'left',merge:true,compact:false,compactEdge:'medio'});
   assert.equal(normalizeLayout({compact:true}).compact,true);
   assert.equal(presetOf({tabs:'left',sidebar:'left',merge:false}),'icone-colonna');
   assert.equal(presetOf({tabs:'top',sidebar:'right'}),'');
@@ -53,4 +53,18 @@ test('modalità compatta: la pagina va da bordo a bordo', ()=>{
   const f=compactInsets(frameLayout(W,PRESETS.classico,'compact'));
   assert.deepEqual([f.top,f.bottom,f.left,f.right],[COMPACT_EDGE,COMPACT_EDGE,COMPACT_EDGE,COMPACT_EDGE]);
   assert.ok(f.tabs&&f.sidebar);                        // le barre restano al loro posto, sotto la pagina
+});
+
+test('Beta 0.36: modalità compatta, bordo regolabile e pagina che scivola sotto la barra aperta', ()=>{
+  const {normalizeLayout,peekShift,COMPACT_EDGES}=require('../lib/frame-layout-rules.cjs');
+  assert.equal(normalizeLayout({}).compactEdge,'medio');
+  assert.equal(normalizeLayout({compactEdge:'ampio'}).compactEdge,'ampio');
+  assert.equal(normalizeLayout({compactEdge:'enorme'}).compactEdge,'medio');
+  assert.ok(COMPACT_EDGES.medio>3&&COMPACT_EDGES.ampio>COMPACT_EDGES.medio);
+  const f={top:70,bottom:40,left:62,right:0};
+  assert.deepEqual(peekShift(f,'top'),{dx:0,dy:70});
+  assert.deepEqual(peekShift(f,'bottom'),{dx:0,dy:-40});
+  assert.deepEqual(peekShift(f,'left'),{dx:62,dy:0});
+  assert.deepEqual(peekShift(f,'right'),{dx:0,dy:0});
+  assert.deepEqual(peekShift(f,null),{dx:0,dy:0});
 });

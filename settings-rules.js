@@ -14,7 +14,7 @@
     {id:'privacy',title:'Privacy e sicurezza',icon:'shield',sections:['Privacy e sicurezza','Password']},
     {id:'telefono',title:'Telefono',icon:'external',sections:['Telefono']},
     {id:'estensioni',title:'Estensioni',icon:'commands',sections:['Estensioni']},
-    {id:'sistema',title:'Sistema',icon:'settings',sections:['Aggiornamenti','Avvio e background','Notifiche','Browser e file','JARVIS','Dati','Informazioni']},
+    {id:'sistema',title:'Sistema',icon:'settings',sections:['Aggiornamenti','Avvio e background','Notifiche','Browser e file','JARVIS','Importa da un altro browser','Dati','Informazioni']},
   ];
 
   /** Categoria di una sezione dal suo titolo; le sezioni nuove finiscono in Sistema finché non le si assegna. */

@@ -31,6 +31,8 @@ test('scorciatoie principali',()=>{
   assert.equal(key('F12'),'toggleDevTools');
   assert.equal(key('I',{control:true,shift:true}),'toggleDevTools');
   assert.equal(key('T',{control:true,shift:true}),'reopenClosedTab');
+  assert.equal(key('N',{control:true,shift:true}),'newIncognitoWindow'); // Beta 0.36
+  assert.equal(key('n',{control:true}),'newWindow');
   assert.equal(key('t',{control:true}),'newTab');
   assert.equal(key('w',{control:true}),'closeActiveTab');
   assert.equal(key('l',{control:true}),'focusAddress');
