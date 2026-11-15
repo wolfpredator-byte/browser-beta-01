@@ -75,3 +75,57 @@ test('workspace attivo inesistente: si usa il primo disponibile',()=>{
   const data=normalize({activeWorkspace:'Cancellato',workspaces:[{name:'Personale'}]});
   assert.equal(data.activeWorkspace,'Personale');
 });
+
+// Beta 0.37: icone in un file a parte, salvataggi asincroni.
+const ICON='data:image/png;base64,'+'A'.repeat(200);
+test('icone: stanno in site-icons.json, non in browser-data.json; si rileggono',t=>{
+  const {dir,file,store}=tempStore(t);
+  const data=store.load();
+  data.siteIcons={'https://a.it':ICON};store.save(data);
+  assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).siteIcons,undefined);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir,'site-icons.json'),'utf8')),{'https://a.it':ICON});
+  assert.deepEqual(createStore(file).load().siteIcons,{'https://a.it':ICON});
+});
+
+test('icone: i dati di una versione precedente le tengono, al primo salvataggio passano nel loro file',t=>{
+  const {dir,file}=tempStore(t);
+  fs.writeFileSync(file,JSON.stringify({workspaces:[{name:'A'}],siteIcons:{'https://b.it':ICON}}));
+  const store=createStore(file);
+  const data=store.load();
+  assert.deepEqual(data.siteIcons,{'https://b.it':ICON});
+  store.save(data);
+  assert.ok(fs.existsSync(path.join(dir,'site-icons.json')));
+  assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).siteIcons,undefined);
+});
+
+test('icone non cambiate: il loro file non viene riscritto',t=>{
+  const {dir,file,store}=tempStore(t);
+  const data=store.load();
+  data.siteIcons={'https://a.it':ICON};store.save(data);
+  const iconsFile=path.join(dir,'site-icons.json');
+  fs.writeFileSync(iconsFile,'{"segno":"non toccato"}');
+  data.bookmarks.push({url:'https://c.it'});store.save(data);
+  assert.equal(fs.readFileSync(iconsFile,'utf8'),'{"segno":"non toccato"}');
+});
+
+test('salvataggio asincrono: scrive, unisce le richieste, nessun file temporaneo rimasto',async t=>{
+  const {dir,file,store}=tempStore(t);
+  const data=store.load();
+  data.workspaces[0].name='Uno';store.saveAsync(data);
+  data.workspaces[0].name='Due';store.saveAsync(data);
+  data.workspaces[0].name='Tre';store.saveAsync(data);
+  await store.idle();
+  assert.equal(store.busy,false);
+  assert.equal(createStore(file).load().workspaces[0].name,'Tre');
+  assert.deepEqual(fs.readdirSync(dir).filter(n=>n.includes('.tmp')),[]);
+});
+
+test('salvataggio sincrono durante uno asincrono: vince il più recente',async t=>{
+  const {dir,file,store}=tempStore(t);
+  const data=store.load();
+  data.workspaces[0].name='Vecchio';const pending=store.saveAsync({...data,workspaces:[{...data.workspaces[0]}]});
+  data.workspaces[0].name='Nuovo';store.save(data);
+  await pending;await store.idle();
+  assert.equal(createStore(file).load().workspaces[0].name,'Nuovo');
+  assert.deepEqual(fs.readdirSync(dir).filter(n=>n.includes('.tmp')),[]);
+});

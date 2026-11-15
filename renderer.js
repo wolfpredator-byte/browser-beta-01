@@ -2269,7 +2269,7 @@ function render(){
      ' — click destro per altre opzioni';
    button.setAttribute('aria-label',workspace.name+' ('+workspace.count+' schede)');
    const icon=document.createElement('span');icon.className='workspace-icon';
-   if(workspace.iconData&&workspace.iconData.startsWith('data:image/png;base64,')){
+   if(workspace.iconData&&/^(data:image\/png;base64,|varco-icon:)/.test(workspace.iconData)){
      const image=document.createElement('img');image.src=workspace.iconData;
      image.alt='';image.width=20;image.height=20;icon.appendChild(image);
    }else{
