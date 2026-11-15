@@ -547,7 +547,10 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      if(!w.url)return box;
    }
    // Spotify & co.: senza Widevine (DRM) la musica e i film non partono. Lo diciamo subito.
-   if(w.drm)box.append(el('p',{className:'widget-drm',textContent:`${w.drm} non può riprodurre musica o video in VARCO: manca il modulo di protezione dei contenuti (Widevine). Puoi sfogliare il sito; per ascoltare usa l’app di ${w.drm} o un altro browser.`}));
+   // Beta 0.37: Widevine c'è (Electron di castLabs); l'avviso compare solo mentre il modulo si prepara o se non è arrivato.
+   if(w.drm)box.append(el('p',{className:'widget-drm',textContent:w.drmState==='preparing'
+     ?`Sto preparando il modulo per i contenuti protetti: tra poco ${w.drm} potrà riprodurre. Poi ricarica il riquadro.`
+     :`${w.drm} non può ancora riprodurre: il modulo per i contenuti protetti (Widevine) non è disponibile. Controlla la connessione e riavvia VARCO.`}));
    const view=document.createElement('webview');
    view.setAttribute('src',w.url);view.className='widget-webview';
    view.style.height=(w.height||380)+'px';
@@ -2373,6 +2376,7 @@ window.browserAPI.onUi(message=>{
  else if(message?.type==='palette')showSuggestions(message);
  else if(message?.type==='glance')showGlance(message);
  else if(message?.type==='shot')showShot(message);
+ else if(message?.type==='shotPreview')showShotPreview(message);
  else if(message?.type==='compactPeek')showCompactPeek(message);
  else if(message?.type==='findResult'){
    const found=$('findCount');
@@ -2413,6 +2417,26 @@ $('shot').addEventListener('pointerup',()=>{
  if(r&&r.width>4&&r.height>4)act('screenshotTake',{mode:'area',x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)});
  else $('shotArea').hidden=true;
 });
+// Beta 0.37: anteprima dopo lo scatto. L'immagine è già negli appunti; da qui si salva, si ricopia o si apre in una scheda.
+function showShotPreview(message){
+ const box=$('shotPreview');
+ if(!message.open){box.hidden=true;$('shotPreviewImage').removeAttribute('src');return;}
+ $('shotPreviewImage').src=message.image;
+ $('shotPreviewTitle').textContent=message.title||'Screenshot';
+ $('shotPreviewInfo').textContent=`${message.width}×${message.height} px · copiato negli appunti`;
+ // Immagine molto alta (pagina intera): si scorre dentro la cornice invece di diventare minuscola.
+ $('shotPreview').classList.toggle('tall',message.height>message.width*2.2);
+ $('shotPreviewCopy').textContent='Copia';
+ box.hidden=false;
+ $('shotPreviewSave').focus();
+}
+$('shotPreviewClose').onclick=()=>act('screenshotPreviewClose');
+$('shotPreviewSave').onclick=()=>act('saveScreenshot');
+$('shotPreviewTab').onclick=()=>act('screenshotOpenTab');
+$('shotPreviewAgain').onclick=async()=>{await act('screenshotPreviewClose');act('openScreenshot');};
+$('shotPreviewCopy').onclick=async()=>{const r=await act('screenshotCopy');if(r?.ok!==false)$('shotPreviewCopy').textContent='Copiato ✓';};
+$('shotPreview').addEventListener('mousedown',event=>{if(event.target===$('shotPreview'))act('screenshotPreviewClose');});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('shotPreview').hidden)act('screenshotPreviewClose');});
 $('shotVisible').onclick=()=>act('screenshotTake',{mode:'visible'});
 $('shotFull').onclick=()=>act('screenshotTake',{mode:'full'});
 $('shotCancel').onclick=()=>act('screenshotClose');
@@ -2498,13 +2522,18 @@ function renderLayoutInfo(){
 // Prima l'indirizzo era solo il testo d'aiuto: per cambiarlo andava riscritto da capo.
 // Ora la barra contiene l'indirizzo vero; mentre la stai modificando non viene toccata.
 let addressEdited=false;
+// Beta 0.37: a barra ferma l'indirizzo è più pulito (senza "https://" e "www."); cliccandoci torna quello completo.
+let addressFull='';
+const prettyAddress=url=>/^https:\/\//i.test(url)?url.replace(/^https:\/\/(www\.)?/i,'').replace(/^([^/?#]+)\/$/,'$1'):url;
 function syncAddress(tab=state.tabs.find(t=>t.active)){
  const input=$('address');
  if(addressEdited&&document.activeElement===input)return;
  let value=tab&&!tab.isHome?tab.url:'';
  // Beta 0.20: per un file del visualizzatore mostriamo il suo percorso (si può modificare e riaprire).
  if(value.startsWith('varco-view://app/viewer.html')){try{value=new URL(value).searchParams.get('p')||value;}catch{}}
- if(input.value!==value)input.value=value;
+ addressFull=value;
+ const shown=document.activeElement===input?value:prettyAddress(value);
+ if(input.value!==shown)input.value=shown;
 }
 // ── Barra degli indirizzi con suggerimenti (Beta 0.12) ──────────────────
 // Prende il posto della palette della 0.11: scrivendo nella barra compaiono pochi
@@ -2515,6 +2544,10 @@ const KIND_LABELS={tab:'Scheda',command:'Comando',workspace:'Workspace',project:
 const COMMAND_KINDS=new Set(['command','project','workspace','game']);
 const MAX_SUGGESTIONS=8;
 let suggestItems=[],suggestShown=[],suggestIndex=0,suggestOpen=false,suggestRequested=false;
+// Beta 0.37: gli stessi suggerimenti anche nella ricerca della Home. suggestInput è la casella che li ha chiesti.
+let suggestInput=null;
+const suggestField=()=>suggestInput||$('address');
+const suggestAnchor=()=>suggestField()===$('homeQuery')?$('homeSearch'):$('nav');
 /** Foto della pagina al posto della pagina vera (che il processo principale ha nascosto). */
 function setBackdrop(message,blur){
  const img=$('paletteBackdrop'),b=message.bounds;
@@ -2526,7 +2559,7 @@ function setBackdrop(message,blur){
 }
 function showSuggestions(message){
  if(message.mode==='palette'){openFloatingPalette(message);return;}
- const input=$('address');
+ const input=suggestField();
  suggestItems=message.items||[];suggestRequested=false;
  setBackdrop(message,false);
  suggestOpen=true;
@@ -2535,7 +2568,7 @@ function showSuggestions(message){
  // Hai cancellato tutto mentre i suggerimenti arrivavano: niente da mostrare.
  if(!input.value.trim()){closeSuggestions();return;}
  input.focus();
- const r=$('nav').getBoundingClientRect();
+ const r=suggestAnchor().getBoundingClientRect();
  Object.assign($('suggest').style,{left:r.left+'px',width:r.width+'px',top:(r.bottom+4)+'px'});
  renderSuggestions();
 }
@@ -2563,7 +2596,7 @@ function webItem(q){
 }
 function renderSuggestions(){
  if(!suggestOpen)return;
- const raw=$('address').value,commandsOnly=raw.startsWith('>');
+ const raw=suggestField().value,commandsOnly=raw.startsWith('>');
  const q=(commandsOnly?raw.slice(1):raw).trim();
  if(!raw.trim()){closeSuggestions();return;}
  if(commandsOnly){
@@ -2596,13 +2629,13 @@ function highlightSuggestion(scroll){
 }
 async function runSuggestion(item){
  if(!item)return;
- const input=$('address');
+ const input=suggestField();
  await closeSuggestions();
  input.value='';input.blur();
  act(item.run.command,item.run.args||{});
 }
 $('address').addEventListener('input',()=>{
- addressEdited=true;
+ addressEdited=true;suggestInput=$('address');
  if(!$('address').value.trim()){closeSuggestions();return;}
  if(suggestOpen)renderSuggestions();
  else if(!suggestRequested){suggestRequested=true;act('openPalette',{mode:'address'});}
@@ -2624,8 +2657,24 @@ $('address').addEventListener('blur',()=>setTimeout(()=>{
  addressEdited=false;syncAddress();
 },120));
 // Clic nella barra: seleziona tutto l'indirizzo, pronto da modificare o sostituire.
-$('address').addEventListener('focus',()=>{if(!addressEdited)setTimeout(()=>$('address').select());});
-$('paletteBackdrop').onmousedown=()=>{closeSuggestions();$('address').blur();};
+$('address').addEventListener('focus',()=>{if(!addressEdited){$('address').value=addressFull;setTimeout(()=>$('address').select());}});
+$('paletteBackdrop').onmousedown=()=>{closeSuggestions();suggestField().blur();};
+// Beta 0.37: ricerca della Home con i suggerimenti (schede, preferiti, cronologia, comandi, progetti).
+$('homeQuery').addEventListener('input',()=>{
+ suggestInput=$('homeQuery');
+ if(!$('homeQuery').value.trim()){closeSuggestions();return;}
+ if(suggestOpen)renderSuggestions();
+ else if(!suggestRequested){suggestRequested=true;act('openPalette',{mode:'address'});}
+});
+$('homeQuery').addEventListener('keydown',e=>{
+ if(!suggestOpen||suggestField()!==$('homeQuery'))return; // Invio senza suggerimenti: la ricerca di sempre
+ const move=step=>{e.preventDefault();if(!suggestShown.length)return;suggestIndex=(suggestIndex+step+suggestShown.length)%suggestShown.length;highlightSuggestion(true);};
+ if(e.key==='ArrowDown')move(1);
+ else if(e.key==='ArrowUp')move(-1);
+ else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex]);}
+ else if(e.key==='Escape'){e.preventDefault();closeSuggestions();}
+});
+$('homeQuery').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('homeQuery')&&suggestField()===$('homeQuery'))closeSuggestions();},120));
 $('paletteButton').onclick=()=>act('openPalette');
 
 // ── Palette fluttuante (Beta 0.12.1) ────────────────────────────────────

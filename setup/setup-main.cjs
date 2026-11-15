@@ -49,6 +49,7 @@ function runtimeFiles(){
     for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
       const relPath=path.join(rel,entry.name);
       if(rel===''&&entry.name==='VARCO Setup.exe')continue;              // diventa VARCO.exe
+      if(rel===''&&entry.name==='VARCO Setup.exe.sig')continue;          // Beta 0.37: firma VMP → VARCO.exe.sig
       if(rel==='resources'&&['app.asar','app.asar.unpacked','payload','app-update.yml','default_app.asar'].includes(entry.name))continue;
       if(entry.isDirectory())walk(path.join(dir,entry.name),relPath);
       else out.push({from:path.join(dir,entry.name),to:relPath,size:fs.statSync(path.join(dir,entry.name)).size});
@@ -56,6 +57,8 @@ function runtimeFiles(){
   };
   walk(runtimeDir,'');
   out.push({from:process.execPath,to:'VARCO.exe',size:fs.statSync(process.execPath).size});
+  // Beta 0.37: firma VMP del motore (contenuti protetti), se l'installer è stato firmato con castLabs EVS.
+  if(fs.existsSync(process.execPath+'.sig'))out.push({from:process.execPath+'.sig',to:'VARCO.exe.sig',size:statSize(process.execPath+'.sig')});
   // L'app vera: payload/app.asar → resources/app.asar (Electron la apre come archivio, va copiata come file).
   const asar=path.join(payloadDir,'app.asar');
   out.push({from:asar,to:path.join('resources','app.asar'),size:statSize(asar)});

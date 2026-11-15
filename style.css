@@ -46,8 +46,11 @@ body[data-sidebar-mode="hidden"] #globalSidebar{display:none!important}
 #globalSidebar .workspace-icon img{width:20px;height:20px;object-fit:contain}
 #globalSidebar .workspace-name{flex:1;overflow:hidden;text-overflow:ellipsis}
 #globalSidebar .workspace-count{font-size:10px;color:rgba(var(--v-ink-rgb),0.53)}
-#globalSidebar .sideButton{display:flex;align-items:center;gap:11px;height:42px;
- min-height:42px;margin:3px 0;padding:7px 10px;text-align:left}
+#globalSidebar .sideButton{display:flex;align-items:center;gap:11px;height:40px;
+ min-height:40px;margin:2px 0;padding:7px 10px;text-align:left}
+/* Beta 0.37: la barra di scorrimento della barra laterale compare solo passandoci sopra. */
+#globalSidebar{scrollbar-width:none}
+#globalSidebar:hover{scrollbar-width:thin;scrollbar-color:rgba(var(--v-ink-rgb),.18) transparent}
 #globalSidebar .tool-icon{display:grid;place-items:center;width:22px;height:22px;
  flex:none;font-size:20px;line-height:1;color:rgba(var(--v-ink-rgb),0.87)}
 #globalSidebar .tool-label{font-size:12px;white-space:nowrap}
@@ -845,6 +848,8 @@ body[data-motion="reduced"] :is(#settingsPage,#settingsSheet){--s-dur:130ms}
 @media(prefers-reduced-motion:reduce){body[data-motion="auto"] :is(#settingsPage,#settingsSheet){--s-dur:130ms}}
 /* Barra laterale in gruppi: etichetta con la barra espansa, una linea sottile con le sole icone. */
 .side-group{height:1px;margin:8px 14px;background:var(--v-line);font-size:0;overflow:hidden}
+/* Beta 0.37: con le sole icone, gruppi e separatori sono la stessa linea corta e centrata (prima si schiacciavano a 3 px). */
+body:not([data-sidebar-mode="expanded"]) :is(#globalSidebar .side-group,#globalSidebar .side-sep){align-self:center;width:24px;flex:none;margin:7px auto}
 body[data-sidebar-mode="expanded"] .side-group{height:auto;margin:12px 10px 4px;background:none;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.45}
 /* Schede più pulite: "⋯" solo al passaggio del mouse (sopra la fine del titolo, senza spostare nulla), × attenuata. */
 .tab{position:relative}
@@ -1022,6 +1027,27 @@ body[data-tabs-orientation="vertical"] .tab[data-drop="after"]::after{bottom:-13
   animation:v-pop-in var(--dur-2) var(--ease-spring);font-size:var(--fs-sm)}
 #shotBar>button:not(.tool){padding:6px 12px;border:1px solid var(--v-line);border-radius:var(--r-sm);background:rgba(var(--v-accent-rgb),.14)}
 #shotBar>button:not(.tool):hover{background:rgba(var(--v-accent-rgb),.3)}
+/* Beta 0.37: anteprima dello screenshot. */
+#shotPreview{position:fixed;inset:0;z-index:961;display:grid;place-items:center;padding:72px 32px 56px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  animation:v-fade-in var(--dur-1) var(--ease-out)}
+#shotPreview[hidden]{display:none}
+.shot-preview-card{display:flex;flex-direction:column;max-width:min(1100px,100%);max-height:100%;min-width:420px;border-radius:var(--r-lg,16px);
+  background:var(--v-glass-strong);border:1px solid var(--v-line);box-shadow:var(--shadow-2);overflow:hidden;animation:v-pop-in var(--dur-2) var(--ease-spring)}
+.shot-preview-head{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 16px;border-bottom:1px solid var(--v-line)}
+.shot-preview-head>.i{color:var(--v-accent);width:18px;height:18px}
+.shot-preview-title{display:flex;flex-direction:column;min-width:0;flex:1}
+.shot-preview-title strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shot-preview-title span{font-size:var(--fs-sm);color:rgba(var(--v-ink-rgb),.6)}
+.shot-preview-frame{flex:1;min-height:0;display:flex;justify-content:center;align-items:flex-start;padding:14px;overflow:auto;
+  background:repeating-conic-gradient(rgba(var(--v-ink-rgb),.05) 0 25%,transparent 0 50%) 0 0/16px 16px}
+.shot-preview-frame img{display:block;max-width:100%;max-height:calc(100vh - 300px);object-fit:contain;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.45)}
+#shotPreview.tall .shot-preview-frame img{max-height:none;width:min(520px,100%)}
+.shot-preview-actions{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--v-line)}
+.shot-preview-actions button{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--v-line);border-radius:var(--r-sm)}
+.shot-preview-actions button .i{width:15px;height:15px}
+.shot-preview-actions button.primary{background:var(--v-accent);border-color:var(--v-accent);color:#fff}
+.shot-preview-actions button.primary:hover{filter:brightness(1.1)}
+#shotPreviewAgain{margin-left:auto}
 /* Stile del sito: editor a tutta altezza, testo a larghezza fissa. */
 .site-style-editor{width:100%;min-height:340px;resize:vertical;padding:10px 12px;border:1px solid var(--v-line);border-radius:var(--r-md);
   background:rgba(var(--v-field-rgb),.35);color:inherit;font:12.5px/1.55 'Cascadia Code',Consolas,monospace;tab-size:2;outline:none}

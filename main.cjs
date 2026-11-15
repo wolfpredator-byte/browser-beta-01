@@ -78,6 +78,7 @@ function start(){
   require('./lib/web-rules.cjs').setCustomBangs(state.data.settings.bangs); // Beta 0.28: scorciatoie di ricerca tue
   setupWebSession();
   require('./lib/icon-urls.cjs').setup(); // Beta 0.37: icone leggere per le cornici
+  require('./lib/drm.cjs').start(); // Beta 0.37: Widevine (Spotify, Netflix…), senza bloccare l'avvio
   registerCommands(bus);
   registerGameCommands(bus);
   registerProjectCommands(bus);

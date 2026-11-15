@@ -16,7 +16,8 @@ const {execSync}=require('node:child_process');
 const root=path.join(__dirname,'..');
 const setupDir=path.join(root,'setup');
 const version=require(path.join(root,'package.json')).version;
-const electronVersion=require(path.join(root,'node_modules','electron','package.json')).version;
+// Beta 0.37: Electron di castLabs ("39.8.10+wvcus"); electron-builder vuole il numero senza "+wvcus".
+const electronVersion=require(path.join(root,'node_modules','electron','package.json')).version.replace(/\+.*$/,'');
 const sh=command=>execSync(command,{cwd:root,stdio:'inherit'});
 
 console.log('\n▸ Librerie del visualizzatore…');
@@ -45,7 +46,9 @@ const config={
   extraResources:[{from:path.join(root,'dist','win-unpacked','resources','app.asar'),to:'payload/app.asar'}],
   win:{target:'portable',icon:path.join(root,'assets','app-icon.ico')},
   portable:{artifactName:'VARCO Setup ${version}.exe'},
-  asar:true
+  asar:true,
+  // Beta 0.37: firma VMP (Widevine) del motore, se l'account castLabs EVS è configurato.
+  afterSign:path.join(root,'scripts','vmp-sign.cjs')
 };
 const configFile=path.join(root,'dist','setup-builder.json');
 fs.writeFileSync(configFile,JSON.stringify(config,null,2));

@@ -135,6 +135,15 @@
 <!-- Beta 0.28: screenshot (Ctrl+Shift+S): trascina per un'area o scegli la pagina visibile o intera. -->
 <div id="shot" hidden><img id="shotImage" alt=""><div id="shotArea" hidden></div>
  <div id="shotBar"><span>Trascina per scegliere un'area</span><button id="shotVisible" type="button">Pagina visibile</button><button id="shotFull" type="button">Pagina intera</button><button id="shotCancel" type="button" class="tool" title="Annulla (Esc)" aria-label="Annulla"><span class="i i-close" aria-hidden="true"></span></button></div></div>
+<!-- Beta 0.37: anteprima dello screenshot appena fatto (già negli appunti). -->
+<div id="shotPreview" hidden role="dialog" aria-label="Anteprima dello screenshot"><div class="shot-preview-card">
+ <header class="shot-preview-head"><span class="i i-check" aria-hidden="true"></span><div class="shot-preview-title"><strong id="shotPreviewTitle">Screenshot</strong><span id="shotPreviewInfo"></span></div>
+  <button id="shotPreviewClose" type="button" class="tool" title="Chiudi (Esc)" aria-label="Chiudi"><span class="i i-close" aria-hidden="true"></span></button></header>
+ <div class="shot-preview-frame"><img id="shotPreviewImage" alt="Screenshot"></div>
+ <footer class="shot-preview-actions"><button id="shotPreviewSave" type="button" class="primary"><span class="i i-download" aria-hidden="true"></span>Salva…</button>
+  <button id="shotPreviewCopy" type="button">Copia</button><button id="shotPreviewTab" type="button"><span class="i i-tab-new" aria-hidden="true"></span>Apri in una scheda</button>
+  <button id="shotPreviewAgain" type="button">Nuovo screenshot</button></footer>
+</div></div>
 <div id="glance" hidden>
  <img id="glanceBackdrop" alt="">
  <div id="glanceCard"></div>
