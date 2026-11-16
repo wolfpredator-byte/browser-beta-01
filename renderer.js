@@ -1431,6 +1431,96 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    list.replaceChildren(area,status);
    setTimeout(()=>area.focus());
  }
+
+ // ── Lettore multimediale (Beta 0.37.1) ─────────────────────────────────
+ // Audio e video di tutte le schede, pannelli web e widget, di ogni workspace (lib/media.cjs).
+ // Mini-lettore nella barra delle schede; pannello "In riproduzione" con i controlli che il sito offre.
+ // La posizione si stima qui (posizione riferita + tempo passato), senza aggiornamenti continui dal processo principale.
+ let renderedMedia=null,mediaDragging=false;
+ const mediaPosition=m=>{let p=m.position||0;if(m.playing&&!m.live)p+=Math.max(0,(Date.now()-m.at)/1000)*(m.rate||1);return m.duration>0?Math.min(p,m.duration):p;};
+ const mediaTime=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=String(s%60).padStart(2,'0');return h?h+':'+String(m).padStart(2,'0')+':'+r:m+':'+r;};
+ const mediaAct=(m,action,value)=>act('mediaControl',value===undefined?{key:m.key,action}:{key:m.key,action,value});
+ const KIND_TEXT={tab:'Scheda',panel:'Pannello web',widget:'Widget della Home'};
+ function mediaButton(name,title,onclick,extra=''){
+   const b=el('button',{type:'button',className:'tool media-btn '+extra,title,ariaLabel:title},icon(name));
+   b.onclick=event=>{event.stopPropagation();onclick();};
+   return b;
+ }
+ function mediaArt(m,className){
+   const box=el('span',{className});
+   if(m.artwork)box.append(el('img',{src:m.artwork,alt:''}));else box.append(icon(m.video?'tabs':'media'));
+   return box;
+ }
+ /** Mini-lettore: il media più importante (quello che suona; altrimenti l'ultimo), con play/pausa e successivo. */
+ function renderMiniPlayer(){
+   const box=$('miniPlayer'),list=state.media||[];
+   // Il media della scheda che stai guardando non serve qui: si comanda dalla pagina. Resta se è in finestrella.
+   const m=list.find(x=>x.playing&&(!x.here||x.pip))||list.find(x=>!x.here);
+   box.hidden=!m;
+   if(!m){box.dataset.key='';return;}
+   const sig=JSON.stringify([m.key,m.title,m.subtitle,m.artwork,m.playing,m.pip,m.controls,list.length]);
+   if(box.dataset.sig===sig)return;
+   box.dataset.sig=sig;box.dataset.key=m.key;
+   const more=list.length>1?el('span',{className:'mini-more',textContent:'+'+(list.length-1)}):'';
+   const textBox=el('button',{type:'button',className:'mini-text',title:'Apri il lettore'},
+     el('strong',{textContent:m.title}),el('span',{textContent:(m.pip?'In finestrella · ':'')+(m.subtitle||m.site)}));
+   textBox.onclick=()=>act('openMediaPlayer');
+   box.replaceChildren(mediaArt(m,'mini-art'),textBox,more,
+     ...(m.controls.previous?[mediaButton('prev','Precedente',()=>mediaAct(m,'previoustrack'))]:[]),
+     mediaButton(m.playing?'pause':'play',m.playing?'Pausa':'Riproduci',()=>mediaAct(m,'toggle'),'main'),
+     ...(m.controls.next?[mediaButton('next','Successivo',()=>mediaAct(m,'nexttrack'))]:[]));
+   box.classList.toggle('playing',!!m.playing);
+ }
+ function renderMedia(){
+   $('sidePanelTitle').textContent='In riproduzione';
+   const list=state.media||[];
+   const sig=JSON.stringify([list.map(m=>[m.key,m.title,m.subtitle,m.artwork,m.playing,m.muted,m.pip,m.duration>0,m.live,m.controls,m.workspace,m.here]),state.mediaAutoPip]);
+   if(renderedMedia===sig||mediaDragging)return;
+   renderedMedia=sig;
+   const box=$('sidePanelItems');
+   const cards=list.map(m=>{
+     const c=m.controls;
+     const head=el('div',{className:'media-head'},mediaArt(m,'media-art'),
+       el('div',{className:'media-info'},el('strong',{textContent:m.title}),el('span',{textContent:m.subtitle||m.site}),
+         el('span',{className:'media-where',textContent:[KIND_TEXT[m.kind],m.workspace,m.subtitle?m.site:''].filter(Boolean).join(' · ')})));
+     const card=el('article',{className:'media-card'+(m.playing?' playing':'')},head);
+     card.dataset.key=m.key;
+     if(c.seek){
+       const range=el('input',{type:'range',className:'media-seek',min:0,max:Math.round(m.duration*10),value:Math.round(mediaPosition(m)*10),ariaLabel:'Posizione'});
+       range.oninput=()=>{mediaDragging=true;card.querySelector('.media-now').textContent=mediaTime(range.value/10);};
+       range.onchange=()=>{mediaDragging=false;mediaAct(m,'seekto',range.value/10);};
+       card.append(el('div',{className:'media-progress'},el('span',{className:'media-now',textContent:mediaTime(mediaPosition(m))}),range,
+         el('span',{textContent:mediaTime(m.duration)})));
+     }else if(m.live)card.append(el('div',{className:'media-progress'},el('span',{className:'media-live',textContent:'● In diretta'})));
+     const controls=el('div',{className:'media-controls'},
+       ...(c.previous?[mediaButton('prev','Precedente',()=>mediaAct(m,'previoustrack'))]:[]),
+       ...(c.seekBack?[mediaButton('seek-back','Indietro 10 secondi',()=>mediaAct(m,'seekby',-10))]:[]),
+       ...(c.playPause?[mediaButton(m.playing?'pause':'play',m.playing?'Pausa':'Riproduci',()=>mediaAct(m,'toggle'),'main')]:[]),
+       ...(c.seekForward?[mediaButton('seek-forward','Avanti 10 secondi',()=>mediaAct(m,'seekby',10))]:[]),
+       ...(c.next?[mediaButton('next','Successivo',()=>mediaAct(m,'nexttrack'))]:[]));
+     const extra=el('div',{className:'media-extra'},
+       ...(c.skipAd?[el('button',{type:'button',className:'media-chip',textContent:'Salta pubblicità',onclick:()=>mediaAct(m,'skipad')})]:[]),
+       ...(c.mute?[mediaButton(m.muted?'volume-off':'volume',m.muted?'Riattiva l’audio':'Disattiva l’audio',()=>mediaAct(m,'mute'),m.muted?'on':'')]:[]),
+       ...(c.pip?[mediaButton('pip',m.pip?'Chiudi la finestrella':'Video in finestrella (Picture-in-Picture)',()=>mediaAct(m,'pip'),m.pip?'on':'')]:[]),
+       el('button',{type:'button',className:'media-chip',textContent:m.here?'Questa scheda':'Vai alla '+(m.kind==='panel'?'pannello':m.kind==='widget'?'Home':'scheda'),disabled:!!m.here,onclick:()=>act('mediaFocus',{key:m.key})}));
+     card.append(controls,extra);
+     return card;
+   });
+   const pip=el('label',{className:'media-setting'},el('input',{type:'checkbox',checked:!!state.mediaAutoPip,onchange:e=>act('setAutoPip',{enabled:e.target.checked})}),
+     el('span',{},el('strong',{textContent:'Finestrella automatica'}),el('span',{textContent:'Lasciando una scheda con un video in riproduzione, il video continua in una finestrella; tornando alla scheda rientra.'})));
+   box.replaceChildren(...(cards.length?cards:[el('p',{className:'panel-hint media-empty',textContent:'Niente in riproduzione. Audio e video di schede, pannelli web e widget della Home, di qualsiasi workspace, compaiono qui.'})]),pip);
+ }
+ // Ogni secondo: tempi e barre del pannello avanzano da soli.
+ setInterval(()=>{
+   if(state.sidePanelOpen!=='media'||mediaDragging)return;
+   for(const card of document.querySelectorAll('.media-card')){
+     const m=(state.media||[]).find(x=>x.key===card.dataset.key);
+     if(!m||!m.playing)continue;
+     const p=mediaPosition(m),range=card.querySelector('.media-seek'),now=card.querySelector('.media-now');
+     if(range)range.value=Math.round(p*10);
+     if(now)now.textContent=mediaTime(p);
+   }
+ },1000);
  // ── Centro notifiche (Beta 0.15, mock-up "Notification System") ─────────
  const NOTIFY_FILTERS=[['all','Tutte'],['download','Download'],['sito','Sito'],['jarvis','JARVIS'],['sistema','Sistema']];
  const NOTIFY_ICONS={download:'download',success:'check',error:'warning',undo:'tab-reopen',bookmark:'bookmark-filled',info:'info'};
@@ -1554,6 +1644,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    else return renderNotifications();
    if(mode!=='notes')renderedNotes=null;
    else return renderNotes();
+   if(mode!=='media'){renderedMedia=null;mediaDragging=false;}
+   else return renderMedia();
    if(mode!=='files')renderedFiles=null;
    else return renderFiles();
    if(mode!=='tabs')tabManager=null;
@@ -2298,7 +2390,7 @@ function render(){
    // Click destro: menu nativo con "Apri in una nuova finestra" e "Cambia icona".
    button.oncontextmenu=event=>{event.preventDefault();act('workspaceContextMenu',{name:workspace.name});};
    w.appendChild(button);
- }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
+ }$('title').textContent=state.activeWorkspace;const current=state.workspaces.find(x=>x.name===state.activeWorkspace);$('folder').textContent=current?.projectPath?'Cartella: '+current.projectPath:'Nessuna cartella locale associata';const res=$('resources');res.replaceChildren();for(const u of current?.resources||[])addButton(res,u,()=>act('resource',{url:u}),'item');if(!current?.resources?.length)res.textContent='Nessuna risorsa salvata.';renderPanel();renderSidePanel();renderMiniPlayer();renderDownloads();renderLoadError();const activeTab=state.tabs.find(t=>t.active);
 // Sulla Home niente "app://home": la barra invita a cercare.
 syncAddress(activeTab);
 renderZoom();renderFindForTab();renderSiteButton();renderLoadLine();renderNotifyBadge();renderSplit();}

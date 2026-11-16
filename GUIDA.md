@@ -4,7 +4,74 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.37.1 — Lettore multimediale
+
+Installer PC: `dist\VARCO Setup 0.37.1.exe` (con la firma VMP). Il telefono non cambia.
+
+### Cosa cambia
+- **Un lettore per tutti i media di VARCO.** Audio e video in riproduzione in qualsiasi scheda, pannello web (WhatsApp, Spotify…) o widget della Home, di **qualsiasi workspace**, si comandano da un solo posto.
+- **Mini-lettore nella barra delle schede**, a destra:
+  - copertina, titolo e artista (o il sito);
+  - play/pausa, e i pulsanti precedente/successivo se il sito li ha;
+  - "+2" se suonano altri media.
+  - Il media della scheda che stai guardando non compare qui, perché lo comandi già dalla pagina; compare se è in finestrella.
+  - Clic sul titolo: si apre il pannello.
+- **Pannello "In riproduzione"** (clic sul mini-lettore, oppure palette → *Lettore multimediale*). Ogni media ha la sua scheda:
+  - copertina, titolo, artista e album, e dove suona (Scheda / Pannello web / Widget, con il workspace e il sito);
+  - barra della posizione con i tempi, trascinabile; per le dirette, "● In diretta";
+  - **controlli secondo il sito**: VARCO legge quello che il sito dichiara al sistema (Media Session).
+    - YouTube, Spotify, SoundCloud… hanno brano precedente/successivo, e a volte "Salta pubblicità".
+    - Un video qualsiasi ha play/pausa, ±10 secondi, la barra e il muto.
+    - Un sito che dichiara solo play/pausa ha solo quelli.
+  - **muto** e **finestrella (PiP)** per i video;
+  - **Vai alla scheda / al pannello / alla Home**: porta lì, anche in un altro workspace o un'altra finestra.
+- **Il PiP fa parte del lettore.**
+  - In fondo al pannello c'è l'interruttore **Finestrella automatica**: è lo stesso delle Impostazioni.
+  - Un video in finestrella è segnato "In finestrella" nel mini-lettore e ha il pulsante PiP acceso: un clic la chiude.
+  - Il pulsante PiP mette in finestrella qualsiasi video, anche senza cambiare scheda.
+
+### Modalità insegnamento
+- `page-preload.cjs` gira in ogni pagina e riquadro di tutte le sessioni (quindi anche pannelli web e widget):
+  - nel mondo della pagina annota gli elementi audio/video che partono (`HTMLMediaElement.play`, autoplay) e le azioni che il sito registra con `navigator.mediaSession.setActionHandler`, insieme a titolo e copertina;
+  - lo stato passa come evento DOM (solo testo) e arriva al processo principale (`media:state`).
+- `lib/media.cjs`:
+  - una voce per riquadro (`contents:processo:riquadro`);
+  - capisce se è una scheda, un pannello o un widget;
+  - scarica la copertina con la sessione della pagina (la cornice non apre la rete);
+  - manda i comandi al riquadro giusto con `WebFrameMain.executeJavaScript(…, true)`: serve il "gesto dell'utente" per `play()` e per la finestrella.
+- `lib/media-rules.cjs` (con test):
+  - pulisce lo stato mandato dalla pagina;
+  - sceglie i controlli in base al sito;
+  - ordina (prima ciò che suona);
+  - stima la posizione. La cornice fa avanzare la barra da sola, senza aggiornamenti continui.
+
+### Test da fare
+- [ ] **T252** — Apri YouTube in un workspace e Spotify (scheda o pannello) in un altro, fai partire entrambi. Il mini-lettore mostra quello che suona, con "+1". **📸**
+- [ ] **T253** — Pannello "In riproduzione": YouTube ha ±10 s, la barra, il muto e il PiP; Spotify ha precedente/successivo. Prova pausa, brano successivo, trascina la barra. **📸**
+- [ ] **T254** — "Vai alla scheda" su un media di un altro workspace: VARCO apre quel workspace e mostra la scheda.
+- [ ] **T255** — Video di YouTube in riproduzione, cambia scheda: va in finestrella, e il mini-lettore dice "In finestrella". Dal lettore chiudi la finestrella, poi riaprila col pulsante PiP.
+- [ ] **T256** — Spegni "Finestrella automatica" dal pannello: cambiando scheda il video non va più in finestrella. In Impostazioni l'interruttore è spento anche lì.
+- [ ] **T257** — Chiudi la scheda che suona: sparisce dal lettore. Un widget Pagina web con musica compare come "Widget della Home".
+
+**Stato:**
+- 215 test superati (nuovi: `media-rules`).
+- **Provato in VARCO** con una copia dei tuoi dati:
+  - **YouTube** (Big Buck Bunny): titolo, canale "Blender", copertina dalla Media Session, salto a un punto preciso. Nel profilo di prova la richiesta dei cookie di YouTube teneva il video in pausa: nel tuo VARCO non c'è.
+  - **Pagina di prova** con un player e la Media Session (brano, artista, album, precedente/successivo):
+    - controlli giusti (precedente, successivo, ±10 s, barra, muto, PiP);
+    - pausa e ripresa;
+    - salto a 2:00 (fermato alla fine, 1:00) e −10 s;
+    - muto;
+    - "Successivo" cambia il brano (Brano di prova 1 → 2);
+    - cambiando scheda il video va in finestrella e il lettore lo segna; il pulsante PiP la chiude;
+    - "Vai alla scheda" torna alla pagina.
+- **Non provato:** Spotify e Netflix con il tuo account (soprattutto quali pulsanti dichiarano), un widget della Home che suona, l'installer.
+
+---
+
 ## Beta 0.37 — Rifinitura, velocità e contenuti protetti
+
+**Provata da te: funziona** (contenuti protetti compresi).
 
 Installer PC: `dist\VARCO Setup 0.37.0.exe`. Il telefono non cambia.
 

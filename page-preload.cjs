@@ -237,3 +237,104 @@ document.addEventListener('leavepictureinpicture',event=>{
   const video=event.target;
   setTimeout(()=>{if(video instanceof HTMLVideoElement&&!video.paused&&!video.ended)ipcRenderer.send('pip:back');},120);
 },true);
+
+/**
+ * Beta 0.37.1 — lettore multimediale di VARCO. In ogni pagina e riquadro (anche pannelli web e widget):
+ * - nel mondo della pagina si annotano gli elementi audio/video che partono e le azioni che il sito
+ *   dichiara alla Media Session (brano successivo, precedente, salta pubblicità…), con titolo e copertina;
+ * - lo stato arriva qui come evento DOM (solo testo) e va al processo principale ('media:state');
+ * - i comandi arrivano dal processo principale direttamente nel mondo della pagina
+ *   (WebFrameMain.executeJavaScript con il gesto dell'utente) e chiamano window.__varcoMedia.run().
+ */
+if(/^https?:$/.test(location.protocol)){
+  const EV='varco-media-'+Math.random().toString(36).slice(2);
+  let last='';
+  document.addEventListener(EV,event=>{
+    const detail=event.detail;
+    if(typeof detail!=='string'||detail.length>20000||detail===last)return;
+    last=detail;
+    ipcRenderer.send('media:state',detail);
+  },true);
+  contextBridge.executeInMainWorld({args:[EV],func:EV=>{
+    if(window.__varcoMedia)return;
+    const els=new Set(),handlers=new Map();
+    let primary=null,position=null,timer=null;
+    const ms=navigator.mediaSession;
+    const queue=()=>{if(!timer)timer=setTimeout(send,150);};
+    if(ms){
+      const setHandler=ms.setActionHandler.bind(ms);
+      ms.setActionHandler=function(action,handler){
+        if(typeof handler==='function')handlers.set(action,handler);else handlers.delete(action);
+        queue();
+        return setHandler(action,handler);
+      };
+      const proto=Object.getPrototypeOf(ms);
+      for(const prop of ['metadata','playbackState']){
+        const d=Object.getOwnPropertyDescriptor(proto,prop);
+        if(d?.get&&d?.set)try{Object.defineProperty(ms,prop,{configurable:true,get(){return d.get.call(ms);},set(v){d.set.call(ms,v);queue();}});}catch{}
+      }
+      if(ms.setPositionState){
+        const setPosition=ms.setPositionState.bind(ms);
+        ms.setPositionState=function(s){position=s?{...s}:null;queue();return setPosition(s);};
+      }
+    }
+    const EVENTS=['play','playing','pause','ended','loadedmetadata','durationchange','ratechange','seeked','volumechange','emptied','enterpictureinpicture','leavepictureinpicture'];
+    const onEvent=event=>{if(event.type==='play'||event.type==='playing')primary=event.target;queue();};
+    const track=el=>{if(els.has(el))return;els.add(el);for(const type of EVENTS)el.addEventListener(type,onEvent);};
+    const play=HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play=function(){track(this);primary=this;queue();return play.apply(this,arguments);};
+    // Elementi che partono da soli (autoplay) senza chiamare play().
+    document.addEventListener('play',event=>{if(event.target instanceof HTMLMediaElement){track(event.target);primary=event.target;queue();}},true);
+    function pick(){
+      const list=[...els].filter(el=>el.isConnected||!el.paused);
+      const playing=list.filter(el=>!el.paused&&!el.ended);
+      if(primary&&list.includes(primary)&&(!primary.paused||!playing.length))return primary;
+      return playing.sort((a,b)=>(b.duration||0)-(a.duration||0))[0]||null;
+    }
+    const area=a=>{const m=/(\d+)x(\d+)/.exec(a?.sizes||'');return m?m[1]*m[2]:0;};
+    function send(){
+      timer=null;
+      const el=pick(),md=ms?.metadata||null;
+      const art=md?.artwork?.length?[...md.artwork].sort((a,b)=>area(b)-area(a))[0]?.src||'':'';
+      const finite=el&&Number.isFinite(el.duration)&&el.duration>0;
+      const state={
+        has:!!el||!!md?.title,
+        playing:el?!el.paused&&!el.ended:ms?.playbackState==='playing',
+        title:md?.title||'',artist:md?.artist||'',album:md?.album||'',artwork:art,
+        duration:finite?el.duration:(position?.duration||0),
+        position:el?el.currentTime:(position?.position||0),
+        rate:el?el.playbackRate:(position?.playbackRate||1),
+        muted:el?el.muted:false,
+        video:el instanceof HTMLVideoElement&&el.videoWidth>0,
+        pip:!!document.pictureInPictureElement,
+        live:!!el&&el.duration===Infinity,
+        actions:[...handlers.keys()]
+      };
+      document.dispatchEvent(new CustomEvent(EV,{detail:JSON.stringify(state)}));
+    }
+    const call=(name,details={})=>{const f=handlers.get(name);if(!f)return false;try{f({action:name,...details});return true;}catch{return false;}};
+    function run(action,value){
+      const el=pick()||primary;
+      switch(action){
+        case 'toggle':{const playing=el?!el.paused&&!el.ended:ms?.playbackState==='playing';return run(playing?'pause':'play');}
+        case 'play':if(!call('play')&&el)el.play().catch(()=>{});break;
+        case 'pause':if(!call('pause')&&el)el.pause();break;
+        case 'stop':if(!call('stop')&&el)el.pause();break;
+        case 'previoustrack':case 'nexttrack':case 'skipad':call(action);break;
+        case 'seekby':{const d=Number(value)||0;if(!call(d<0?'seekbackward':'seekforward',{seekOffset:Math.abs(d)})&&el)el.currentTime=Math.max(0,el.currentTime+d);break;}
+        case 'seekto':{const t=Math.max(0,Number(value)||0);if(!call('seekto',{seekTime:t,fastSeek:false})&&el)el.currentTime=t;break;}
+        case 'mute':if(el)el.muted=!el.muted;break;
+        case 'pip':{
+          if(document.pictureInPictureElement){document.exitPictureInPicture().catch(()=>{});break;}
+          const v=el instanceof HTMLVideoElement?el:[...els].find(x=>x instanceof HTMLVideoElement&&!x.paused);
+          if(v&&!v.disablePictureInPicture)v.requestPictureInPicture().catch(()=>{});
+          break;
+        }
+      }
+      queue();
+      return true;
+    }
+    Object.defineProperty(window,'__varcoMedia',{value:Object.freeze({run}),enumerable:false});
+    addEventListener('pagehide',()=>document.dispatchEvent(new CustomEvent(EV,{detail:JSON.stringify({has:false})})));
+  }});
+}
