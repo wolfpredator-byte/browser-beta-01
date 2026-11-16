@@ -909,7 +909,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        el('span',{className:'pw-user',textContent:e.description||e.id,title:e.id})),
      el('span',{className:'inline-buttons'},
        // Beta 0.37.2: accesso ai siti, per le estensioni che in Chrome agiscono al clic o chiedendo i siti.
-       ...(e.siteAccess?[selectBox({all:'Su tutti i siti',declared:'Solo i siti dichiarati'},e.siteAccess,v=>settingsAction('extensionSetAccess',
+       ...(e.siteAccess?[selectBox([['all','Su tutti i siti'],['declared','Solo i siti dichiarati']],e.siteAccess,v=>settingsAction('extensionSetAccess',
          v==='all'?`«${e.name}» ora agisce su tutti i siti.`:`«${e.name}» ora agisce solo sui siti dichiarati.`,{id:e.id,mode:v}))]:[]),
        ...(e.options?[addButton(el('span'),'Impostazioni',()=>act('extensionOptions',{id:e.id}))]:[]),
        confirmButton('Rimuovi','Conferma',()=>settingsAction('extensionRemove',`«${e.name}» rimossa.`,{id:e.id})))));

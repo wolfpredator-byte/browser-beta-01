@@ -4,9 +4,46 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.37.3 — Correzioni dopo la prova della 0.37.2
+
+Installer PC: `dist\VARCO Setup 0.37.3.exe` (con la firma VMP). Contiene anche tutto quello della 0.37.2, che non era stata pubblicata. Il telefono non cambia.
+
+Da questa versione ogni richiesta ha il suo numero: una correzione di una funzione che c'è già cambia l'ultima cifra (0.37.2 → 0.37.3).
+
+### Cosa cambia
+- **Impostazioni di nuovo funzionanti.**
+  - Nella 0.37.2, con almeno un'estensione installata, la pagina si rompeva a metà. Il nuovo menu "Accesso ai siti" riceveva le sue voci nel formato sbagliato e l'errore ("options is not iterable") fermava tutta la pagina.
+  - Nelle mie prove non si vedeva, perché il profilo di prova non aveva estensioni.
+  - Ora Impostazioni → Estensioni si apre con l'elenco, il menu "Accesso ai siti" e i pulsanti per installare da file.
+- **Niente più notifica "Contenuti protetti pronti" all'avvio.** Il modulo per Spotify, Netflix e gli altri si prepara lo stesso, senza avvisare. Lo stato resta nella copia diagnostica.
+- **Nel Chrome Web Store VARCO si chiama VARCO** ("Rimuovi da VARCO"), non più "personal-workspace-browser".
+
+### Il caso del video (filecr.com e CRXLauncher)
+- **In VARCO un sito riconosce le estensioni installate come in Chrome.** L'ho provato con un'estensione di prova: la pagina legge un file dell'estensione e le parla direttamente, e lei risponde. Sono i due modi che usano i siti.
+- **Nel video però il sito cerca la sua estensione ("FileCR Assistant"),** mentre quella installata è CRXLauncher, un'estensione diversa. Il sito quindi ha ragione a dire che la sua non c'è.
+- **CRXLauncher usa due funzioni di Chrome che Electron non ha** (`offscreen` e `sidePanel`), quindi il suo lavoro di sottofondo in VARCO non parte.
+- **Attenzione:** filecr.com distribuisce gratis programmi che normalmente sono a pagamento. Questi "assistenti" e "launcher" di file .crx sono spesso segnalati come adware. Ti consiglio di togliere CRXLauncher (Impostazioni → Estensioni → Rimuovi).
+
+### Test da fare
+- [ ] **T266** — Impostazioni con almeno un'estensione installata: la pagina si apre tutta; Estensioni mostra l'elenco con "Accesso ai siti". **📸**
+- [ ] **T267** — Riavvia VARCO: nessuna notifica dei contenuti protetti. Spotify continua a suonare.
+- [ ] **T268** — Chrome Web Store, pagina di un'estensione installata: il pulsante dice "Rimuovi da VARCO".
+- [ ] T260–T265 della 0.37.2 (verifiche anti-bot ed estensioni) valgono anche qui.
+
+**Stato:**
+- 222 test superati.
+- **Provato in VARCO:**
+  - Impostazioni → Estensioni con un'estensione installata (prima errore, ora la pagina completa);
+  - nome dell'app "VARCO" e identità ancora pulita (nessun "Electron" né nome del pacchetto);
+  - nessuna notifica dei contenuti protetti all'avvio;
+  - estensione di prova riconosciuta dalla pagina: file pubblico letto, messaggio della pagina con risposta.
+- **Non provato:** l'installer.
+
+---
+
 ## Beta 0.37.2 — Verifiche anti-bot ed estensioni
 
-Installer PC: `dist\VARCO Setup 0.37.2.exe` (con la firma VMP). Il telefono non cambia.
+**Provata da te: Impostazioni rotte con un'estensione installata (corretto nella 0.37.3); il sito del video continuava a chiedere la sua estensione (vedi 0.37.3).** Non pubblicata: il suo contenuto è nella 0.37.3.
 
 ### Cosa cambia
 - **Verifiche "sei umano?"** (CAPTCHA, controlli prima di un download, "Verifica di essere umano" di Cloudflare). Le cause trovate:

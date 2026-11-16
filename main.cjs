@@ -55,6 +55,9 @@ require('electron-chrome-extensions');
 if(!app.commandLine.hasSwitch('user-data-dir'))app.setPath('userData',path.join(app.getPath('appData'),'personal-workspace-browser'));
 // Beta 0.37.2: la stessa identità (pulita) in tutte le pagine e in tutti i riquadri, prima che ne parta una.
 require('./lib/identity.cjs').applyAtStartup();
+// Beta 0.37.3: il nome che vedono i siti (es. il Chrome Web Store: «Rimuovi da VARCO») è VARCO, non il nome del pacchetto.
+// Va fatto DOPO identity (che toglie il vecchio nome dall'identità) e non cambia la cartella dei dati, impostata sopra.
+app.setName('VARCO');
 // Beta 0.35: modalità OLED → Chromium scurisce anche i siti. Si decide all'avvio (cambiarla chiede un riavvio).
 require('./lib/force-dark.cjs').applyAtStartup();
 const bus=createCommandBus();
