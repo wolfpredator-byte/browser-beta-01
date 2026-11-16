@@ -9,6 +9,14 @@
   color:var(--cc-muted);background:rgba(var(--v-ink-rgb),.06);border:1px solid rgba(var(--v-ink-rgb),.13);border-bottom-width:2px}
 .cc-svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .cc-input{all:unset;flex:1;min-width:0;font-size:16px;color:var(--cc-fg);caret-color:var(--v-accent)}
+/* Beta 0.38.1: niente riquadro di focus generico di VARCO sulla casella (usciva dalla pillola); il focus si vede dal bordo della barra. */
+#cc .cc-input:focus,#cc .cc-input:focus-visible{outline:none;box-shadow:none}
+#cc .cc-search:focus-within{border-color:rgba(var(--v-accent-rgb),.7);box-shadow:0 14px 40px rgba(0,0,0,.4),0 0 0 3px rgba(var(--v-accent-rgb),.16)}
+#cc .cc-rinp:focus-within{border-color:rgba(var(--v-accent-rgb),.6)}
+/* I pulsanti di VARCO "si schiacciano" al clic (transform) e hanno uno sfondo al passaggio: qui li gestiamo noi. */
+#cc button:active:not(:disabled){transform:none}
+#cc .cc-act:hover:not(.on){background:rgba(var(--v-ink-rgb),.06)}
+#cc button:focus-visible{outline:2px solid rgba(var(--v-accent-rgb),.7);outline-offset:1px}
 .cc-input::placeholder{color:var(--cc-faint)}
 .cc-chip{padding:4px 10px;border-radius:999px;font:inherit;font-size:11.5px;color:var(--cc-muted);border:1px solid transparent;background:none;white-space:nowrap;cursor:pointer}
 .cc-chip:hover{color:var(--cc-fg);background:rgba(var(--v-ink-rgb),.05)}
@@ -102,7 +110,7 @@
   box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;pointer-events:none}
 
 /* ── Anello ── */
-.cc-ringwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:28px;padding-top:30px}
+.cc-ringwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:28px;padding:46px 0 34px}
 .cc-scopes.floating{position:absolute;left:50%;top:0;transform:translateX(-50%);max-width:none;align-items:center}
 .cc-scopes.floating .cc-style{width:28px;height:28px;margin-left:4px}
 .cc-ring{position:relative;flex:none}
@@ -123,10 +131,11 @@
 .cc-rinp{display:flex;align-items:center;gap:6px;width:100%;padding:8px 11px;border-radius:999px;background:rgba(0,0,0,.3);border:1px solid rgba(var(--v-ink-rgb),.14)}
 .cc-rinp .cc-svg{color:var(--v-accent)}
 .cc-rinp .cc-input{font-size:13px}
-.cc-orbit{position:absolute;left:50%;top:50%;width:0;height:0}
-.cc-orbit .cc-act{position:absolute;transform:translate(-50%,-50%);background:rgba(var(--v-bg-rgb),.95);font-size:11px;padding:4px 10px}
-.cc-orbit .cc-act.on{background:var(--v-accent)}
-.cc-fan{width:420px;max-height:100%;display:flex;flex-direction:column;gap:6px;min-height:0}
+.cc-ringcol{display:flex;flex-direction:column;align-items:center;gap:14px;flex:none}
+.cc-ractions{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;min-height:28px}
+.cc-ractions .cc-act{background:rgba(var(--v-bg-rgb),.95);font-size:11.5px;padding:5px 11px}
+.cc-ractions .cc-act.on{background:var(--v-accent)}
+.cc-fan{width:min(420px,40%);max-height:100%;display:flex;flex-direction:column;gap:6px;min-height:0}
 .cc-fan h3{margin:0 0 4px 6px;font-weight:500;font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--cc-faint);display:flex;gap:8px;align-items:center}
 .cc-fan .cc-scroll{flex:0 1 auto;padding:4px 4px 4px 34px;display:flex;flex-direction:column;gap:6px}
 .cc-fi{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:var(--cc-glass);backdrop-filter:blur(24px);border:1px solid var(--cc-line2);min-height:44px;transition:transform .18s;cursor:pointer}
@@ -137,3 +146,12 @@
 .cc-rpv:not(:has(>.cc-shot)){grid-template-columns:1fr}
 .cc-rpv .cc-commits li{grid-template-columns:auto 1fr}.cc-rpv .cc-commits em{display:none}
 .cc-foot{position:absolute;left:50%;bottom:0;transform:translateX(-50%);white-space:nowrap}
+
+/* Beta 0.38.1: allineamenti */
+.cc-top{flex-wrap:wrap}
+.cc-search{flex:1 1 380px}
+.cc-scopes{max-width:100%;overflow-x:auto;scrollbar-width:none}
+.cc-scopes::-webkit-scrollbar{display:none}
+.cc-rinp .cc-input{text-align:left}
+.cc-shot.empty{text-align:center;padding:8px}
+.cc-scopes.floating{max-width:calc(100% - 16px)}

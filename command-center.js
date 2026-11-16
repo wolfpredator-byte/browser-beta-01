@@ -196,8 +196,12 @@
     root.style.cssText=b?`left:${b.x+12}px;top:${b.y+10}px;width:${Math.max(300,b.width-24)}px;height:${Math.max(300,b.height-20)}px`:'';
     root.dataset.style=st.style;
     root.dataset.narrow=b&&b.width<1050?'1':'0';
+    // Beta 0.38.1: ridisegnare toglie la casella dalla pagina e le fa perdere il focus (si scriveva una lettera alla volta).
+    // Ricordiamo focus e cursore e li rimettiamo subito dopo.
+    const el=input(),focused=first||document.activeElement===el,s0=el.selectionStart,s1=el.selectionEnd,dir=el.selectionDirection;
     root.innerHTML=st.style==='ring'?renderRing():renderBoard();
-    root.querySelector('#ccSlot').replaceWith(input());
+    root.querySelector('#ccSlot').replaceWith(el);
+    if(focused){el.focus({preventScroll:true});if(!first&&s0!==null){try{el.setSelectionRange(s0,s1,dir);}catch{}}}
     input().placeholder=placeholder();
     if(input().value!==st.q)input().value=st.q;
     const sc=root.querySelector('.cc-scroll');
@@ -247,7 +251,9 @@
   function renderRing(){
     const cur=current();const curG=flat[st.sel]?.group;
     const b=st.bounds||{width:innerWidth,height:innerHeight};
-    const Rr=Math.round(Math.max(150,Math.min(230,b.height*0.4,(b.width-440)/2.3)));const RI=Math.round(Rr*0.56);
+    // Beta 0.38.1: l'anello sta nello spazio che resta tolte la barra in alto, le azioni sotto e i suggerimenti (niente sovrapposizioni).
+    const H=Math.max(300,b.height-20);
+    const Rr=Math.round(Math.max(120,Math.min(230,(H-170)/2,(b.width-460)/2.2)));const RI=Math.round(Rr*0.56);
     const step=360/ORDER.length,GAP=1.6;
     const pt=(r,a)=>[Rr+r*Math.cos((a-90)*Math.PI/180),Rr+r*Math.sin((a-90)*Math.PI/180)];
     const path=(a0,a1,r0,r1)=>{const [x0,y0]=pt(r1,a0),[x1,y1]=pt(r1,a1),[x2,y2]=pt(r0,a1),[x3,y3]=pt(r0,a0);return `M${x0},${y0}A${r1},${r1} 0 0 1 ${x1},${y1}L${x2},${y2}A${r0},${r0} 0 0 0 ${x3},${y3}Z`;};
@@ -257,9 +263,8 @@
     const ci=ORDER.indexOf(curG);
     const arc=ci>=0?`<path class="cc-arc" d="M${pt(Rr+8,ci*step-step/2+5).join(',')}A${Rr+8},${Rr+8} 0 0 1 ${pt(Rr+8,ci*step+step/2-5).join(',')}"/>`:'';
     const acts=cur?.actions||[];
-    const orbit=acts.map((a,j)=>{const ang=180-(j-(acts.length-1)/2)*Math.min(26,120/Math.max(1,acts.length-1||1));const r=Rr+30;
-      const x=r*Math.cos((ang-90)*Math.PI/180),y=r*Math.sin((ang-90)*Math.PI/180);
-      return `<button class="cc-act${j===st.act?' on':''}" data-a="${j}" style="left:${x}px;top:${y}px">${esc(a)}</button>`;}).join('');
+    // Le azioni in una fila sotto l'anello (prima erano su un'orbita e finivano sopra l'anello e sui suggerimenti).
+    const orbit=acts.map((a,j)=>`<button class="cc-act${j===st.act?' on':''}" data-a="${j}">${esc(a)}</button>`).join('');
     const g=groups.find(g=>g.id===curG);
     const items=g&&!g.collapsed?g.shown:[];
     const i0=indexOf(curG,0);
@@ -270,10 +275,10 @@
     const pv=pvItem&&!NO_PREVIEW.has(pvItem.kind)&&!pvItem.dynamic?`<div class="cc-rpv">${previewHtml(pvItem)}</div>`:'';
     const cs=(RI-8)*2;
     return `<div class="cc-ringwrap"><div class="cc-scopes floating">${scopeChips()}${styleToggle()}</div>
-      <div class="cc-ring" style="width:${2*Rr}px;height:${2*Rr}px"><svg viewBox="0 0 ${2*Rr} ${2*Rr}" width="${2*Rr}" height="${2*Rr}">${segs}${arc}</svg>${labs}
+      <div class="cc-ringcol"><div class="cc-ring" style="width:${2*Rr}px;height:${2*Rr}px"><svg viewBox="0 0 ${2*Rr} ${2*Rr}" width="${2*Rr}" height="${2*Rr}">${segs}${arc}</svg>${labs}
         <div class="cc-core" style="width:${cs}px;height:${cs}px"><span class="k">Command center</span><div class="cc-rinp">${I.search}<span id="ccSlot"></span></div>
           <span class="t">${g?esc(g.title):'Nessun risultato'}</span><span class="k">${esc(st.active)} prima</span></div>
-        <div class="cc-orbit">${orbit}</div></div>
+        </div><div class="cc-ractions" style="max-width:${Math.max(2*Rr+80,360)}px">${orbit}</div></div>
       <div class="cc-fan"><h3>${g?I[SEC_ICON[g.id]]+esc(g.title):''}<kbd>←</kbd><kbd>→</kbd></h3><div class="cc-scroll">${fan}
         ${g&&g.more?`<button class="cc-more" data-expand="${g.id}">Mostra tutti (${g.items.length})</button>`:''}${!groups.length?emptyHtml():''}</div>${pv}</div></div>
       <div class="cc-foot cc-hint"><span><kbd>←</kbd><kbd>→</kbd> sezione</span><span><kbd>↑</kbd><kbd>↓</kbd> scegli</span><span><kbd>Tab</kbd> azioni</span><span><kbd>Invio</kbd> esegui</span><span><kbd>Esc</kbd> chiudi</span></div>`;

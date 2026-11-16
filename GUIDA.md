@@ -4,6 +4,36 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.38.1 — Correzioni del command center
+
+Installer PC: `dist\VARCO Setup 0.38.1.exe` (con la firma VMP). Contiene tutta la 0.38, che non era stata pubblicata.
+
+### Cosa cambia
+- **Si scrive di fila.**
+  - Nella 0.38 la casella perdeva il focus dopo ogni lettera, e bisognava ricliccarla.
+  - Il command center si ridisegna a ogni lettera, e ridisegnandolo la casella usciva dalla pagina per un attimo.
+  - Ora focus e cursore tornano subito al loro posto.
+- **Niente riquadro sulla casella.** Lo stile generale di VARCO le disegnava attorno un rettangolo di focus che usciva dalla pillola. Ora il focus si vede dal bordo della barra.
+- **Anello: le azioni in una fila sotto l'anello.**
+  - Prima stavano su un'orbita: finivano sopra il bordo dell'anello e sopra la riga dei tasti.
+  - Al clic, poi, l'effetto "pressione" dei pulsanti di VARCO le faceva saltare di posto.
+- **L'anello si adatta alla finestra:** lascia sempre spazio alla barra in alto, alle azioni e ai tasti.
+- **Bacheca:** "Dove cercare" va sotto la ricerca quando non ci sta, invece di essere tagliato.
+- **Altri allineamenti:** il testo nella casella dell'anello è allineato a sinistra; il messaggio "nessuna anteprima" è centrato.
+
+### Test da fare
+- [ ] **T280** — F1 e scrivi una parola intera senza cliccare: tutte le lettere entrano, nella Bacheca e nell'Anello.
+- [ ] **T281** — Anello, finestra non massimizzata: anello, azioni sotto e tasti in basso non si sovrappongono. **📸**
+- [ ] **T282** — Bacheca in una finestra stretta: "Dove cercare" va sotto la ricerca, intero.
+- [ ] T269–T279 della 0.38 valgono anche qui.
+
+**Stato:**
+- 230 test superati.
+- **Provato in VARCO**, a 1024×700, 1366×768 e 1920×1040, in tutti e due gli stili, scrivendo "unity" con tasti veri: tutte le lettere entrano e la casella resta attiva. Ho guardato gli screenshot di ogni misura.
+- **Non provato:** l'installer.
+
+---
+
 ## Beta 0.38 — Nuovo command center (F1)
 
 Installer PC: `dist\VARCO Setup 0.38.0.exe` (con la firma VMP). Il telefono non cambia.
