@@ -53,6 +53,8 @@ require('electron-chrome-extensions');
 // sessioni, segreti e jarvis-mcp.json restano in %APPDATA%\personal-workspace-browser.
 // --user-data-dir (profili di prova) ha la precedenza.
 if(!app.commandLine.hasSwitch('user-data-dir'))app.setPath('userData',path.join(app.getPath('appData'),'personal-workspace-browser'));
+// Beta 0.37.2: la stessa identità (pulita) in tutte le pagine e in tutti i riquadri, prima che ne parta una.
+require('./lib/identity.cjs').applyAtStartup();
 // Beta 0.35: modalità OLED → Chromium scurisce anche i siti. Si decide all'avvio (cambiarla chiede un riavvio).
 require('./lib/force-dark.cjs').applyAtStartup();
 const bus=createCommandBus();

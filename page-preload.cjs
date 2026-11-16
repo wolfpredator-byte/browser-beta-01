@@ -10,6 +10,26 @@
 const {contextBridge,ipcRenderer}=require('electron');
 
 /**
+ * Beta 0.37.2 — servizi di verifica (CAPTCHA, controlli anti-bot). Nei loro riquadri VARCO non tocca nulla:
+ * controllano proprio che il browser non sia stato modificato. Copia di lib/verification-rules.cjs
+ * (questo file gira isolato e non può importarla; test/verification-rules.test.cjs controlla che coincidano).
+ */
+const VERIFY_HOSTS=['challenges.cloudflare.com','hcaptcha.com','recaptcha.net','arkoselabs.com','funcaptcha.com','geetest.com',
+  'captcha-delivery.com','datadome.co','perimeterx.net','px-cdn.net','px-cloud.net','awswaf.com','frcapi.com','friendlycaptcha.com','mtcaptcha.com'];
+const VERIFY_FRAME=(()=>{
+  const host=location.hostname.toLowerCase();
+  if(VERIFY_HOSTS.some(h=>host===h||host.endsWith('.'+h)))return true;
+  return ['www.google.com','google.com','www.gstatic.com'].includes(host)&&location.pathname.startsWith('/recaptcha/');
+})();
+const WEB_PAGE=/^https?:$/.test(location.protocol)&&!VERIFY_FRAME;
+
+/**
+ * Beta 0.37.2 — agganci che non si vedono. Dove VARCO deve sapere cosa fa una pagina (notifiche, lettore),
+ * la funzione del browser viene avvolta in un Proxy sul prototipo: stesso nome di proprietà, stesse caratteristiche,
+ * e per i controlli anti-bot resta "codice nativo". Prima erano funzioni nuove messe sopra quelle vere: i sistemi
+ * di verifica le riconoscevano come browser manomesso (anche se a usarlo eri tu).
+ */
+/**
  * Beta 0.15.1 — notifiche. Electron sa rispondere ai siti solo "concesso" o "negato":
  * per un sito che non hai ancora deciso, Notification.permission diceva "denied" e
  * quasi tutti i siti (che chiedono solo se lo stato è "default") non chiedevano mai.
@@ -17,33 +37,35 @@ const {contextBridge,ipcRenderer}=require('electron');
  * vera passa comunque dal dialogo VARCO (lib/permissions.cjs).
  */
 // Beta 0.35: page-preload gira anche nei riquadri (per il login Google): le notifiche restano solo nella pagina principale, come prima.
-if(window.top===window&&/^https?:$/.test(location.protocol)){
+if(window.top===window&&WEB_PAGE){
   let choice='ask';
   try{choice=ipcRenderer.sendSync('varco:notification-permission')||'ask';}catch{}
   contextBridge.executeInMainWorld({args:[choice],func:initial=>{
     const N=window.Notification;
     if(!N)return;
+    const wrapFn=(owner,name,apply)=>{
+      const d=Object.getOwnPropertyDescriptor(owner,name);if(!d||typeof d.value!=='function')return;
+      try{Object.defineProperty(owner,name,{...d,value:new Proxy(d.value,{apply})});}catch{}
+    };
+    const wrapGetter=(owner,name,value,proto=owner)=>{
+      const d=Object.getOwnPropertyDescriptor(proto,name);if(!d||!d.get)return;
+      try{Object.defineProperty(owner,name,{...d,get:new Proxy(d.get,{apply(t,self,args){const v=value(self);return v===undefined?Reflect.apply(t,self,args):v;}})});}catch{}
+    };
     let current=initial;
     const toWeb={allow:'granted',deny:'denied',ask:'default'};
-    try{Object.defineProperty(N,'permission',{get:()=>toWeb[current]||'default',configurable:true});}catch{}
-    const request=N.requestPermission.bind(N);
-    N.requestPermission=function(callback){
-      return request().then(result=>{
+    wrapGetter(N,'permission',()=>toWeb[current]||'default');
+    wrapFn(N,'requestPermission',(target,self,args)=>{
+      const callback=args[0];
+      return Reflect.apply(target,self,[]).then(result=>{
         current=result==='granted'?'allow':result==='denied'?'deny':current;
         if(typeof callback==='function')callback(result);
         return result;
       });
-    };
-    const permissions=navigator.permissions;
-    if(permissions?.query){
-      const query=permissions.query.bind(permissions);
-      permissions.query=descriptor=>query(descriptor).then(status=>{
-        if(descriptor?.name==='notifications'&&current==='ask'){
-          try{Object.defineProperty(status,'state',{get:()=>toWeb[current]==='default'?'prompt':toWeb[current],configurable:true});}catch{}
-        }
-        return status;
-      });
-    }
+    });
+    if(window.Permissions)wrapFn(Permissions.prototype,'query',(target,self,args)=>Reflect.apply(target,self,args).then(status=>{
+      if(args[0]?.name==='notifications'&&current==='ask'&&window.PermissionStatus)wrapGetter(status,'state',()=>'prompt',PermissionStatus.prototype);
+      return status;
+    }));
   }});
 }
 
@@ -243,10 +265,12 @@ document.addEventListener('leavepictureinpicture',event=>{
  * - nel mondo della pagina si annotano gli elementi audio/video che partono e le azioni che il sito
  *   dichiara alla Media Session (brano successivo, precedente, salta pubblicità…), con titolo e copertina;
  * - lo stato arriva qui come evento DOM (solo testo) e va al processo principale ('media:state');
- * - i comandi arrivano dal processo principale direttamente nel mondo della pagina
- *   (WebFrameMain.executeJavaScript con il gesto dell'utente) e chiamano window.__varcoMedia.run().
+ * - Beta 0.37.2: i comandi arrivano qui ('media:cmd', dopo che il processo principale ha dato al riquadro il "gesto
+ *   dell'utente" che serve per play() e la finestrella) e passano al mondo della pagina con un evento dal nome casuale.
+ *   Niente più window.__varcoMedia: una variabile globale nuova è uno dei segni che i sistemi anti-bot cercano.
+ * - Nei riquadri dei servizi di verifica non si aggancia nulla (WEB_PAGE è falso).
  */
-if(/^https?:$/.test(location.protocol)){
+if(WEB_PAGE){
   const EV='varco-media-'+Math.random().toString(36).slice(2);
   let last='';
   document.addEventListener(EV,event=>{
@@ -255,34 +279,39 @@ if(/^https?:$/.test(location.protocol)){
     last=detail;
     ipcRenderer.send('media:state',detail);
   },true);
+  ipcRenderer.on('media:cmd',(_event,action,value)=>{
+    document.dispatchEvent(new CustomEvent(EV+'-cmd',{detail:JSON.stringify({action,value})}));
+  });
   contextBridge.executeInMainWorld({args:[EV],func:EV=>{
-    if(window.__varcoMedia)return;
+    // Agganci "invisibili" (Proxy sul prototipo, vedi sopra): la funzione resta quella del browser per chi la controlla.
+    const wrapFn=(owner,name,apply)=>{
+      const d=owner&&Object.getOwnPropertyDescriptor(owner,name);if(!d||typeof d.value!=='function')return;
+      try{Object.defineProperty(owner,name,{...d,value:new Proxy(d.value,{apply})});}catch{}
+    };
+    const wrapSetter=(owner,name,after)=>{
+      const d=owner&&Object.getOwnPropertyDescriptor(owner,name);if(!d||!d.set)return;
+      try{Object.defineProperty(owner,name,{...d,set:new Proxy(d.set,{apply(t,self,args){const r=Reflect.apply(t,self,args);after(args[0]);return r;}})});}catch{}
+    };
     const els=new Set(),handlers=new Map();
     let primary=null,position=null,timer=null;
     const ms=navigator.mediaSession;
     const queue=()=>{if(!timer)timer=setTimeout(send,150);};
-    if(ms){
-      const setHandler=ms.setActionHandler.bind(ms);
-      ms.setActionHandler=function(action,handler){
+    if(ms&&window.MediaSession){
+      const P=MediaSession.prototype;
+      wrapFn(P,'setActionHandler',(target,self,args)=>{
+        const [action,handler]=args;
+        const r=Reflect.apply(target,self,args); // prima il browser: se l'azione non esiste, l'errore è il suo
         if(typeof handler==='function')handlers.set(action,handler);else handlers.delete(action);
-        queue();
-        return setHandler(action,handler);
-      };
-      const proto=Object.getPrototypeOf(ms);
-      for(const prop of ['metadata','playbackState']){
-        const d=Object.getOwnPropertyDescriptor(proto,prop);
-        if(d?.get&&d?.set)try{Object.defineProperty(ms,prop,{configurable:true,get(){return d.get.call(ms);},set(v){d.set.call(ms,v);queue();}});}catch{}
-      }
-      if(ms.setPositionState){
-        const setPosition=ms.setPositionState.bind(ms);
-        ms.setPositionState=function(s){position=s?{...s}:null;queue();return setPosition(s);};
-      }
+        queue();return r;
+      });
+      wrapSetter(P,'metadata',queue);
+      wrapSetter(P,'playbackState',queue);
+      wrapFn(P,'setPositionState',(target,self,args)=>{const r=Reflect.apply(target,self,args);position=args[0]?{...args[0]}:null;queue();return r;});
     }
     const EVENTS=['play','playing','pause','ended','loadedmetadata','durationchange','ratechange','seeked','volumechange','emptied','enterpictureinpicture','leavepictureinpicture'];
     const onEvent=event=>{if(event.type==='play'||event.type==='playing')primary=event.target;queue();};
     const track=el=>{if(els.has(el))return;els.add(el);for(const type of EVENTS)el.addEventListener(type,onEvent);};
-    const play=HTMLMediaElement.prototype.play;
-    HTMLMediaElement.prototype.play=function(){track(this);primary=this;queue();return play.apply(this,arguments);};
+    wrapFn(HTMLMediaElement.prototype,'play',(target,self,args)=>{track(self);primary=self;queue();return Reflect.apply(target,self,args);});
     // Elementi che partono da soli (autoplay) senza chiamare play().
     document.addEventListener('play',event=>{if(event.target instanceof HTMLMediaElement){track(event.target);primary=event.target;queue();}},true);
     function pick(){
@@ -375,7 +404,7 @@ if(/^https?:$/.test(location.protocol)){
       queue();
       return true;
     }
-    Object.defineProperty(window,'__varcoMedia',{value:Object.freeze({run}),enumerable:false});
+    document.addEventListener(EV+'-cmd',event=>{try{const {action,value}=JSON.parse(event.detail);run(action,value);}catch{}});
     addEventListener('pagehide',()=>document.dispatchEvent(new CustomEvent(EV,{detail:JSON.stringify({has:false})})));
   }});
 }
