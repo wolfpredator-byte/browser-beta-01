@@ -14,7 +14,7 @@ Installer PC: `dist\VARCO Setup 0.37.0.exe`. Il telefono non cambia.
   - Il modulo non è nell'installer: VARCO lo scarica da Google al primo avvio (pochi MB) e poi lo aggiorna da solo. Quando è pronto compare una notifica; una pagina già aperta va ricaricata.
   - L'avviso "Spotify non può riprodurre" nel widget Pagina web della Home compare solo mentre il modulo si prepara, o se non arriva.
   - Copia diagnostica: nuova riga "Contenuti protetti" con lo stato del modulo e della firma.
-  - **La firma VMP.** Netflix, Prime Video e Disney+ (a volte anche Spotify) vogliono anche che l'eseguibile sia firmato. La firma è gratuita, ma serve un account castLabs EVS, che va creato a tuo nome (vedi *Da fare tu*). Senza firma Widevine funziona lo stesso, ma questi servizi possono rifiutare la riproduzione.
+  - **Firma VMP inclusa.** Netflix, Prime Video e Disney+ (a volte anche Spotify) vogliono che l'eseguibile sia firmato. L'installer ora porta `VARCO.exe.sig`, fatta con il tuo account castLabs EVS (gratuito). La firma è di tipo "streaming" e vale 1340 giorni; `npm run setup` la rinnova da sola a ogni installer.
   - Netflix e Prime nei browser diversi da Chrome/Edge di solito arrivano al massimo a 720p: è una loro regola, non di VARCO.
 - **Screenshot con anteprima.**
   - Dopo lo scatto compare l'immagine: il titolo della pagina, le dimensioni e "copiato negli appunti".
@@ -36,7 +36,7 @@ Installer PC: `dist\VARCO Setup 0.37.0.exe`. Il telefono non cambia.
   - I pulsanti della barra laterale sono un po' più bassi: con la tua lista ora ci sta anche il pannello WhatsApp.
   - Barra degli indirizzi: a barra ferma niente "https://" e "www." (es. `wikipedia.org`). Cliccandoci torna l'indirizzo completo, già selezionato.
 
-### Da fare tu (una volta sola, per la firma VMP)
+### Firma VMP: come funziona (account già creato)
 In un terminale:
 ```bash
 python -m pip install --upgrade castlabs-evs
@@ -44,7 +44,9 @@ python -m pip install --upgrade castlabs-evs
 ```bash
 python -m castlabs_evs.account signup
 ```
-Il comando chiede email, password, nome e organizzazione (puoi scrivere "uso personale"), poi manda una mail di conferma. Fatto questo, dimmelo: rifaccio l'installer e `npm run setup` firma da solo il motore (`VARCO.exe.sig`). Quando l'accesso scade: `python -m castlabs_evs.account reauth`.
+Questi due comandi sono già stati fatti. Se `signup` dà "Exceeded daily email limit", non è colpa tua: castLabs può mandare solo 50 email al giorno per tutti. Riprova dopo le 10:00 ora italiana, quando il limite si azzera.
+
+`npm run setup` firma da solo il motore (`VARCO.exe.sig`). Se un giorno l'accesso scade, il build lo dice; si rinnova con `python -m castlabs_evs.account reauth`.
 
 ### Rifinitura e velocità
 - **I salvataggi non fermano più VARCO.**
@@ -120,4 +122,8 @@ Il tuo VARCO aperto usava circa 3 GB in 14 processi. Ho guardato da dove arriva:
   - dall'installer;
   - l'aggiornamento automatico dalla 0.36;
   - Spotify e Netflix con un account vero;
-  - la firma VMP, che aspetta il tuo account EVS. In particolare non ho potuto verificare che la firma resti valida dopo che l'installer copia "VARCO Setup.exe" come VARCO.exe: lo controllo appena c'è l'account.
+  - Netflix e Prime con la firma: la firma è valida, ma solo la tua prova con un account vero dice se il servizio accetta VARCO.
+- **Firma VMP provata:**
+  - il motore è firmato ("streaming, 1340 days left");
+  - copiato come VARCO.exe con VARCO.exe.sig, come fa l'installer, la verifica di castLabs lo dà valido;
+  - avviato così con l'app vera, il modulo Widevine arriva e il video protetto di prova parte (6 secondi, 153 fotogrammi).
