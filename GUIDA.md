@@ -4,6 +4,90 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.38 — Nuovo command center (F1)
+
+Installer PC: `dist\VARCO Setup 0.38.0.exe` (con la firma VMP). Il telefono non cambia.
+
+Il command center (F1 o Ctrl+Shift+P) non è più una lista piatta: i risultati sono in **sezioni**, ognuno ha un'**azione principale** e delle **azioni secondarie**, e puoi **creare** cose, non solo cercarle. Ha due stili: scegli tu quale usare. Gli esempi da cui è nato sono in `design/explore/cc-round-1` e `cc-round-2`.
+
+### I due stili
+- **Bacheca** (predefinito): occupa lo spazio della pagina. In alto ci sono la ricerca e "Dove cercare". Sotto, "Apri subito" come tessere con la miniatura e le altre sezioni come card richiudibili. Le azioni del risultato scelto stanno nella barra in basso.
+- **Anello**: le sezioni sono settori attorno alla ricerca. ← → girano l'anello, i risultati del settore escono a ventaglio a destra e le azioni stanno attorno all'anello.
+- Lo stile si cambia dal pulsante rotondo in alto nel command center, da Impostazioni → Command center o dal comando "Command center: passa a…". VARCO si ricorda la scelta.
+
+### Le sezioni
+- **Apri subito:**
+  - senza testo, ciò che serve adesso nel workspace attivo: anteprima o dev server del progetto, fast link fissati, le altre schede della finestra;
+  - mentre scrivi, i 3 risultati migliori.
+- **Schede:** tutte, di tutti i workspace. Prima quelle del workspace attivo, poi una riga "Altri workspace". Azioni: vai, affianca, copia il link, chiudi; per gli altri workspace anche "Porta qui".
+- **Progetti:**
+  - il progetto di ogni workspace;
+  - per quello attivo anche i comandi (avvia, ferma, log) e le cartelle e i file dei primi due livelli: apri, mostra nella cartella, copia il percorso.
+- **Fast link:** sono i link rapidi della Home di ogni workspace, ora con **Fissa** e **scorciatoia Alt+1…9** (una per numero, per workspace). Ci sono anche le **sessioni** salvate (riapri le schede tutte insieme).
+- **Comandi:** quelli di prima, più i workspace.
+- **Web:** solo quando scrivi.
+  - In cima "Cerca «…»" con il tuo motore di ricerca, poi i **suggerimenti** del motore, poi preferiti e cronologia.
+  - I suggerimenti si spengono in Impostazioni → Command center. Partono solo dopo 2 lettere; indirizzi e percorsi non vengono mai mandati.
+- **JARVIS:** Chiedi a JARVIS, Riassumi la pagina, Salva nel progetto, e i prompt salvati. Se scrivi una domanda ("come si…", "…?"), JARVIS sale in cima.
+- **Crea:**
+  - nota, task (finiscono nelle note del workspace);
+  - fast link (dalla scheda attiva o da un indirizzo scritto);
+  - workspace;
+  - sessione (salva le schede della finestra);
+  - prompt per JARVIS.
+
+### Tastiera
+- ↑ ↓ scegli il risultato; **Tab** (o → a fine testo, solo nella Bacheca) passa all'azione successiva; **Invio** esegue; **Ctrl+Invio** fa la seconda azione.
+- Alt+↑ ↓ salta da una sezione all'altra (nell'Anello anche ← →).
+- Esc: prima torna all'azione principale, poi svuota il testo, poi chiude.
+- **Prefissi:** `>` comandi, `@` schede, `#` progetti, `/` fast link, `g ` web, `?` JARVIS, `+` crea.
+- Clic sul titolo di una sezione: la chiude o la riapre. "Mostra tutti" la allarga.
+
+### Anteprime
+Passando con il mouse (o scegliendo con la tastiera):
+- una **scheda** mostra la sua miniatura (se è sospesa no);
+- un **progetto** mostra il branch e le **ultime 5 modifiche** (git);
+- un **file** mostra le prime righe;
+- un **dev server** mostra le ultime righe di log;
+- una **sessione** mostra le sue schede.
+
+### JARVIS dal command center
+VARCO non ha un'intelligenza sua: JARVIS è il tuo assistente collegato con MCP.
+- "Chiedi a JARVIS" e "Riassumi la pagina" diventano **richieste in attesa**. JARVIS le prende con il nuovo strumento `get_user_requests` e risponde con `answer_user_request`.
+- La risposta arriva come notifica, con il pulsante "Copia". "Riassumi e salva nelle note" la mette anche nelle note del workspace.
+- Le richieste scadono dopo un'ora.
+- Se JARVIS è spento, queste voci propongono di accenderlo.
+- "Salva nel progetto" funziona anche senza JARVIS: aggiunge la pagina alle risorse del workspace.
+- Quando finirai JARVIS, gli basterà chiamare `get_user_requests` per ricevere quello che scrivi (o dirai) qui.
+
+### Test da fare
+- [ ] **T269** — F1: si apre la Bacheca, con le sezioni. Clic sul titolo di una sezione la chiude e la riapre. **📸**
+- [ ] **T270** — Pulsante rotondo in alto: passa all'Anello. Chiudi e riapri: resta l'Anello. ← → girano le sezioni. **📸**
+- [ ] **T271** — Scrivi il nome di una scheda di un altro workspace: compare sotto "Altri workspace". Tab fino a "Porta qui", Invio: la scheda arriva nel workspace attivo.
+- [ ] **T272** — Passa con il mouse su una scheda aperta (non sospesa): compare la miniatura. Su un progetto: branch e ultime modifiche.
+- [ ] **T273** — Scrivi "destiny": nella sezione Web compaiono i suggerimenti del motore. Spegnili in Impostazioni → Command center: spariscono.
+- [ ] **T274** — Scrivi "comprare il latte" → Crea → Task: nelle note del workspace c'è "- [ ] comprare il latte".
+- [ ] **T275** — Su una pagina: Crea → "Fast link dalla scheda attiva" → poi nei Fast link Tab fino a "Scorciatoia Alt+1". Alt+1 da qualunque pagina del workspace apre il link.
+- [ ] **T276** — Crea → "Sessione dalle schede aperte"; chiudi qualche scheda; Fast link → la sessione → "Riapri le schede".
+- [ ] **T277** — `> zen` mostra solo i comandi; `@` solo le schede; `? come si fa…` porta JARVIS in cima.
+- [ ] **T278** — (con JARVIS acceso e collegato) "Riassumi la pagina": arriva la notifica "Riassunto chiesto a JARVIS"; JARVIS vede la richiesta con `get_user_requests` e la sua risposta compare come notifica.
+- [ ] **T279** — Tema chiaro e un tema con un altro colore: il command center prende i colori del tema.
+
+**Stato:**
+- 230 test superati, 8 nuovi per le sezioni e le scorciatoie.
+- **Provato in VARCO con una copia dei tuoi dati:**
+  - Bacheca e Anello, senza testo e con "unity";
+  - tastiera in tutti e due (frecce, Tab, ← →, `> zen`, Esc due volte);
+  - suggerimenti di Startpage;
+  - nota e task nelle note;
+  - fast link fissato con Alt+1;
+  - sessione salvata;
+  - anteprima di un progetto con le ultime modifiche di git.
+- Il workspace "Personale" ha come cartella del progetto `C:\`: per un disco intero (o la cartella utente) i file non vengono elencati.
+- **Non provati:** la risposta di un JARVIS vero (non c'è un client collegato qui) e l'installer.
+
+---
+
 ## Beta 0.37.3 — Correzioni dopo la prova della 0.37.2
 
 Installer PC: `dist\VARCO Setup 0.37.3.exe` (con la firma VMP). Contiene anche tutto quello della 0.37.2, che non era stata pubblicata. Il telefono non cambia.

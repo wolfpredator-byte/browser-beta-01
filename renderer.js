@@ -986,6 +986,11 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Ricerca',
        row('Motore di ricerca',selectBox(s.engines.map(e=>[e.id,e.label]),s.searchEngine,engine=>act('setSearchEngine',{engine}))),
        hint('Per le frasi scritte nella barra degli indirizzi e nella Home. Le ricerche rapide dei progetti non cambiano.')),
+     // Beta 0.38: command center (F1, Ctrl+Shift+P).
+     section('Command center',
+       row('Stile',selectBox([['board','Bacheca: tessere e card'],['ring','Anello: sezioni attorno alla ricerca']],s.commandCenter?.style||'board',style=>act('ccSetStyle',{style}))),
+       checkRow('Suggerimenti di ricerca dal motore scelto',s.commandCenter?.webSuggestions!==false,enabled=>act('ccSetWebSuggestions',{enabled})),
+       hint('Si apre con F1 o Ctrl+Shift+P. Lo stile si cambia anche dal pulsante in alto nel command center. I suggerimenti mandano al motore di ricerca quello che scrivi (dopo 2 lettere), come fa la barra di Chrome; gli indirizzi e i percorsi non partono mai.')),
      bangSection(hint),
      ...(state.siteStyleHosts?.length?[section('Stili dei siti',
        el('div',{className:'tab-tools'},...state.siteStyleHosts.map(host=>el('span',{className:'folder-chip'},el('span',{textContent:host}),
@@ -2725,69 +2730,16 @@ $('homeQuery').addEventListener('keydown',e=>{
 $('homeQuery').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('homeQuery')&&suggestField()===$('homeQuery'))closeSuggestions();},120));
 $('paletteButton').onclick=()=>act('openPalette');
 
-// ── Palette fluttuante (Beta 0.12.1) ────────────────────────────────────
-// Una sola barra di ricerca al centro della finestra, sopra la pagina sfocata.
-// Vuota non mostra niente; scrivendo compaiono al massimo 6 risultati.
-const MAX_PALETTE=6;
-let paletteItems=[],paletteShown=[],paletteIndex=0;
+// ── Command center (Beta 0.38, prima palette fluttuante della 0.12.1) ──────────
+// F1 / Ctrl+Shift+P: bacheca o anello, a scelta. Il disegno e la tastiera sono in command-center.js.
 function openFloatingPalette(message){
- paletteItems=message.items||[];
  // F1 mentre i suggerimenti della barra erano aperti: la pagina è già nascosta, cambiamo solo vista.
  suggestOpen=false;suggestRequested=false;$('suggest').hidden=true;
  closeFind(false);
  setBackdrop(message,true);
- $('palette').hidden=false;
- const input=$('paletteInput');input.value='';
- renderPalette();
- input.focus();
+ window.CommandCenter.open(message);
 }
-function closeFloatingPalette(){
- if($('palette').hidden)return Promise.resolve();
- $('palette').hidden=true;
- const img=$('paletteBackdrop');img.hidden=true;img.removeAttribute('src');
- return act('closePalette');
-}
-function renderPalette(){
- const q=$('paletteInput').value.trim();
- const list=$('paletteList');list.replaceChildren();
- paletteShown=q?window.paletteRules.filterItems(paletteItems,q,MAX_PALETTE):[];
- if(q){const web=webItem(q);web.run={command:'newTab',args:{url:q}};web.detail=web.detail+' · nuova scheda';
-   if(/^Cerca/.test(web.label)&&paletteShown.length)paletteShown.push(web);else paletteShown.unshift(web);}
- paletteIndex=0;
- paletteShown.forEach((item,index)=>{
-   const icon=item.favicon?el('img',{className:'palette-icon',src:item.favicon,alt:''}):
-     el('span',{className:'palette-icon glyph',textContent:item.kind==='web'?'⌕':item.kind==='command'?'›':''});
-   const text=el('span',{className:'palette-text'},el('span',{className:'palette-label',textContent:item.label}),
-     ...(item.detail?[el('span',{className:'palette-detail',textContent:item.detail})]:[]));
-   const row=el('div',{className:'palette-row',role:'option'},icon,text,
-     ...(item.keys?[el('kbd',{textContent:item.keys})]:[]),
-     ...(KIND_LABELS[item.kind]?[el('span',{className:'palette-kind kind-'+item.kind,textContent:KIND_LABELS[item.kind]})]:[]));
-   row.onmousemove=()=>{if(paletteIndex!==index){paletteIndex=index;highlightPalette();}};
-   row.onclick=()=>runPaletteItem(item);
-   list.append(row);
- });
- list.hidden=!paletteShown.length;
- highlightPalette();
-}
-function highlightPalette(){
- const rows=$('paletteList').children;
- for(let i=0;i<rows.length;i++)rows[i].classList.toggle('selected',i===paletteIndex);
-}
-async function runPaletteItem(item){
- if(!item)return;
- await closeFloatingPalette();
- act(item.run.command,item.run.args||{});
-}
-$('paletteInput').oninput=renderPalette;
-$('paletteInput').onkeydown=e=>{
- const move=step=>{e.preventDefault();if(!paletteShown.length)return;paletteIndex=(paletteIndex+step+paletteShown.length)%paletteShown.length;highlightPalette();};
- if(e.key==='ArrowDown')move(1);
- else if(e.key==='ArrowUp')move(-1);
- else if(e.key==='Enter'){e.preventDefault();runPaletteItem(paletteShown[paletteIndex]);}
- else if(e.key==='Escape'){e.preventDefault();closeFloatingPalette();}
-};
-// Clic fuori dalla barra: chiude.
-$('palette').onmousedown=e=>{if(!e.target.closest('.palette-float'))closeFloatingPalette();};
+function closeFloatingPalette(){return window.CommandCenter.close();}
 
 // ── Pagina di errore (Beta 0.11.1) ──────────────────────────────────────
 // Prima era un avviso sopra la pagina, ma le pagine stanno sopra la cornice e lo coprivano.

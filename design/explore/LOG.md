@@ -97,3 +97,37 @@ Nelle due strette titolo, barra, shuffle/ripeti e volume compaiono in una scheda
 **Scelta:** barra **minima**. Portata nel browser nella 0.37.1 (lib/media-overlay.cjs, media-overlay.*): scheda al passaggio e lettore completo sono una vista sopra la pagina.
 
 
+
+## 2026-11-16 · Command center (0.38) · Round 1 (cc-round-1/)
+Brief: `design/BRIEF-command-center.md`. Ispirazione: pin recenti della board (anelli e sottomenu radiali, file manager, capsule, isola) annotati in `inspiration/pinterest-website-design/notes.md` (famiglie 7–9).
+Motore comune `cc-round-1/shared/cc.js`: stessi dati, sezioni, ricerca (prefissi > @ # / ? +, "Dove cercare"), workspace attivo prima, azione principale + secondarie (Tab, ← →, Ctrl+Invio), anteprime (miniatura, percorso, ultime modifiche), Crea, Jarvis (in cima se scrivi una domanda).
+Stati: Normale · Nessun risultato · Molte schede (120) · Titoli lunghi · Jarvis spento.
+
+| Variante | Struttura | Famiglia |
+|---|---|---|
+| v1-sezioni | barra al centro + sezioni espandibili, azioni sulla riga, anteprima accanto | pro-dock |
+| v2-colonne | tre colonne: dove cercare / risultati a tabella / anteprima + azioni | file-commander |
+| v3-anello | settori attorno alla ricerca, risultati a ventaglio, azioni sull'orbita | radial-command |
+| v4-bacheca | a tutta pagina: tessere "Apri subito", card-widget, barra azioni in basso | soft-glass widget |
+| v5-isola | isola dalla barra del titolo, capsule impilate, dettaglio sul posto | island + neon |
+
+**Scelta:** V3 · Anello e V4 · Bacheca («sono quelli che mi interessano di più»).
+
+## 2026-11-16 · Command center · Round 2 (cc-round-2/, da V3 + V4)
+Asse (scelto da me, l'utente non ne ha indicato uno): **come convivono anello e bacheca** — chi fa da navigazione, chi da contenuto, dove stanno le azioni.
+
+| Variante | Anello | Bacheca |
+|---|---|---|
+| 2a-hub | a sinistra, sempre visibile: sceglie la sezione (← →) | a destra, tutte le card; quella del settore si accende |
+| 2b-azioni | anello delle **azioni** attorno al risultato scelto (Tab lo apre) | la V4 com'è, a tutta pagina |
+| 2c-dal-centro | da vuoto è al centro con "Apri subito" attorno; scrivendo si rimpicciolisce in un quadrante accanto alla ricerca | appare quando scrivi |
+
+**Scelta:** nessuna delle tre («non mi piacciono»). L'utente: «facciamo le 2 opzioni separate e facciamo che l'utente stesso può scegliere quale volere».
+→ Nella 0.38 il command center ha due stili, a scelta nelle Impostazioni: **Bacheca** (V4) e **Anello** (V3), con lo stesso motore (sezioni, azioni, anteprime, Crea, Jarvis).
+
+## 2026-11-16 · Command center · Implementazione 0.38
+Portati nel browser i due stili, con lo stesso motore:
+- **Bacheca** = V4 (cc-round-1/v4-bacheca), **Anello** = V3 (cc-round-1/v3-anello).
+- Scelta in Impostazioni → Command center e dal pulsante rotondo in alto.
+- Codice: `command-center.js` e `command-center.css` (cornice), `command-center-rules.js` (sezioni e ordine), `lib/command-center.cjs` (risultati, azioni, anteprime, suggerimenti).
+- Colori dai token del tema (--v-accent, --v-bg, --v-ink) invece dei colori fissi degli esempi.

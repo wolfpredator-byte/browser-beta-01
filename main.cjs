@@ -92,6 +92,7 @@ function start(){
   registerSettingsCommands(bus);
   registerAppearanceCommands(bus);
   require('./lib/toasts.cjs').setup(bus);
+  require('./lib/command-center.cjs').setup(bus); // Beta 0.38: command center (F1)
   require('./lib/popup.cjs').setup();
 
   windows.setShortcutHandler((contents,input)=>{
@@ -99,6 +100,13 @@ function start(){
     if(!command)return false;
     const w=windowOfAnyContents(contents);
     if(!w)return false;
+    // Beta 0.38: Alt+N → fast link; se il workspace non ne ha uno con quella scorciatoia, il tasto resta al sito.
+    if(command.startsWith('openFastLink:')){
+      const key=Number(command.split(':')[1]);
+      if(!require('./lib/command-center.cjs').linkForKey(w,key))return false;
+      bus.dispatch('openFastLink',{key},{window:w,source:'shortcut'});
+      return true;
+    }
     bus.dispatch(command,{},{window:w,source:'shortcut'});
     return true; // Il tasto non arriva al sito: evita doppie azioni.
   });

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V2 · Colonne</title>
+<script src="../../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../shared/cc.css">
+<style>
+/* V2 — Colonne (file-commander, pin 1/18): a sinistra dove cercare (sezioni, workspace, gruppi di fast link),
+   al centro i risultati come una tabella raggruppata, a destra anteprima e azioni sempre visibili. */
+.v2{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(1180px,calc(100vw - 80px));height:min(640px,calc(100vh - 140px));
+  display:grid;grid-template-columns:200px 1fr 300px;grid-template-rows:minmax(0,1fr);background:var(--glass);backdrop-filter:blur(40px) saturate(1.3);
+  border:1px solid rgba(var(--line-rgb),.28);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
+.rail{border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:1px;overflow:auto;background:rgba(0,0,0,.14)}
+.rail h4{margin:12px 8px 4px;font-weight:500;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint)}
+.rail h4:first-child{margin-top:2px}
+.ri{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;color:var(--muted);font-size:12.5px;text-align:left}
+.ri .ic{width:15px;height:15px}
+.ri:hover{background:rgba(255,255,255,.05);color:var(--fg)}
+.ri.on{background:rgba(var(--acc-rgb),.12);color:var(--fg);box-shadow:inset 2px 0 0 var(--acc)}
+.ri .n{margin-left:auto;font-size:10.5px;color:var(--faint)}
+.ri .dot{width:7px;height:7px;border-radius:50%;margin:0 4px}
+.ri kbd{margin-left:auto}
+.mid{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.search{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.search>.ic{width:19px;height:19px;color:var(--acc)}
+.crumb{font-size:11px;color:var(--faint);white-space:nowrap}
+.res{flex:1;overflow:auto;padding:4px 0 10px;scrollbar-width:thin}
+.gh{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;width:100%;padding:9px 16px 6px;background:rgba(var(--glass-rgb),.96);
+  font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+.gh .ic{width:13px;height:13px}.gh .chev{width:12px;height:12px;transition:transform .15s}.gh.closed .chev{transform:rotate(-90deg)}
+.gh b{font-weight:500;color:var(--muted)}.gh .n{letter-spacing:0}
+.gh .cols{margin-left:auto;display:flex;gap:0;letter-spacing:.08em;font-size:9.5px}
+.gh .cols span{width:110px}
+.tr{display:flex;align-items:center;gap:10px;padding:5px 16px;min-height:38px;border-left:2px solid transparent}
+.tr:hover{background:rgba(255,255,255,.035)}
+.tr.sel{background:rgba(var(--acc-rgb),.1);border-left-color:var(--acc)}
+.tr .cc-ico{width:24px;height:24px;border-radius:7px}
+.tr .t{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr .t small{color:var(--faint);font-size:11px;margin-left:8px}
+.tr .c{width:110px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.split{padding:6px 16px 2px 50px;font-size:10.5px;color:var(--faint)}
+.more{margin:2px 0 4px 50px;font-size:11.5px;color:var(--acc)}
+.side{border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:rgba(0,0,0,.1)}
+.pv{padding:16px;display:flex;flex-direction:column;gap:10px;overflow:auto;flex:1;min-height:0}
+.acts{padding:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.acts h4{margin:0 4px 4px;font-weight:500;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint)}
+.a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;font-size:12.5px;color:var(--muted);text-align:left}
+.a:hover{background:rgba(255,255,255,.05);color:var(--fg)}
+.a.on{color:var(--fg);background:rgba(var(--acc-rgb),.12);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.45)}
+.a.main{background:var(--acc);color:#03141a;font-weight:600;justify-content:space-between}
+.a.main.on{box-shadow:0 0 0 2px rgba(255,255,255,.7),0 0 18px rgba(var(--acc-rgb),.5)}
+.a.main:not(.on){opacity:.75}
+.a kbd{margin-left:auto}
+.foot{grid-column:1/-1}
+.bottom{display:flex;gap:14px;padding:8px 16px;border-top:1px solid var(--line);font-size:11px}
+</style></head><body>
+<script src="../shared/cc.js"></script>
+<script>
+const {m,I,esc}=CC;
+function rail(gs){
+  const {forced}=CC.parse();const sc=forced||m.scope;
+  const count=id=>{const g=gs.find(g=>g.id===id);return g?g.items.length:''};
+  const sec=[['all','Tutto','search'],['tabs','Schede','tabs'],['projects','Progetti','folder'],['links','Fast link','pin'],['commands','Comandi','cmd'],['web','Web','globe'],['jarvis','Jarvis','spark'],['create','Crea','plus']];
+  return `<h4>Dove cercare</h4>${sec.map(([k,l,ic])=>`<button class="ri${sc===k?' on':''}" data-scope="${k}">${I[ic]}${l}<span class="n">${k==='all'?'':count(k)}</span></button>`).join('')}
+   <h4>Workspace</h4>${Object.entries(CC.WS).map(([w,c])=>`<button class="ri${w===CC.ACTIVE&&sc==='ws'?' on':''}" ${w===CC.ACTIVE?'data-scope="ws"':''}><span class="dot" style="background:${c}"></span>${w}${w===CC.ACTIVE?'<span class="n">attivo</span>':''}</button>`).join('')}
+   <h4>Fast link</h4><button class="ri">${I.pin}Fissati<span class="n">4</span></button>
+   <button class="ri"><span class="dot" style="background:#00e5ff"></span>Sviluppo<kbd>Alt+1</kbd></button>
+   <button class="ri"><span class="dot" style="background:#ffb648"></span>Destiny<kbd>Alt+3</kbd></button>
+   <button class="ri"><span class="dot" style="background:#9c8cff"></span>Unity</button>
+   <button class="ri"><span class="dot" style="background:#1ed760"></span>Musica</button>`;
+}
+const col=x=>{
+  if(x.kind==='tab')return [x.sub,x.ws];
+  if(x.kind==='link')return [x.group||'—',x.key||''];
+  if(x.kind==='project'||x.kind==='folder'||x.kind==='file')return [x.mod||x.branch||'',x.ws];
+  if(x.kind==='server')return [x.on?'● attivo':'fermo',x.ws];
+  if(x.kind==='command')return ['',x.key||''];
+  return ['',''];
+};
+function render(){
+  const root=document.getElementById('cc-root');
+  const old=root.querySelector('.res');const top=old?old.scrollTop:0;
+  const gs=CC.groups(),cur=CC.current();let k=0;
+  const body=gs.map(g=>`<button class="gh${g.collapsed?' closed':''}" data-toggle="${g.id}">${I.down.replace('class="ic"','class="ic chev"')}${I[g.icon]}<b>${g.title}</b><span class="n">${g.items.length}</span></button>
+    ${g.collapsed?'':g.shown.map((x,i)=>{const idx=k++;const [c1,c2]=col(x);
+      return `${i===g.split?'<div class="split">Altri workspace</div>':''}<div class="tr${idx===m.sel?' sel':''}${x.off?' cc-off':''}" data-i="${idx}">${CC.icon(x)}
+      <span class="t">${esc(x.title)}${x.kind!=='tab'&&x.sub?`<small>${esc(x.sub)}</small>`:''}</span><span class="c">${esc(c1)}</span><span class="c">${x.ws!==CC.ACTIVE&&c2===x.ws?`<span class="cc-ws" style="--w:${CC.WS[x.ws]}">${x.ws}</span>`:esc(c2===CC.ACTIVE?'':c2)}</span></div>`;}).join('')}
+    ${!g.collapsed&&g.more?`<button class="more" data-expand="${g.id}">Mostra tutti (${g.items.length})</button>`:''}`).join('');
+  const pvItem=m.hover||cur;
+  root.innerHTML=`<div class="v2"><nav class="rail">${rail(gs)}</nav>
+   <section class="mid"><div class="search">${I.search}<span id="slot"></span><span class="crumb">${CC.ACTIVE} prima, poi il resto</span></div>
+     <div class="res">${body||`<div class="cc-empty"><b>Nessun risultato per «${esc(m.q)}»</b>Cambia «Dove cercare» a sinistra o chiedi a Jarvis.</div>`}</div>
+     <div class="bottom cc-hint">${CC.prefixHint()}</div></section>
+   <aside class="side"><div class="pv">${pvItem?CC.preview(pvItem):''}</div>
+     <div class="acts"><h4>Azioni</h4>${cur?(cur.actions||[]).map((a,j)=>`<button class="a${j===0?' main':''}${j===m.act?' on':''}" data-a="${j}">${a}${j===0?`<span style="display:flex;gap:3px"><kbd>Invio</kbd></span>`:j===1?'<kbd>Ctrl+Invio</kbd>':''}</button>`).join(''):''}
+       <div class="cc-hint" style="margin:6px 4px 0"><span><kbd>Tab</kbd> <kbd>→</kbd> scorri le azioni</span></div></div></aside></div>`;
+  root.querySelector('#slot').replaceWith(CC.input('Cerca schede, progetti, comandi, il web…'));
+  const res=root.querySelector('.res');res.scrollTop=top;res.querySelector('.tr.sel')?.scrollIntoView({block:'nearest'});
+  root.querySelectorAll('.tr').forEach(r=>{const x=CC.flat()[+r.dataset.i];
+    r.onmouseenter=()=>CC.hover(x);r.onmouseleave=()=>CC.hover(null);
+    r.onclick=()=>{m.sel=+r.dataset.i;m.act=0;CC.update();};r.ondblclick=()=>CC.run(x,0);});
+  root.querySelectorAll('.a').forEach(b=>b.onclick=()=>{m.act=+b.dataset.a;CC.run(cur,m.act);CC.update();});
+}
+CC.mount(render);
+</script>
+</body></html>

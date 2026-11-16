@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>2b · Anello delle azioni</title>
+<script src="../../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../../cc-round-1/shared/cc.css">
+<link rel="stylesheet" href="../shared/parts.css">
+<style>
+/* 2b — La bacheca della V4 a tutta pagina; l'anello diventa il menu delle azioni:
+   Tab (o clic destro) lo apre attorno al risultato scelto, ← → / Tab girano, Invio esegue, Esc chiude. */
+.b{position:absolute;left:62px;right:10px;top:74px;bottom:56px;display:flex;flex-direction:column;gap:14px;padding:6px 18px 0}
+.top{display:flex;align-items:center;gap:14px}.top .bd-search{flex:1}
+.scroll{flex:1;overflow:auto;padding-bottom:40px;scrollbar-width:thin}
+.foot{position:absolute;left:0;right:0;bottom:-38px;display:flex;justify-content:center}
+.dimmer{position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.35);backdrop-filter:blur(1.5px)}
+.am{position:fixed;z-index:16;width:240px;height:240px;transform:translate(-50%,-50%)}
+.am.enter{animation:pop .2s cubic-bezier(.2,.9,.25,1.2)}
+.dimmer.enter{animation:fd .2s}@keyframes fd{from{opacity:0}}
+@keyframes pop{from{transform:translate(-50%,-50%) scale(.6) rotate(-20deg);opacity:0}}
+.am svg{position:absolute;inset:0;overflow:visible}
+.am path{fill:rgba(var(--glass-rgb),.95);stroke:rgba(var(--line-rgb),.3);cursor:pointer;transition:fill .12s}
+.am path:hover{fill:rgba(var(--glass-rgb),1)}
+.am path.on{fill:rgba(var(--acc-rgb),.85);stroke:var(--acc);filter:drop-shadow(0 0 10px rgba(var(--acc-rgb),.6))}
+.am .l{position:absolute;transform:translate(-50%,-50%);width:76px;text-align:center;font-size:10.5px;line-height:1.2;color:var(--fg);pointer-events:none}
+.am .l.on{color:#03141a;font-weight:600}
+.am .c{position:absolute;left:50%;top:50%;width:92px;height:92px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(var(--glass-rgb),.98);
+  border:1px solid rgba(var(--line-rgb),.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:10px;color:var(--muted);text-align:center;padding:8px}
+.am .c b{font-size:10.5px;color:var(--fg);font-weight:500;max-width:76px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabtip{position:fixed;z-index:4;transform:translate(-100%,-50%);font-size:10.5px;color:var(--muted);display:flex;gap:4px;align-items:center;pointer-events:none}
+</style></head><body>
+<script src="../../cc-round-1/shared/cc.js"></script>
+<script src="../shared/parts.js"></script>
+<script>
+const {m,I,esc}=CC;
+let ringOpen=false,ringShown=false;
+function actionRing(cur,anchor){
+  const b=anchor.getBoundingClientRect();
+  const R=120,RI=50,n=cur.actions.length,step=360/n;
+  let cx=b.right-40,cy=b.top+b.height/2;
+  cx=Math.max(R+10,Math.min(innerWidth-R-10,cx));cy=Math.max(R+10,Math.min(innerHeight-R-10,cy));
+  const pt=(r,a)=>[R+r*Math.cos((a-90)*Math.PI/180),R+r*Math.sin((a-90)*Math.PI/180)];
+  const seg=(a0,a1)=>{const [x0,y0]=pt(R,a0),[x1,y1]=pt(R,a1),[x2,y2]=pt(RI,a1),[x3,y3]=pt(RI,a0);const L=a1-a0>180?1:0;
+    return `M${x0},${y0}A${R},${R} 0 ${L} 1 ${x1},${y1}L${x2},${y2}A${RI},${RI} 0 ${L} 0 ${x3},${y3}Z`;};
+  const g=2;
+  const en=ringShown?'':' enter';ringShown=true;
+  return `<div class="dimmer${en}"></div><div class="am${en}" style="left:${cx}px;top:${cy}px"><svg viewBox="0 0 ${2*R} ${2*R}">
+    ${cur.actions.map((a,j)=>`<path class="${j===m.act?'on':''}" data-a="${j}" d="${seg(j*step-step/2+g,j*step+step/2-g)}"/>`).join('')}</svg>
+    ${cur.actions.map((a,j)=>{const [x,y]=pt((R+RI)/2,j*step);return `<span class="l${j===m.act?' on':''}" style="left:${x}px;top:${y}px">${a}</span>`;}).join('')}
+    <div class="c">${CC.icon(cur)}<b>${esc(cur.title)}</b><span><kbd>Invio</kbd></span></div></div>`;
+}
+function render(){
+  const root=document.getElementById('cc-root');
+  const gs=CC.groups(),cur=CC.current();
+  P.keepScroll(root,'.scroll',()=>{
+    root.innerHTML=`<div class="b"><div class="top"><div class="bd-search">${I.search}<span id="slot"></span><kbd>Esc</kbd></div><div class="bd-segm">${CC.scopeChips()}</div></div>
+      <div class="scroll">${gs.length?P.board({gs}):P.empty()}</div>
+      <div class="foot cc-hint"><span><kbd>↑</kbd><kbd>↓</kbd> scegli</span><span><kbd>Tab</kbd> o clic destro: anello delle azioni</span><span><kbd>←</kbd><kbd>→</kbd> gira l'anello</span><span><kbd>Invio</kbd> esegui</span><span><kbd>Esc</kbd> chiudi</span></div></div>
+      ${ringOpen?'':P.pop()}`;
+    root.querySelector('#slot').replaceWith(CC.input('Cerca, apri o crea qualcosa…'));
+  });
+  const sel=root.querySelector('.scroll .sel');
+  if(sel&&cur){
+    if(!ringOpen)ringShown=false;
+    if(ringOpen){root.insertAdjacentHTML('beforeend',actionRing(cur,sel));
+      root.querySelector('.dimmer').onclick=()=>{ringOpen=false;m.act=0;CC.update();};
+      root.querySelectorAll('.am [data-a]').forEach(p=>{p.onmouseenter=()=>{if(m.act!==+p.dataset.a){m.act=+p.dataset.a;CC.update();}};p.onclick=()=>{CC.run(cur,+p.dataset.a);ringOpen=false;m.act=0;CC.update();};});}
+    else{const b=sel.getBoundingClientRect();root.insertAdjacentHTML('beforeend',`<span class="tabtip" style="left:${b.right-8}px;top:${b.top+b.height/2}px"><kbd>Tab</kbd> azioni</span>`);}
+  }
+  P.bindBoard(root,{onClickItem:(x)=>{CC.run(x,0);CC.update();}});
+  root.querySelectorAll('[data-i]').forEach(r=>r.oncontextmenu=e=>{e.preventDefault();m.sel=+r.dataset.i;m.act=0;ringOpen=true;CC.update();});
+}
+CC.mount(render,{lr:false,custom(e,x){
+  if(e.key==='Tab'){e.preventDefault();if(!ringOpen){ringOpen=true;m.act=0;}else{const n=x?.actions?.length||1;m.act=(m.act+(e.shiftKey?-1:1)+n)%n;}CC.update();return true;}
+  if(ringOpen&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){e.preventDefault();const n=x?.actions?.length||1;m.act=(m.act+(e.key==='ArrowRight'?1:-1)+n)%n;CC.update();return true;}
+  if(ringOpen&&e.key==='Escape'){e.preventDefault();ringOpen=false;m.act=0;CC.update();return true;}
+  if(ringOpen&&e.key==='Enter'){e.preventDefault();CC.run(x,m.act);ringOpen=false;m.act=0;CC.update();return true;}
+  if(ringOpen&&(e.key==='ArrowDown'||e.key==='ArrowUp')){ringOpen=false;}
+  return false;
+}});
+</script>
+</body></html>

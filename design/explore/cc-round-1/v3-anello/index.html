@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V3 · Anello</title>
+<script src="../../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../shared/cc.css">
+<style>
+/* V3 — Anello (radial-command, pin 7/8/13/15): le sezioni sono settori attorno alla ricerca; i risultati
+   del settore escono a ventaglio sulla destra, le azioni girano attorno al centro. ← → cambiano settore. */
+.v3{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:28px;padding-top:30px}
+.ring{position:relative;width:460px;height:460px;flex:none}
+.ring>svg{position:absolute;inset:0;overflow:visible}
+.seg path{fill:rgba(var(--glass-rgb),.78);stroke:rgba(var(--line-rgb),.22);stroke-width:1;transition:fill .15s;cursor:pointer}
+.seg:hover path{fill:rgba(var(--glass-rgb),.95)}
+.seg.on path{fill:rgba(var(--acc-rgb),.16);stroke:rgba(var(--acc-rgb),.7)}
+.seg.empty{opacity:.32;pointer-events:none}
+.arc{fill:none;stroke:var(--acc);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(var(--acc-rgb),.8))}
+.lab{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;width:90px}
+.lab .ic{width:18px;height:18px}
+.lab.on{color:var(--acc)}
+.lab .n{letter-spacing:0;font-size:10px;color:var(--faint)}
+.core{position:absolute;left:50%;top:50%;width:230px;height:230px;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 50% 35%,rgba(var(--glass-rgb),.98),rgba(var(--glass-rgb),.9));border:1px solid rgba(var(--line-rgb),.3);
+  box-shadow:0 0 0 8px rgba(var(--glass-rgb),.35),0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px}
+.core .k{font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--faint)}
+.core .inp{display:flex;align-items:center;gap:6px;width:100%;padding:8px 10px;border-radius:999px;background:rgba(0,0,0,.3);border:1px solid rgba(var(--line-rgb),.2)}
+.core .inp .ic{width:15px;height:15px;color:var(--acc);flex:none}
+.core .cc-input{font-size:13px}
+.core .sec{font-size:15px;font-weight:600;letter-spacing:.06em}
+.orbit{position:absolute;left:50%;top:50%;width:0;height:0}
+.orbit .cc-act{position:absolute;transform:translate(-50%,-50%);background:rgba(var(--glass-rgb),.95);font-size:11px;padding:4px 10px;border-radius:999px}
+.orbit .cc-act.on{background:var(--acc);color:#03141a}
+.fan{width:430px;display:flex;flex-direction:column;gap:6px;position:relative}
+.fan h3{margin:0 0 4px 6px;font-weight:500;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);display:flex;gap:10px;align-items:center}
+.fi{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:rgba(var(--glass-rgb),.8);backdrop-filter:blur(24px);border:1px solid rgba(var(--line-rgb),.16);
+  transition:transform .18s,margin .18s;min-height:44px}
+.fi:hover{border-color:rgba(var(--line-rgb),.35)}
+.fi.sel{border-color:rgba(var(--acc-rgb),.7);background:rgba(var(--acc-rgb),.12);box-shadow:0 0 22px rgba(var(--acc-rgb),.18)}
+.fi .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.fi .t b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi .t span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.split{font-size:10.5px;color:var(--faint);margin:4px 0 0 14px}
+.more{align-self:flex-start;margin-left:14px;font-size:11.5px;color:var(--acc)}
+.pv{margin-top:8px;padding:12px;border-radius:14px;background:rgba(var(--glass-rgb),.85);border:1px solid rgba(var(--line-rgb),.2);display:grid;grid-template-columns:140px 1fr;gap:12px;align-items:start}
+.pv .cc-thumb{grid-row:span 2}
+.pv.nothumb{grid-template-columns:1fr}
+.pv .cc-commits li{grid-template-columns:auto 1fr}.pv .cc-commits em{display:none}
+.foot{position:absolute;left:50%;bottom:58px;transform:translateX(-50%)}
+.scopes{position:absolute;left:50%;top:58px;transform:translateX(-50%);display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(var(--glass-rgb),.8);border:1px solid var(--line)}
+</style></head><body>
+<script src="../shared/cc.js"></script>
+<script>
+const {m,I,esc}=CC;
+const R=230,RI=128,GAP=1.6; // raggio esterno e interno, spazio tra i settori (gradi)
+const order=['now','tabs','projects','links','commands','web','jarvis','create'];
+const pt=(r,a)=>[R+r*Math.cos((a-90)*Math.PI/180),R+r*Math.sin((a-90)*Math.PI/180)];
+function arcPath(a0,a1,r0,r1){const [x0,y0]=pt(r1,a0),[x1,y1]=pt(r1,a1),[x2,y2]=pt(r0,a1),[x3,y3]=pt(r0,a0);const L=a1-a0>180?1:0;
+  return `M${x0},${y0}A${r1},${r1} 0 ${L} 1 ${x1},${y1}L${x2},${y2}A${r0},${r0} 0 ${L} 0 ${x3},${y3}Z`;}
+function render(){
+  const root=document.getElementById('cc-root');
+  const gs=CC.groups(),f=CC.flat(),cur=CC.current();
+  const curG=cur?.group;const step=360/order.length;
+  const segs=order.map((id,i)=>{const g=gs.find(g=>g.id===id);const s=CC.SEC.find(s=>s.id===id);const a0=i*step-step/2+GAP,a1=i*step+step/2-GAP;
+    const [lx,ly]=pt((R+RI)/2+4,i*step);
+    return {id,g,s,path:arcPath(a0,a1,RI,R),arc:arcPath(a0+3,a1-3,R+7,R+7.01),lx,ly};});
+  const on=segs.find(s=>s.id===curG);
+  const g=gs.find(g=>g.id===curG);
+  let idx0=f.findIndex(x=>x.group===curG);
+  const items=g&&!g.collapsed?g.shown:[];
+  const acts=cur?.actions||[];
+  // azioni su un'orbita fuori dall'anello, in basso
+  const orbit=acts.map((a,j)=>{const ang=180-(j-(acts.length-1)/2)*24;const r=R+30;const x=r*Math.cos((ang-90)*Math.PI/180),y=r*Math.sin((ang-90)*Math.PI/180);
+    return `<button class="cc-act${j===m.act?' on':''}" data-a="${j}" style="left:${x}px;top:${y}px">${a}</button>`;}).join('');
+  const pvItem=m.hover||cur;const hasThumb=pvItem&&['tab','link'].includes(pvItem.kind);
+  root.innerHTML=`<div class="scopes">${CC.scopeChips()}</div><div class="v3">
+   <div class="ring"><svg viewBox="0 0 ${2*R} ${2*R}" width="${2*R}" height="${2*R}">
+     ${segs.map(s=>`<g class="seg${s.g?'':' empty'}${s.id===curG?' on':''}" data-seg="${s.id}"><path d="${s.path}"/></g>`).join('')}
+     ${on?`<path class="arc" d="M${pt(R+8,order.indexOf(curG)*step-step/2+5).join(',')}A${R+8},${R+8} 0 0 1 ${pt(R+8,order.indexOf(curG)*step+step/2-5).join(',')}"/>`:''}</svg>
+     ${segs.map(s=>`<div class="lab${s.id===curG?' on':''}" style="left:${s.lx}px;top:${s.ly}px">${I[s.s.icon]}<span>${s.s.title}</span><span class="n">${s.g?s.g.items.length:'—'}</span></div>`).join('')}
+     <div class="core"><span class="k">Navigator</span><div class="inp">${I.search}<span id="slot"></span></div>
+       <span class="sec">${g?g.title:'Nessun risultato'}</span><span class="k" style="letter-spacing:.1em">${CC.ACTIVE} prima</span></div>
+     <div class="orbit">${orbit}</div></div>
+   <div class="fan"><h3>${g?I[g.icon]+g.title+` <kbd>←</kbd><kbd>→</kbd>`:''}</h3>
+     ${items.map((x,i)=>{const idx=idx0+i;const d=Math.abs(idx-m.sel);
+       return `${i===g.split?'<div class="split">Altri workspace</div>':''}<div class="fi${idx===m.sel?' sel':''}${x.off?' cc-off':''}" data-i="${idx}" style="transform:translateX(${Math.min(d,4)*-7}px)">${CC.icon(x)}
+       <div class="t"><b>${esc(x.title)}</b>${x.sub?`<span>${esc(x.sub)}</span>`:''}</div>${x.ws!==CC.ACTIVE?`<span class="cc-ws" style="--w:${CC.WS[x.ws]}">${x.ws}</span>`:''}${x.key?`<kbd>${x.key}</kbd>`:''}</div>`;}).join('')}
+     ${g&&g.more?`<button class="more" data-expand="${g.id}">Mostra tutti (${g.items.length})</button>`:''}
+     ${!gs.length?`<div class="cc-empty"><b>Nessun risultato per «${esc(m.q)}»</b>Prova «? ${esc(m.q)}» per chiederlo a Jarvis.</div>`:''}
+     ${pvItem&&!['create','jarvis','jsum','jsave'].includes(pvItem.kind)?`<div class="pv${hasThumb?'':' nothumb'}">${CC.preview(pvItem)}</div>`:''}
+   </div></div>
+   <div class="foot cc-hint"><span><kbd>←</kbd><kbd>→</kbd> settore</span><span><kbd>↑</kbd><kbd>↓</kbd> scegli</span><span><kbd>Tab</kbd> azioni</span><span><kbd>Invio</kbd> esegui</span><span><kbd>Esc</kbd> chiudi</span></div>`;
+  root.querySelector('#slot').replaceWith(CC.input('Cerca…'));
+  root.querySelectorAll('[data-seg]').forEach(s=>s.onclick=()=>{const i=CC.flat().findIndex(x=>x.group===s.dataset.seg);if(i>=0){m.sel=i;m.act=0;CC.update();}});
+  root.querySelectorAll('.fi').forEach(r=>{const x=CC.flat()[+r.dataset.i];r.onmouseenter=()=>CC.hover(x);r.onmouseleave=()=>CC.hover(null);r.onclick=()=>{m.sel=+r.dataset.i;m.act=0;CC.run(x,0);CC.update();};});
+  root.querySelectorAll('.orbit [data-a]').forEach(b=>b.onclick=()=>{m.act=+b.dataset.a;CC.run(cur,m.act);CC.update();});
+}
+// ← → girano l'anello (settore); le azioni con Tab
+CC.mount(render,{lr:false,custom(e){
+  if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!e.altKey){
+    const inp=document.querySelector('.cc-input');
+    if(e.key==='ArrowLeft'&&inp.selectionStart>0&&CC.m.q)return false;
+    if(e.key==='ArrowRight'&&inp.selectionStart<inp.value.length)return false;
+    e.preventDefault();
+    const f=CC.flat();const groups=[...new Set(f.map(x=>x.group))];if(!groups.length)return true;
+    const ord=order.filter(id=>groups.includes(id));const i=ord.indexOf(f[CC.m.sel]?.group);
+    const next=ord[(i+(e.key==='ArrowRight'?1:-1)+ord.length)%ord.length];
+    CC.m.sel=f.findIndex(x=>x.group===next);CC.m.act=0;CC.update();return true;}
+}});
+</script>
+</body></html>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>2a · Hub</title>
+<script src="../../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../../cc-round-1/shared/cc.css">
+<link rel="stylesheet" href="../shared/parts.css">
+<style>
+/* 2a — Hub: l'anello a sinistra è la navigazione (sceglie la sezione, ha dentro la ricerca);
+   a destra la bacheca con tutte le card, quella della sezione scelta si accende e viene in vista. */
+.a{position:absolute;left:62px;right:10px;top:74px;bottom:56px;display:grid;grid-template-columns:420px 1fr;gap:10px}
+.left{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.ws{display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(var(--glass-rgb),.8);border:1px solid var(--line)}
+.right{position:relative;min-height:0;display:flex;flex-direction:column}
+.scroll{flex:1;overflow:auto;padding:4px 8px 90px 4px;scrollbar-width:thin;scroll-behavior:smooth}
+.hint{max-width:380px;justify-content:center;gap:8px 14px}
+</style></head><body>
+<script src="../../cc-round-1/shared/cc.js"></script>
+<script src="../shared/parts.js"></script>
+<script>
+const {m,I,esc}=CC;
+let lastFocus=null;
+function render(){
+  const root=document.getElementById('cc-root');
+  const gs=CC.groups(),cur=CC.current();
+  const core=`<span class="k">Command center</span><div class="rg-inp">${I.search}<span id="slot"></span></div><span class="t">${cur?CC.SEC.find(s=>s.id===cur.group).title:'—'}</span><span class="k" style="letter-spacing:.1em">← → sezione</span>`;
+  P.keepScroll(root,'.scroll',()=>{
+    root.innerHTML=`<div class="a"><div class="left">${P.ring({R:190,RI:104,gs,cur,core})}
+        <div class="hint cc-hint">${CC.hint().replace('<kbd>Alt</kbd><kbd>↓</kbd> sezione','<kbd>←</kbd><kbd>→</kbd> sezione')}</div>
+        <div class="ws"><button class="cc-chip${m.scope!=='ws'?' on':''}" data-scope="all">Ovunque</button><button class="cc-chip${m.scope==='ws'?' on':''}" data-scope="ws">Solo ${CC.ACTIVE}</button></div></div>
+      <div class="right"><div class="scroll">${gs.length?P.board({gs,focus:cur?.group,cols:2}):P.empty()}</div>${P.actionBar(cur)}</div>
+</div>${P.pop()}`;
+    root.querySelector('#slot').replaceWith(CC.input('Cerca…'));
+  });
+  // La card della sezione scelta viene in vista quando cambi sezione
+  if(cur&&cur.group!==lastFocus){lastFocus=cur.group;root.querySelector(`[data-card="${cur.group}"]`)?.scrollIntoView({block:'nearest'});root.querySelector('.scroll .sel')?.scrollIntoView({block:'nearest'});}
+  P.bindRing(root);P.bindBoard(root);
+}
+CC.mount(render,{lr:false,custom(e){
+  if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!e.altKey){
+    const inp=document.querySelector('.cc-input');
+    if(e.key==='ArrowLeft'&&inp.selectionStart>0)return false;
+    if(e.key==='ArrowRight'&&inp.selectionStart<inp.value.length)return false;
+    e.preventDefault();P.stepSection(e.key==='ArrowRight'?1:-1);return true;}
+}});
+</script>
+</body></html>

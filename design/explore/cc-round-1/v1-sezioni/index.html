@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V1 · Sezioni</title>
+<script src="../../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../shared/cc.css">
+<style>
+/* V1 — Sezioni (pro-dock): la barra di oggi, ma sotto le sezioni espandibili; l'anteprima galleggia accanto. */
+.v1{position:absolute;left:50%;top:84px;transform:translateX(-50%);display:flex;gap:12px;align-items:flex-start}
+.box{width:680px;max-height:calc(100vh - 150px);display:flex;flex-direction:column;background:var(--glass);backdrop-filter:blur(40px) saturate(1.3);
+  border:1px solid rgba(var(--line-rgb),.28);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);overflow:hidden}
+.search{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;color:var(--muted)}
+.search>.ic{width:20px;height:20px;color:var(--acc)}
+.scopes{display:flex;gap:2px;padding:0 12px 10px;overflow:hidden;border-bottom:1px solid var(--line)}
+.list{overflow:auto;padding:6px 8px 8px;scrollbar-width:thin}
+.sec{margin-top:4px}
+.sec-h{display:flex;align-items:center;gap:8px;width:100%;padding:8px 8px 5px;color:var(--faint);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase}
+.sec-h .ic{width:13px;height:13px}
+.sec-h .chev{transition:transform .15s;width:12px;height:12px}
+.sec.closed .sec-h .chev{transform:rotate(-90deg)}
+.sec-h b{font-weight:500;color:var(--muted)}
+.sec-h .n{letter-spacing:0;font-size:10.5px;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,.06)}
+.sec-h .px{margin-left:auto;letter-spacing:0;text-transform:none}
+.sec-h:hover b{color:var(--fg)}
+.row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;cursor:default;min-height:42px}
+.row:hover{background:rgba(255,255,255,.035)}
+.row.sel{background:rgba(var(--acc-rgb),.1);box-shadow:inset 2px 0 0 var(--acc)}
+.txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.txt b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txt span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.right{display:flex;align-items:center;gap:8px;flex:none}
+.row .cc-acts{display:none}.row.sel .cc-acts{display:flex}.row.sel .meta{display:none}
+.meta{display:flex;gap:8px;align-items:center;color:var(--faint);font-size:11px}
+.split{display:flex;align-items:center;gap:8px;margin:6px 8px 2px;font-size:10.5px;color:var(--faint)}
+.split::after{content:'';flex:1;height:1px;background:var(--line)}
+.more{margin:2px 0 0 46px;font-size:11.5px;color:var(--acc);opacity:.85}
+.more:hover{opacity:1;text-decoration:underline}
+.foot{display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-top:1px solid var(--line);background:rgba(0,0,0,.12)}
+.pv{width:300px;padding:14px;background:var(--glass);backdrop-filter:blur(40px);border:1px solid rgba(var(--line-rgb),.24);border-radius:16px;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:10px;transition:opacity .15s}
+.pv:empty{opacity:0}
+.pv-h{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint)}
+</style></head><body>
+<script src="../shared/cc.js"></script>
+<script>
+const {m,I,esc}=CC;
+function render(){
+  const root=document.getElementById('cc-root');
+  const old=root.querySelector('.list');const top=old?old.scrollTop:0;
+  const gs=CC.groups(),cur=CC.current();let k=0;
+  const sections=gs.map(g=>{
+    const rows=g.collapsed?'':g.shown.map((x,i)=>{
+      const idx=k++;const sel=idx===m.sel;
+      return `${i===g.split?'<div class="split">Altri workspace</div>':''}
+      <div class="row${sel?' sel':''}${x.off?' cc-off':''}" data-i="${idx}">${CC.icon(x)}
+        <div class="txt"><b>${esc(x.title)}</b>${x.sub?`<span>${esc(x.sub)}</span>`:''}</div>
+        <div class="right"><span class="meta">${x.ws!==CC.ACTIVE?`<span class="cc-ws" style="--w:${CC.WS[x.ws]}">${x.ws}</span>`:''}${x.key?`<kbd>${x.key}</kbd>`:''}${x.kind==='server'&&x.on?'<span style="color:var(--acc)">● attivo</span>':''}</span>
+        <span class="cc-acts">${(x.actions||[]).map((a,j)=>`<button class="cc-act${j===(sel?m.act:0)?' on':''}" data-i="${idx}" data-a="${j}">${a}${j===0?'':''}</button>`).join('')}</span></div></div>`;}).join('');
+    return `<div class="sec${g.collapsed?' closed':''}"><button class="sec-h" data-toggle="${g.id}">${I.down.replace('class="ic"','class="ic chev"')}${I[g.icon]}<b>${g.title}</b><span class="n">${g.items.length}</span>${g.prefix?`<span class="px"><kbd>${esc(g.prefix.trim())}</kbd></span>`:''}</button>
+      ${rows}${!g.collapsed&&g.more?`<button class="more" data-expand="${g.id}">Mostra tutti (${g.items.length})</button>`:''}${!g.collapsed&&m.expanded.has(g.id)&&!g.more&&g.items.length>5?`<button class="more" data-expand="${g.id}">Mostra meno</button>`:''}</div>`;
+  }).join('');
+  const pvItem=m.hover||cur;
+  root.innerHTML=`<div class="v1"><div class="box">
+    <div class="search">${I.search}<span id="slot"></span><kbd>Esc</kbd></div>
+    <div class="scopes">${CC.scopeChips()}</div>
+    <div class="list">${sections||`<div class="cc-empty"><b>Nessun risultato per «${esc(m.q)}»</b>Prova un'altra parola, oppure <button class="more" style="margin:0" onclick="CC.setQ('? '+CC.m.q)">chiedi a Jarvis</button> o cerca sul web.</div>`}</div>
+    <div class="foot"><span class="cc-hint">${CC.hint()}</span></div></div>
+    <aside class="pv">${pvItem&&pvItem.kind!=='create'&&pvItem.kind!=='jarvis'&&pvItem.kind!=='jsum'&&pvItem.kind!=='jsave'?`<span class="pv-h">Anteprima</span>${CC.preview(pvItem)}`:''}</aside></div>`;
+  const slot=root.querySelector('#slot');slot.replaceWith(CC.input());
+  const list=root.querySelector('.list');list.scrollTop=top;
+  list.querySelector('.row.sel')?.scrollIntoView({block:'nearest'});
+  root.querySelectorAll('.row').forEach(r=>{
+    const x=CC.flat()[+r.dataset.i];
+    r.onmouseenter=()=>CC.hover(x);r.onmouseleave=()=>CC.hover(null);
+    r.onclick=e=>{const a=e.target.closest('[data-a]');m.sel=+r.dataset.i;m.act=a?+a.dataset.a:0;CC.run(x,m.act);CC.update();};
+  });
+}
+CC.mount(render);
+</script>
+</body></html>

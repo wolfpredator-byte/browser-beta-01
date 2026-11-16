@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V5 · Isola</title>
+<script src="../../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../shared/cc.css">
+<style>
+/* V5 — Isola (island + neon-glass, pin 2/23): un'isola nera che scende dalla barra del titolo. Le sezioni sono
+   capsule impilate: le prime aperte, le altre chiuse con un riassunto. Il risultato scelto si apre sul posto
+   con anteprima e azioni (niente pannelli di lato). Se scrivi una domanda, Jarvis sale in cima. */
+.v5{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:640px;max-height:calc(100vh - 70px);display:flex;flex-direction:column;
+  background:rgba(4,6,9,.94);border-radius:26px;border:1px solid rgba(var(--acc-rgb),.28);
+  box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 40px rgba(var(--acc-rgb),.14),0 40px 90px rgba(0,0,0,.7);overflow:hidden}
+.v5.enter{animation:drop .32s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes drop{from{transform:translateX(-50%) scale(.4,.12);transform-origin:50% 0;opacity:.3}}
+.v5.ask{border-color:rgba(var(--acc-rgb),.7);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 60px rgba(var(--acc-rgb),.35),0 40px 90px rgba(0,0,0,.7)}
+.search{display:flex;align-items:center;gap:12px;padding:14px 18px 12px}
+.search>.ic{width:19px;height:19px;color:var(--acc)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);flex:none}
+.scopes{display:flex;gap:2px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none}
+.stack{overflow:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}
+.cap{border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+.cap.closed:hover{border-color:rgba(var(--acc-rgb),.35)}
+.ch{display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;font-size:12px;color:var(--muted);text-align:left}
+.ch .ic{width:15px;height:15px}
+.ch b{font-weight:600;color:var(--fg);font-size:12.5px}
+.ch .n{font-size:10.5px;color:var(--faint)}
+.ch .sum{flex:1;min-width:0;display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;color:var(--faint);font-size:11.5px}
+.ch .sum .cc-ico{width:18px;height:18px;border-radius:5px;font-size:9px}
+.ch .tog{margin-left:auto;width:13px;height:13px;transition:transform .15s}
+.cap.closed .tog{transform:rotate(-90deg)}
+.cap:not(.closed) .sum{display:none}
+.r{margin:0 6px;border-radius:13px}
+.r:last-of-type{margin-bottom:6px}
+.rh{display:flex;align-items:center;gap:10px;padding:6px 8px;min-height:40px}
+.r:hover{background:rgba(255,255,255,.035)}
+.r.sel{background:rgba(var(--acc-rgb),.09);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.55),0 0 20px rgba(var(--acc-rgb),.12)}
+.rh .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.rh .t b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh .t span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.open{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:2px 10px 10px 46px}
+.open.nothumb{grid-template-columns:1fr}
+.open .cc-acts{grid-column:1/-1}
+.open .cc-act{border-radius:999px}
+@keyframes fade{from{opacity:0;transform:translateY(-4px)}}
+.split{font-size:10.5px;color:var(--faint);padding:4px 14px 2px 54px}
+.more{margin:0 0 8px 54px;font-size:11.5px;color:var(--acc)}
+.foot{display:flex;justify-content:center;padding:8px 12px 10px;border-top:1px solid rgba(255,255,255,.06)}
+.jhead{margin:0 10px 8px;padding:10px 14px;border-radius:16px;display:flex;gap:10px;align-items:center;background:rgba(var(--acc-rgb),.1);border:1px solid rgba(var(--acc-rgb),.35);font-size:12.5px}
+.jhead .ic{width:17px;height:17px;color:var(--acc)}
+body.cc-open .vf-top{opacity:.3}
+.vf-states{top:auto;bottom:52px}
+</style></head><body>
+<script src="../shared/cc.js"></script>
+<script>
+const {m,I,esc}=CC;
+let lastQ=null;
+function render(){
+  const root=document.getElementById('cc-root');
+  const old=root.querySelector('.stack');const top=old?old.scrollTop:0;
+  if(m.q!==lastQ){ // a ogni nuova ricerca: aperte le prime 3 sezioni, chiuse le altre
+    lastQ=m.q;m.collapsed=new Set();const ids=CC.groups().map(g=>g.id);m.collapsed=new Set(ids.slice(m.q?3:2));}
+  const entering=!root.querySelector('.v5');
+  const gs=CC.groups(),cur=CC.current();let k=0;
+  const asking=gs[0]?.id==='jarvis'&&m.q;
+  const caps=gs.map(g=>{
+    const rows=g.collapsed?'':g.shown.map((x,i)=>{const idx=k++;const sel=idx===m.sel;const thumb=['tab','link'].includes(x.kind);
+      return `${i===g.split?'<div class="split">Altri workspace</div>':''}<div class="r${sel?' sel':''}${x.off?' cc-off':''}" data-i="${idx}">
+        <div class="rh">${CC.icon(x)}<div class="t"><b>${esc(x.title)}</b>${x.sub?`<span>${esc(x.sub)}</span>`:''}</div>${x.ws!==CC.ACTIVE?`<span class="cc-ws" style="--w:${CC.WS[x.ws]}">${x.ws}</span>`:''}${x.key?`<kbd>${x.key}</kbd>`:''}${sel?'<kbd>Invio</kbd>':''}</div>
+        ${sel?`<div class="open${thumb?'':' nothumb'}">${['create','jarvis','jsum','jsave','command','web'].includes(x.kind)?'':CC.preview(x)}<div class="cc-acts">${x.actions.map((a,j)=>`<button class="cc-act${j===m.act?' on':''}" data-a="${j}">${a}</button>`).join('')}</div></div>`:''}</div>`;}).join('');
+    const sum=g.items.slice(0,3).map(x=>CC.icon(x)+`<span>${esc(x.title.split(/[–—·]/)[0].trim())}</span>`).join(' ');
+    return `<section class="cap${g.collapsed?' closed':''}"><button class="ch" data-toggle="${g.id}">${I[g.icon]}<b>${g.title}</b><span class="n">${g.items.length}</span><span class="sum">${sum}</span>${I.down.replace('class="ic"','class="ic tog"')}</button>${rows}
+      ${!g.collapsed&&g.more?`<button class="more" data-expand="${g.id}">Mostra tutti (${g.items.length})</button>`:''}</section>`;}).join('');
+  root.innerHTML=`<div class="v5${asking?' ask':''}${entering?' enter':''}"><div class="search"><span class="dot"></span><span id="slot"></span>${I.search}</div>
+    <div class="scopes">${CC.scopeChips()}</div>
+    ${asking?`<div class="jhead">${I.spark}<span>Sembra una domanda: <b>Invio</b> la chiede a Jarvis, qui sotto.</span></div>`:''}
+    <div class="stack">${caps||`<div class="cc-empty"><b>Nessun risultato per «${esc(m.q)}»</b>Scrivilo come domanda e lo chiedi a Jarvis.</div>`}</div>
+    <div class="foot cc-hint">${CC.hint()}</div></div>`;
+  root.querySelector('#slot').replaceWith(CC.input('Cosa ti serve?'));
+  const st=root.querySelector('.stack');st.scrollTop=top;st.querySelector('.r.sel')?.scrollIntoView({block:'nearest'});
+  root.querySelectorAll('.r').forEach(r=>{const x=CC.flat()[+r.dataset.i];
+    r.onmouseenter=()=>{if(+r.dataset.i!==m.sel){m.sel=+r.dataset.i;m.act=0;CC.update();}}; // passaggio = apre l'anteprima sul posto
+    r.onclick=e=>{const a=e.target.closest('[data-a]');m.act=a?+a.dataset.a:0;CC.run(x,m.act);CC.update();};});
+}
+CC.mount(render);
+</script>
+</body></html>
