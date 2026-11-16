@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V3 · Console</title>
+<link rel="stylesheet" href="../shared/frame.css">
+<style>
+/* Famiglia: tactile-hardware (pin 5, 14). Sembra un oggetto: plastica opaca grafite, tasti in rilievo, un solo colore caldo (arancione) per "acceso".
+   Struttura: un deck ancorato a destra sopra il mini-lettore; a sinistra le "cassette" (le fonti), a destra il deck della fonte scelta. */
+:root{--hot:#ff7a1a;--hot-glow:rgba(255,122,26,.55);--plastic:#1d1e22;--plastic-2:#26272c;--edge:#34353b}
+.strip{display:flex;align-items:center;gap:6px;height:38px;padding:4px 6px;border-radius:12px;cursor:pointer;
+  background:linear-gradient(180deg,#2a2b30,#1b1c20);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 4px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.5)}
+.led{width:7px;height:7px;border-radius:50%;background:#3a2a20;flex:none;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+.led.on{background:var(--hot);box-shadow:0 0 8px var(--hot-glow),0 0 2px #fff inset}
+.lcd{display:flex;flex-direction:column;width:190px;min-width:0;padding:3px 9px;border-radius:7px;background:#0d0f0e;box-shadow:inset 0 2px 5px rgba(0,0,0,.8);
+  font:500 11px/1.2 'Cascadia Mono','Consolas',monospace;color:#ffcfa6}
+.lcd b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcd span{opacity:.55;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.key{width:30px;height:28px;border-radius:8px;display:grid;place-items:center;color:#d9d9de;
+  background:linear-gradient(180deg,#34353b,#25262b);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 #111,0 3px 6px rgba(0,0,0,.4);transition:transform .08s,box-shadow .08s}
+.key:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 #111}
+.key .ic{width:15px;height:15px}
+.key.main{color:var(--hot)}
+.key.on{color:#fff;background:linear-gradient(180deg,#ff8c35,#e5600a);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 0 #7a2f00,0 0 16px var(--hot-glow)}
+.n{font:600 10px 'Consolas',monospace;color:#888;padding:0 2px}
+/* Deck */
+.deck{position:absolute;right:10px;bottom:8px;width:min(720px,calc(100% - 20px));display:grid;grid-template-columns:210px 1fr;gap:0;border-radius:22px;overflow:hidden;
+  background:var(--plastic);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 30px 70px rgba(0,0,0,.65),0 0 0 1px #0b0b0d;
+  transform:translateY(20px);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.3,1.3,.5,1),opacity .2s}
+body.panel-open .deck{transform:none;opacity:1;pointer-events:auto}
+body.panel-open .vf-page{filter:brightness(.4) grayscale(.3)}
+.tapes{background:#18191c;padding:12px 10px;display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto;box-shadow:inset -1px 0 0 #0d0d0f;scrollbar-width:thin;scrollbar-color:#333 transparent}
+.tapes h4{margin:2px 4px 6px;font:600 10px 'Consolas',monospace;letter-spacing:.2em;color:#777}
+.tape{display:flex;gap:9px;align-items:center;padding:7px 8px;border-radius:10px;text-align:left;background:linear-gradient(180deg,#2a2b30,#212226);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 2px 0 #0e0e10}
+.tape.sel{box-shadow:inset 0 0 0 1px var(--hot),0 0 14px rgba(255,122,26,.25)}
+.tape .art{width:30px;height:30px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
+.tape span{display:flex;flex-direction:column;min-width:0;line-height:1.2;flex:1}
+.tape b{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tape small{font-size:10px;color:#8b8b92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.main-deck{padding:16px 18px 14px;position:relative}
+.main-deck::before{content:'';position:absolute;right:14px;top:14px;width:70px;height:34px;background:radial-gradient(circle,#0c0c0e 1.6px,transparent 2px) 0 0/8px 8px;opacity:.9}
+.screen{display:flex;gap:14px;align-items:center;padding:12px;border-radius:14px;background:#0c0d0d;box-shadow:inset 0 3px 8px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
+.screen .art{width:82px;height:82px;border-radius:10px;flex:none}
+.screen h3{margin:0;font:600 15px/1.25 'Segoe UI Variable';color:#ffe2c9;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.screen .sub{font:11.5px 'Consolas',monospace;color:#c98c5d;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .where{font:10px 'Consolas',monospace;color:#6f6a66;margin-top:4px}
+.scrub{display:flex;align-items:center;gap:10px;margin:14px 2px 12px;font:11px 'Consolas',monospace;color:#c6a185}
+.scrub input{flex:1;appearance:none;height:10px;border-radius:5px;background:
+  radial-gradient(circle,var(--hot) 2px,transparent 2.4px) 0 50%/10px 10px repeat-x,#0c0c0e;outline:none;
+  -webkit-mask:linear-gradient(90deg,#000 var(--p),rgba(0,0,0,.25) var(--p));box-shadow:inset 0 2px 3px #000}
+.scrub input::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(180deg,#5a5b60,#2a2b2f);box-shadow:0 2px 4px #000,inset 0 1px 0 rgba(255,255,255,.2)}
+.scrub .live{color:var(--hot);text-shadow:0 0 8px var(--hot-glow);letter-spacing:.2em}
+.pad{display:flex;align-items:center;gap:14px}
+.pad .t{display:flex;gap:8px}
+.pad .key{width:46px;height:42px;border-radius:11px}.pad .key .ic{width:19px;height:19px}
+.pad .key.main{width:64px;height:52px;border-radius:14px}.pad .key.main .ic{width:24px;height:24px}
+.modes{display:flex;gap:16px;margin-left:auto}
+.toggle{display:flex;flex-direction:column;align-items:center;gap:5px;font:600 9px 'Consolas',monospace;letter-spacing:.14em;color:#8a8a90}
+.toggle .key{width:58px;height:30px;border-radius:999px}
+.toggle .key.on{color:#fff}
+.bottom{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid #2c2d32}
+.bottom .ex{display:flex;gap:6px}
+.go{margin-left:auto;font:600 10.5px 'Consolas',monospace;letter-spacing:.1em;color:#d0d0d4;padding:6px 10px;border-radius:8px;background:linear-gradient(180deg,#34353b,#25262b);box-shadow:0 2px 0 #111}
+.ap{display:flex;align-items:center;gap:7px;font:10.5px 'Consolas',monospace;color:#9a9aa0}
+.empty{grid-column:1/-1;padding:30px;text-align:center;font:12px 'Consolas',monospace;color:#888}
+</style></head><body>
+<script src="../shared/icons.js"></script><script src="../shared/media.js"></script>
+<script>
+let sel=null;
+const art=m=>`<span class="art" style="${artStyle(m)}"></span>`;
+function renderMini(slot,list,{tick}){
+  if(tick)return;
+  const m=Media.primary();if(!m){slot.innerHTML='';return;}
+  const b=buttonsOf(m);
+  const three=b.transport.filter(x=>x.main||x.id===(b.c.previous?'prev':'back')||x.id===(b.c.next?'next':'fwd'));
+  slot.innerHTML=`<div class="strip" title="Apri il lettore"><span class="led ${m.playing?'on':''}"></span><span class="lcd"><b>${m.title}</b><span>${m.pip?'PIP · ':''}${m.subtitle}</span></span>${list.length>1?`<span class="n">${list.length}</span>`:''}<span class="k" style="display:flex;gap:4px"></span></div>`;
+  drawButtons(slot.querySelector('.k'),[...three,...b.modes],'key');
+  slot.querySelector('.strip').onclick=()=>Media.toggleOpen();
+}
+function renderPanel(slot,list,{tick}){
+  if(!slot.firstChild)slot.innerHTML='<div class="deck" role="dialog" aria-label="In riproduzione"></div>';
+  const box=slot.firstChild;
+  if(tick){tickScrubbers(box);return;}
+  if(!list.length){box.innerHTML='<div class="empty">NESSUN NASTRO · Audio e video di schede, pannelli e widget compaiono qui.</div>';return;}
+  const m=list.find(x=>x.key===sel)||Media.primary();sel=m.key;
+  const b=buttonsOf(m);
+  box.innerHTML=`<div class="tapes"><h4>FONTI · ${list.length}</h4></div>
+   <div class="main-deck" data-key="${m.key}"><div class="screen">${art(m)}<div style="min-width:0"><h3>${m.title}</h3><div class="sub">${m.subtitle}</div><div class="where">${m.where.toUpperCase()} · ${m.workspace.toUpperCase()} · ${m.site}</div></div></div>
+   <div class="sc"></div><div class="pad"><div class="t"></div><div class="modes"></div></div>
+   <div class="bottom"><div class="ex"></div><label class="ap"><button class="key ${Media.autoPip?'on':''} apk" style="width:40px;height:22px;border-radius:999px" aria-label="Finestrella automatica"></button>FINESTRELLA AUTO</label><button class="go">VAI ↗</button></div></div>`;
+  box.querySelector('.sc').append(scrubber(m));
+  drawButtons(box.querySelector('.t'),b.transport,'key');
+  const modes=box.querySelector('.modes');
+  modes.replaceChildren(...b.modes.map(x=>{const w=document.createElement('div');w.className='toggle';const k=document.createElement('div');drawButtons(k,[x],'key');w.append(k.firstChild,Object.assign(document.createElement('span'),{textContent:x.id==='shuffle'?'SHUFFLE':({off:'RIPETI',all:'RIPETI TUTTO',one:'RIPETI 1'}[m.repeat])}));return w;}));
+  drawButtons(box.querySelector('.ex'),b.extra,'key');
+  box.querySelector('.go').onclick=()=>Media.act(m.key,'focus');
+  box.querySelector('.apk').onclick=()=>Media.setAutoPip(!Media.autoPip);
+  const tapes=box.querySelector('.tapes');
+  list.forEach(x=>{const t=document.createElement('button');t.className='tape'+(x.key===m.key?' sel':'');
+    t.innerHTML=`${art(x)}<span><b>${x.title}</b><small>${x.where} · ${x.workspace}</small></span><i class="led ${x.playing?'on':''}"></i>`;
+    t.onclick=()=>{sel=x.key;renderPanel(slot,Media.items,{});};tapes.append(t);});
+}
+Media.start({renderMini,renderPanel});
+document.querySelector('.vf-page').addEventListener('click',()=>Media.open&&Media.setOpen(false));
+</script></body></html>

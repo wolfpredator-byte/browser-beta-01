@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>Lettore · 4b finale</title>
+<script src="../lettore-round-2/shared/theme.js"></script>
+<link rel="stylesheet" href="../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../lettore-round-2/shared/varco.css">
+<link rel="stylesheet" href="../lettore-round-2/shared/dock.css">
+<style>
+/* 4b — La struttura della V4 vestita come il resto di VARCO: vetro scuro trasparente, sfocatura forte, sfondo che traspare,
+   bordi del colore del tema, raggi morbidi, bagliore dell'accento su ciò che è attivo. La più "VARCO". */
+:root{--muted:rgba(225,235,245,.6)}
+.pop{background:rgba(var(--glass-rgb),.8);backdrop-filter:blur(40px) saturate(1.3);border:1px solid rgba(var(--line-rgb),.28);border-radius:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)}
+.pop::after{background:rgba(var(--glass-rgb),.85);border-color:rgba(var(--line-rgb),.28)}
+.list{border-right-color:rgba(var(--line-rgb),.16)}
+.list header{border-bottom-color:rgba(var(--line-rgb),.16)}
+.k-title{font-weight:400;letter-spacing:.28em;text-transform:uppercase;font-size:10.5px}
+.r{border-bottom-color:rgba(var(--line-rgb),.08)}
+.r:hover{background:rgba(255,255,255,.04)}
+.r.sel{background:rgba(var(--acc-rgb),.12);box-shadow:inset 2px 0 0 var(--acc),0 0 18px rgba(var(--acc-rgb),.12) inset}
+.r .art,.detail .art{box-shadow:0 0 0 1px rgba(255,255,255,.1)}
+.r .st.p{color:var(--acc);text-shadow:0 0 8px rgba(var(--acc-rgb),.6)}
+.ws{background:rgba(var(--acc-rgb),.14);color:var(--acc)}
+.rail{background:rgba(0,0,0,.18);border-left-color:rgba(var(--line-rgb),.16)}
+.rail .sep{background:rgba(var(--line-rgb),.2)}
+.ib:hover{background:rgba(255,255,255,.07)}
+.ib.on{color:var(--acc);background:rgba(var(--acc-rgb),.14);box-shadow:0 0 12px rgba(var(--acc-rgb),.25)}
+.trans .ib.main{background:var(--acc);color:#04121a;box-shadow:0 0 22px rgba(var(--acc-rgb),.45)}
+.modes .ib{border-color:rgba(var(--line-rgb),.22);border-radius:999px}
+.modes .ib.on{border-color:rgba(var(--acc-rgb),.7)}
+.scrub input{background:linear-gradient(90deg,var(--acc) var(--p),rgba(255,255,255,.14) var(--p))}
+.scrub input::-webkit-slider-thumb{box-shadow:0 0 10px rgba(var(--acc-rgb),.8)}
+.mini{background:rgba(var(--glass-rgb),.6);backdrop-filter:blur(20px);border-color:rgba(var(--line-rgb),.25);border-radius:11px}
+.mini .ib.main{color:var(--acc)}
+.bar-fill{background:var(--acc);box-shadow:0 0 6px var(--acc)}
+.cnt{background:rgba(var(--acc-rgb),.14);color:var(--acc)}
+body.panel-open .vf-page{filter:brightness(.55) blur(2px)}
+
+/* ── Finale: più sorgenti nella barra, volume, chiudi ── */
+.minis{display:flex;align-items:center;gap:6px}
+.mini .k{display:flex}
+.minis.many .mini .txt{width:118px}
+.minis .mini{position:relative}
+.minis .mini.playing{border-color:rgba(var(--acc-rgb),.45)}
+.mini .mt{display:flex;flex-direction:column;gap:3px}
+.vwrap{position:relative;display:flex}
+.vpop{position:absolute;bottom:38px;right:-6px;display:none;padding:8px 10px;border-radius:12px;background:rgba(var(--glass-rgb),.92);backdrop-filter:blur(24px);
+  border:1px solid rgba(var(--line-rgb),.3);box-shadow:0 12px 30px rgba(0,0,0,.5);z-index:10}
+.vwrap.open .vpop,.vwrap:hover .vpop{display:block}
+.vwrap:hover .vpop{animation:none}
+.vpop::after{content:'';position:absolute;right:14px;bottom:-14px;width:30px;height:14px}
+.vol{display:flex;align-items:center;gap:8px}
+.vol input{appearance:none;width:150px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--acc) var(--p),rgba(255,255,255,.16) var(--p));outline:none;cursor:pointer}
+.vol input::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(var(--acc-rgb),.8)}
+.vol.compact input{width:110px}
+.vol .vp{font-size:10.5px;color:var(--muted);width:32px;text-align:right;font-variant-numeric:tabular-nums}
+.vol .ib{width:26px;height:26px}
+.lower{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.lower .modes{margin:0;justify-content:flex-start}
+.detail .trans{margin-top:2px}
+.r{display:grid;grid-template-columns:28px 1fr auto;cursor:pointer;position:relative}
+.r .rx{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:6px;display:none;place-items:center;color:#d8dde3;background:rgba(var(--glass-rgb),.95)}
+.r .rx .ic{width:13px;height:13px}
+.r:hover .rx,.r:focus-within .rx{display:grid}
+.r .rx:hover{background:#c0303d;color:#fff}
+.ib.danger:hover{background:rgba(220,60,70,.22);color:#ff8a93}
+.cnt{border:0;cursor:pointer;padding:3px 8px}
+
+/* ── Densità strette della barra ── */
+.mini.slim{gap:2px;padding:0 3px;height:32px}
+.d-minima .mini.slim{padding:0 2px;border-radius:999px;width:32px;justify-content:center}
+.ring{position:relative;width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;cursor:pointer;
+  background:conic-gradient(var(--acc) var(--p),rgba(255,255,255,.14) var(--p))}
+.ring .art{width:21px!important;height:21px!important;border-radius:50%!important}
+.ring .ov{position:absolute;inset:2.5px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;opacity:0;transition:opacity .15s}
+.ring .ov .ic{width:11px;height:11px}
+.d-minima .ring:hover .ov{opacity:1}
+.d-minima .mini.slim.playing .ring{box-shadow:0 0 10px rgba(var(--acc-rgb),.45)}
+.mini.slim .k{display:flex}
+.mini.slim .ib{width:24px;height:24px}.mini.slim .ib .ic{width:14px;height:14px}
+.minis.d-compatta,.minis.d-minima{gap:4px}
+.minis.d-minima .mini.slim{background:transparent;border-color:transparent}
+.minis.d-minima .mini.slim:hover{background:rgba(var(--glass-rgb),.6);border-color:rgba(var(--line-rgb),.25)}
+/* Scheda sopra la barra */
+.hcard{position:absolute;bottom:40px;right:-8px;width:290px;padding:12px;border-radius:14px;cursor:default;display:none;z-index:12;
+  background:rgba(var(--glass-rgb),.92);backdrop-filter:blur(30px);border:1px solid rgba(var(--line-rgb),.3);box-shadow:0 16px 40px rgba(0,0,0,.55)}
+.hcard::after{content:'';position:absolute;left:0;right:0;bottom:-14px;height:14px}
+.mini.slim:hover .hcard{display:block;animation:hc .16s ease-out}
+@keyframes hc{from{opacity:0;transform:translateY(6px)}}
+.hc-top{display:flex;gap:10px;align-items:center}
+.hc-top .art{width:44px;height:44px;border-radius:8px;flex:none}
+.hc-top b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-top span{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-top small{display:block;font-size:10px;color:var(--muted);opacity:.75}
+.hcard .scrub{margin:10px 0 6px}
+.hc-ctl{display:flex;align-items:center;justify-content:space-between}
+.hc-ctl .t,.hc-ctl .mo{display:flex;gap:2px}
+.hc-ctl .ib.main{background:var(--acc);color:#04121a;border-radius:50%}
+.hc-vol{margin-top:8px;padding-top:8px;border-top:1px solid rgba(var(--line-rgb),.16)}
+.hc-vol .vol input{width:170px}
+</style></head><body>
+<script src="../lettore-round-1/shared/icons.js"></script><script src="../lettore-round-1/shared/media.js"></script>
+<script src="dock-final.js"></script>
+</body></html>

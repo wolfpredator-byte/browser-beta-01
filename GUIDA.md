@@ -10,62 +10,71 @@ Installer PC: `dist\VARCO Setup 0.37.1.exe` (con la firma VMP). Il telefono non 
 
 ### Cosa cambia
 - **Un lettore per tutti i media di VARCO.** Audio e video in riproduzione in qualsiasi scheda, pannello web (WhatsApp, Spotify…) o widget della Home, di **qualsiasi workspace**, si comandano da un solo posto.
-- **Mini-lettore nella barra delle schede**, a destra:
-  - copertina, titolo e artista (o il sito);
-  - play/pausa, e i pulsanti precedente/successivo se il sito li ha;
-  - "+2" se suonano altri media.
-  - Il media della scheda che stai guardando non compare qui, perché lo comandi già dalla pagina; compare se è in finestrella.
-  - Clic sul titolo: si apre il pannello.
-- **Pannello "In riproduzione"** (clic sul mini-lettore, oppure palette → *Lettore multimediale*). Ogni media ha la sua scheda:
-  - copertina, titolo, artista e album, e dove suona (Scheda / Pannello web / Widget, con il workspace e il sito);
-  - barra della posizione con i tempi, trascinabile; per le dirette, "● In diretta";
-  - **controlli secondo il sito**: VARCO legge quello che il sito dichiara al sistema (Media Session).
-    - YouTube, Spotify, SoundCloud… hanno brano precedente/successivo, e a volte "Salta pubblicità".
-    - Un video qualsiasi ha play/pausa, ±10 secondi, la barra e il muto.
-    - Un sito che dichiara solo play/pausa ha solo quelli.
-  - **muto** e **finestrella (PiP)** per i video;
-  - **Vai alla scheda / al pannello / alla Home**: porta lì, anche in un altro workspace o un'altra finestra.
-- **Il PiP fa parte del lettore.**
-  - In fondo al pannello c'è l'interruttore **Finestrella automatica**: è lo stesso delle Impostazioni.
-  - Un video in finestrella è segnato "In finestrella" nel mini-lettore e ha il pulsante PiP acceso: un clic la chiude.
-  - Il pulsante PiP mette in finestrella qualsiasi video, anche senza cambiare scheda.
+- **Il design** l'hai scelto tu dagli esempi interattivi: struttura "Dock compatto" (V4), vestita da VARCO ("4b · Vetro"), con la barra "minima". Gli esempi restano in `design/explore/lettore-final/`. Le scelte sono in `design/explore/LOG.md`.
+- **Nella barra delle schede, a destra**, c'è una copertina rotonda per **ogni sorgente che suona** (fino a 4, poi "+N"), larga circa 32 px. La barra non diventa più alta e alle schede resta quasi tutto lo spazio.
+  - L'anello intorno alla copertina mostra a che punto sei; brilla del colore del tema quando suona.
+  - **Clic sulla copertina**: pausa o riproduci.
+  - **Mouse sopra la copertina**: compare la scheda della sorgente, sopra la barra, con:
+    - titolo, artista, dove suona (scheda / pannello web / widget e workspace);
+    - la barra della posizione, trascinabile;
+    - **i comandi del sito**: YouTube −10 s, pausa, +10 s; Spotify brano precedente, pausa, successivo, **shuffle** e **ripeti**;
+    - **volume** (cursore con la percentuale) e muto;
+    - finestrella (PiP) per i video, "Vai alla scheda" e **× per chiudere la scheda** (o il pannello web) da lì.
+  - "+N" o l'icona ⤢ nella scheda aprono il **lettore completo**.
+- **Lettore completo** (anche dalla palette: *Lettore multimediale*). Si apre sopra la barra, a destra:
+  - a sinistra l'elenco di tutto ciò che suona, con il workspace; passando sopra una riga compare la × per chiuderla;
+  - al centro la sorgente scelta: copertina, barra, comandi del sito, shuffle e ripeti, volume;
+  - a destra la barra a pillola: finestrella del video, vai alla scheda, **Finestrella automatica** (la stessa delle Impostazioni), chiudi.
+  - Tasti: Spazio pausa, ← → ±10 s, Esc chiude. Un clic fuori lo chiude.
+- **Chiudere dal lettore:**
+  - una scheda si chiude e si riapre con Ctrl+Shift+T;
+  - un pannello web si scarica e si riapre dalla barra laterale;
+  - un widget della Home si ferma.
+- **Spotify.** Shuffle, ripeti e volume non passano dal sistema come gli altri comandi: VARCO usa i pulsanti e il cursore della pagina di Spotify, come faresti tu, e ne legge lo stato.
+  - Ripeti fa: spento → playlist → brano.
+  - Se Spotify cambia la sua pagina, questi tre comandi potrebbero smettere di funzionare. Gli altri restano.
+- Il lettore segue il **tema** (Cyan Flash nel tuo VARCO) ed è vetro scuro come i menu.
 
 ### Modalità insegnamento
 - `page-preload.cjs` gira in ogni pagina e riquadro di tutte le sessioni (quindi anche pannelli web e widget):
-  - nel mondo della pagina annota gli elementi audio/video che partono (`HTMLMediaElement.play`, autoplay) e le azioni che il sito registra con `navigator.mediaSession.setActionHandler`, insieme a titolo e copertina;
-  - lo stato passa come evento DOM (solo testo) e arriva al processo principale (`media:state`).
-- `lib/media.cjs`:
-  - una voce per riquadro (`contents:processo:riquadro`);
-  - capisce se è una scheda, un pannello o un widget;
-  - scarica la copertina con la sessione della pagina (la cornice non apre la rete);
-  - manda i comandi al riquadro giusto con `WebFrameMain.executeJavaScript(…, true)`: serve il "gesto dell'utente" per `play()` e per la finestrella.
-- `lib/media-rules.cjs` (con test):
-  - pulisce lo stato mandato dalla pagina;
-  - sceglie i controlli in base al sito;
-  - ordina (prima ciò che suona);
-  - stima la posizione. La cornice fa avanzare la barra da sola, senza aggiornamenti continui.
+  - annota gli elementi audio/video che partono e le azioni che il sito registra con `navigator.mediaSession.setActionHandler`, con titolo e copertina;
+  - c'è un adattatore per Spotify (`open.spotify.com`): shuffle, ripeti e volume dai pulsanti della sua barra, osservata solo lei con un MutationObserver;
+  - per gli altri siti il volume è quello dell'elemento audio/video;
+  - lo stato arriva al processo principale come `media:state`.
+- `lib/media.cjs` tiene una voce per riquadro e:
+  - capisce se è scheda, pannello o widget;
+  - scarica la copertina;
+  - manda i comandi con `WebFrameMain.executeJavaScript(…, true)`;
+  - chiude ciò che suona: `closeTabAnywhere`, `webpanels.unload`, oppure stop per un widget.
+- `lib/media-overlay.cjs` + `media-overlay.html/.css/.js`: la pagina sta sopra la cornice, quindi scheda e lettore completo sono una vista trasparente a parte, come i toast.
+  - La vista è grande solo quanto ciò che mostra: fuori, i clic arrivano al sito.
+  - La scheda resta aperta finché il mouse è sulla copertina o sulla scheda stessa.
+  - Il lettore completo si chiude quando perde il focus.
+- `lib/media-rules.cjs` (con test): pulisce lo stato e sceglie i controlli per sito (volume, shuffle e ripeti solo se la pagina li manda).
 
 ### Test da fare
-- [ ] **T252** — Apri YouTube in un workspace e Spotify (scheda o pannello) in un altro, fai partire entrambi. Il mini-lettore mostra quello che suona, con "+1". **📸**
-- [ ] **T253** — Pannello "In riproduzione": YouTube ha ±10 s, la barra, il muto e il PiP; Spotify ha precedente/successivo. Prova pausa, brano successivo, trascina la barra. **📸**
-- [ ] **T254** — "Vai alla scheda" su un media di un altro workspace: VARCO apre quel workspace e mostra la scheda.
-- [ ] **T255** — Video di YouTube in riproduzione, cambia scheda: va in finestrella, e il mini-lettore dice "In finestrella". Dal lettore chiudi la finestrella, poi riaprila col pulsante PiP.
-- [ ] **T256** — Spegni "Finestrella automatica" dal pannello: cambiando scheda il video non va più in finestrella. In Impostazioni l'interruttore è spento anche lì.
-- [ ] **T257** — Chiudi la scheda che suona: sparisce dal lettore. Un widget Pagina web con musica compare come "Widget della Home".
+- [ ] **T252** — Fai partire YouTube in una scheda e Spotify (scheda o pannello) in un altro workspace. Nella barra compaiono due copertine con l'anello. **📸**
+- [ ] **T253** — Mouse sulla copertina di YouTube: la scheda ha −10 / pausa / +10, barra, volume, PiP. Su quella di Spotify: precedente / pausa / successivo, shuffle e ripeti. Accendi shuffle e ripeti dal lettore: sulla pagina di Spotify si accendono anche lì. **📸**
+- [ ] **T254** — Volume: abbassa Spotify al 30% dal lettore; il cursore di Spotify scende. Fai lo stesso con YouTube.
+- [ ] **T255** — Clic su una copertina: pausa; altro clic: riprende.
+- [ ] **T256** — Apri il lettore completo ("+N" nella barra o ⤢ nella scheda): elenco, dettaglio, Spazio / ← → / Esc. Passa sopra una riga e chiudi la scheda con la ×: sparisce, e Ctrl+Shift+T la riapre. **📸**
+- [ ] **T257** — Chiudi un pannello web (es. Spotify) dal lettore: la musica si ferma; riaprendo il pannello riparte da capo.
+- [ ] **T258** — Video di YouTube in riproduzione, cambia scheda: va in finestrella. "Finestrella automatica" nella barra a pillola: spegnila e riprova.
+- [ ] **T259** — "Vai alla scheda" su un media di un altro workspace: VARCO apre quel workspace e mostra la scheda.
 
 **Stato:**
-- 215 test superati (nuovi: `media-rules`).
-- **Provato in VARCO** con una copia dei tuoi dati:
-  - **YouTube** (Big Buck Bunny): titolo, canale "Blender", copertina dalla Media Session, salto a un punto preciso. Nel profilo di prova la richiesta dei cookie di YouTube teneva il video in pausa: nel tuo VARCO non c'è.
-  - **Pagina di prova** con un player e la Media Session (brano, artista, album, precedente/successivo):
-    - controlli giusti (precedente, successivo, ±10 s, barra, muto, PiP);
-    - pausa e ripresa;
-    - salto a 2:00 (fermato alla fine, 1:00) e −10 s;
-    - muto;
-    - "Successivo" cambia il brano (Brano di prova 1 → 2);
-    - cambiando scheda il video va in finestrella e il lettore lo segna; il pulsante PiP la chiude;
-    - "Vai alla scheda" torna alla pagina.
-- **Non provato:** Spotify e Netflix con il tuo account (soprattutto quali pulsanti dichiarano), un widget della Home che suona, l'installer.
+- 216 test superati (`media-rules`: anche volume, shuffle e ripeti).
+- **Provato in VARCO** con una copia dei tuoi dati e una pagina di prova (lettore con Media Session):
+  - nella barra una copertina con l'anello;
+  - volume portato al 30% dal lettore;
+  - la scheda al passaggio ha precedente, −10, pausa, +10, successivo, PiP, volume, vai e chiudi, e sparisce quando il mouse esce;
+  - il lettore completo si apre a destra sopra la barra con i colori del tuo tema (Cyan Flash);
+  - chiudi dal lettore chiude la scheda e la toglie dall'elenco.
+  - Prima, nelle prove precedenti: YouTube (titolo, canale, copertina, salti), finestrella automatica, "Vai alla scheda".
+- **Non provato:**
+  - **Spotify vero**: shuffle, ripeti e volume dipendono dai pulsanti della sua pagina, e senza il tuo account non ho potuto provarli;
+  - il tema chiaro (il lettore resta scuro);
+  - l'installer.
 
 ---
 

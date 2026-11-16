@@ -1,0 +1,34 @@
+/* Cornice di VARCO finta, comune a tutte le varianti. Le varianti stilano solo #miniSlot e #panelSlot. */
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font:13px/1.4 'Segoe UI Variable','Segoe UI',system-ui,sans-serif;color:#eceaf6;background:#05050a}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.vf{position:fixed;inset:0;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(5,6,14,.55),rgba(5,6,14,.75)),radial-gradient(1200px 600px at 70% 10%,#24406b 0%,transparent 60%),radial-gradient(900px 500px at 10% 90%,#1d2b4a 0%,transparent 60%),#070912}
+.vf-top{height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:10px;letter-spacing:.32em;color:#cfd6ff}
+.vf-beta{letter-spacing:.1em;opacity:.5}.vf-win{margin-left:auto;display:flex;gap:16px}.vf-win i{width:10px;height:1.5px;background:#aab}
+.vf-nav{height:44px;display:flex;align-items:center;gap:10px;padding:0 12px}
+.vf-btn{width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,.12)}
+.vf-addr{flex:1;height:32px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 14px;color:#c9cbe0;font-size:12.5px}
+.vf-body{flex:1;display:flex;min-height:0}
+.vf-side{width:52px;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:12px}
+.vf-side span{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.1)}
+.vf-page{flex:1;margin:0 10px 0 0;border-radius:12px;background:#f6f7f9;overflow:hidden;transition:filter .3s}
+.vf-page-in{max-width:780px;margin:0 auto;padding:36px 28px;color:#1f2328}
+.vf-page h2{font:600 22px/1.3 system-ui;margin:0 0 18px}.vf-page p{height:11px;border-radius:4px;background:#e4e7ec;margin:0 0 14px}
+.vf-page p:nth-child(3n){width:70%}.vf-page p:nth-child(4n){width:85%}
+.vf-bar{height:46px;display:flex;align-items:center;gap:6px;padding:0 10px;position:relative;z-index:5}
+.vf-ws{padding:6px 12px;border:1px solid rgba(255,255,255,.12);border-radius:9px;font-size:12px}
+.vf-tab{padding:6px 12px;min-width:150px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:12px;opacity:.8}
+.vf-tab.active{background:rgba(110,140,255,.18);border-color:rgba(130,160,255,.4);opacity:1}
+.vf-spacer{flex:1}.vf-clock{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;font-weight:600;line-height:1.1;margin-left:8px}.vf-clock small{font-weight:400;opacity:.6;font-size:10px}
+.vf-mini-slot{display:flex;align-items:center}
+.vf-panel-slot{position:absolute;left:0;right:0;bottom:46px;z-index:6;pointer-events:none}
+.vf-panel-slot>*{pointer-events:auto}
+.vf-toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:20;padding:9px 16px;border-radius:10px;background:rgba(15,16,26,.92);border:1px solid rgba(255,255,255,.12);font-size:12.5px}
+.vf-toast[hidden]{display:none}
+.vf-states{position:fixed;right:10px;top:8px;z-index:30;display:flex;gap:2px;align-items:center;padding:3px;border-radius:8px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);font-size:11px}
+.vf-states b{padding:0 6px;opacity:.6;font-weight:500}.vf-states button{padding:3px 8px;border-radius:5px;opacity:.75}
+.vf-states button[aria-pressed="true"]{background:#fff;color:#000;opacity:1}
+/* Icone in SVG inline (stesse per tutte le varianti) */
+.ic{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic.fill{fill:currentColor;stroke:none}

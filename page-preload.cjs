@@ -292,6 +292,40 @@ if(/^https?:$/.test(location.protocol)){
       return playing.sort((a,b)=>(b.duration||0)-(a.duration||0))[0]||null;
     }
     const area=a=>{const m=/(\d+)x(\d+)/.exec(a?.sizes||'');return m?m[1]*m[2]:0;};
+    /* Beta 0.37.1: adattatori per i siti che hanno comandi fuori dalla Media Session.
+       Spotify: shuffle, ripeti e volume sono pulsanti e cursori della sua pagina; VARCO li legge e li usa come faresti tu. */
+    const SITE=(()=>{
+      if(location.hostname!=='open.spotify.com')return null;
+      const q=id=>document.querySelector('[data-testid="'+id+'"]');
+      const volumeInput=()=>document.querySelector('[data-testid="volume-bar"] input[type="range"]');
+      // Gli attributi dei pulsanti cambiano quando li usi (anche dalla pagina): VARCO aggiorna il lettore.
+      // Si osserva solo la barra del lettore di Spotify (appena esiste), non tutta la pagina.
+      const watchBar=()=>{
+        const bar=q('now-playing-bar')||document.querySelector('footer');
+        if(!bar){setTimeout(watchBar,2000);return;}
+        new MutationObserver(()=>queue()).observe(bar,{subtree:true,attributes:true,attributeFilter:['aria-checked','value']});
+      };
+      watchBar();
+      return {
+        shuffle(){const b=q('control-button-shuffle');return b?b.getAttribute('aria-checked')==='true':null;},
+        repeat(){
+          const b=q('control-button-repeat');if(!b)return null;
+          const checked=b.getAttribute('aria-checked');
+          if(checked==='mixed')return 'one';
+          return checked==='true'?'all':'off';
+        },
+        volume(){const r=volumeInput();return r?Number(r.value)/(Number(r.max)||1):null;},
+        toggleShuffle(){q('control-button-shuffle')?.click();},
+        cycleRepeat(){q('control-button-repeat')?.click();},
+        setVolume(v){
+          const r=volumeInput();if(!r)return false;
+          const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
+          set.call(r,String(v*(Number(r.max)||1)));
+          r.dispatchEvent(new Event('input',{bubbles:true}));r.dispatchEvent(new Event('change',{bubbles:true}));
+          return true;
+        }
+      };
+    })();
     function send(){
       timer=null;
       const el=pick(),md=ms?.metadata||null;
@@ -308,7 +342,11 @@ if(/^https?:$/.test(location.protocol)){
         video:el instanceof HTMLVideoElement&&el.videoWidth>0,
         pip:!!document.pictureInPictureElement,
         live:!!el&&el.duration===Infinity,
-        actions:[...handlers.keys()]
+        actions:[...handlers.keys()],
+        // Beta 0.37.1: volume (0–1), shuffle e ripeti (solo i siti che li hanno: null = non c'è).
+        volume:SITE?.volume()??(el?el.volume:null),
+        shuffle:SITE?SITE.shuffle():null,
+        repeat:SITE?SITE.repeat():null
       };
       document.dispatchEvent(new CustomEvent(EV,{detail:JSON.stringify(state)}));
     }
@@ -324,6 +362,9 @@ if(/^https?:$/.test(location.protocol)){
         case 'seekby':{const d=Number(value)||0;if(!call(d<0?'seekbackward':'seekforward',{seekOffset:Math.abs(d)})&&el)el.currentTime=Math.max(0,el.currentTime+d);break;}
         case 'seekto':{const t=Math.max(0,Number(value)||0);if(!call('seekto',{seekTime:t,fastSeek:false})&&el)el.currentTime=t;break;}
         case 'mute':if(el)el.muted=!el.muted;break;
+        case 'volume':{const v=Math.max(0,Math.min(1,Number(value)||0));if(!(SITE&&SITE.setVolume(v))&&el){el.volume=v;el.muted=v===0;}break;}
+        case 'shuffle':SITE?.toggleShuffle();break;
+        case 'repeat':SITE?.cycleRepeat();break;
         case 'pip':{
           if(document.pictureInPictureElement){document.exitPictureInPicture().catch(()=>{});break;}
           const v=el instanceof HTMLVideoElement?el:[...els].find(x=>x instanceof HTMLVideoElement&&!x.paused);

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>4c · Ibrido</title>
+<script src="../shared/theme.js"></script>
+<link rel="stylesheet" href="../../lettore-round-1/shared/frame.css">
+<link rel="stylesheet" href="../shared/varco.css">
+<link rel="stylesheet" href="../shared/dock.css">
+<style>
+/* 4c — Metà e metà. Il guscio è vetro VARCO con l'anello di luce dell'accento (come i pannelli delle Impostazioni);
+   l'elenco resta grafite solida e densa, per leggibilità (l'identità del dock). Il dettaglio prende un alone dal colore della copertina. */
+:root{--muted:#8e97a1}
+.pop{background:rgba(var(--glass-rgb),.84);backdrop-filter:blur(36px) saturate(1.25);border:1px solid rgba(var(--acc-rgb),.35);border-radius:16px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 30px rgba(var(--acc-rgb),.14),0 24px 60px rgba(0,0,0,.55)}
+.pop::after{background:#111317;border-color:rgba(var(--acc-rgb),.35)}
+.list{background:#101215;border-right:1px solid rgba(var(--line-rgb),.12);border-radius:15px 0 0 15px}
+.list header{border-bottom-color:#1e2126}
+.k-title{font-weight:400;letter-spacing:.26em;text-transform:uppercase;font-size:10.5px;color:var(--acc)!important}
+.r{border-bottom-color:#181a1f}
+.r.sel{background:#171b22;box-shadow:inset 2px 0 0 var(--acc)}
+.r .st.p{color:var(--acc)}
+.ws{background:#1f232a;color:#b9c2cc}
+.detail{position:relative;overflow:hidden}
+.detail::before{content:'';position:absolute;left:-10%;top:-30%;width:80%;height:90%;background:radial-gradient(closest-side,var(--art),transparent);opacity:.28;filter:blur(30px);pointer-events:none}
+.detail>*{position:relative}
+.detail .art{box-shadow:0 10px 30px -6px var(--art)}
+.rail{background:#101215;border-left:1px solid rgba(var(--line-rgb),.12);border-radius:0 15px 15px 0}
+.ib.on{color:var(--acc);background:rgba(var(--acc-rgb),.12)}
+.trans .ib.main{background:var(--acc);color:#04121a}
+.modes .ib{border-color:rgba(var(--line-rgb),.2)}
+.modes .ib.on{border-color:var(--acc);color:var(--acc)}
+.scrub input{background:linear-gradient(90deg,var(--acc) var(--p),rgba(255,255,255,.12) var(--p))}
+.mini{background:#121418;border-color:rgba(var(--acc-rgb),.3);box-shadow:0 0 14px rgba(var(--acc-rgb),.08)}
+.mini .ib.main{color:var(--acc)}
+.bar-fill{background:linear-gradient(90deg,var(--art,var(--acc)),var(--acc))}
+.cnt{background:rgba(var(--acc-rgb),.14);color:var(--acc)}
+body.panel-open .vf-page{filter:brightness(.55)}
+</style></head><body>
+<script src="../../lettore-round-1/shared/icons.js"></script><script src="../../lettore-round-1/shared/media.js"></script>
+<script src="../shared/dock.js"></script>
+</body></html>

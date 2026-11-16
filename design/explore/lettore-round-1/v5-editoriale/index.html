@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V5 · Editoriale</title>
+<link rel="stylesheet" href="../shared/frame.css">
+<style>
+/* Famiglia: brutalist-editorial (pin 28, 71, 72). La gerarchia la fa la dimensione del testo; nero, bianco, un accento lime. Griglia a vista.
+   Struttura: un cassetto a tutta larghezza che sale dalla barra. A sinistra il brano in caratteri enormi, a destra l'elenco numerato. */
+:root{--lime:#d7ff3a;--paper:#f2f0ea;--ink:#0b0b0b;--grid:rgba(242,240,234,.14)}
+.tag{display:flex;align-items:stretch;height:34px;border:1px solid var(--paper);cursor:pointer;background:var(--ink);font:600 11px/1 'Segoe UI Variable';text-transform:uppercase;letter-spacing:.06em}
+.tag .no{display:grid;place-items:center;padding:0 8px;background:var(--paper);color:var(--ink);font-weight:800}
+.tag .tx{display:flex;flex-direction:column;justify-content:center;width:200px;padding:0 10px;min-width:0;border-right:1px solid var(--paper)}
+.tag .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag .tx span{font-weight:400;opacity:.6;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.sq{width:34px;display:grid;place-items:center;border-right:1px solid var(--paper);color:var(--paper)}
+.sq:last-child{border-right:0}.sq .ic{width:15px;height:15px}
+.sq:hover{background:var(--paper);color:var(--ink)}
+.sq.main{background:var(--lime);color:var(--ink)}
+.sq.on{background:var(--paper);color:var(--ink)}
+.drawer{position:absolute;left:0;right:0;bottom:0;height:min(430px,62vh);display:grid;grid-template-columns:1.4fr 1fr;background:var(--ink);color:var(--paper);
+  border-top:1px solid var(--paper);transform:translateY(100%);transition:transform .45s cubic-bezier(.7,0,.2,1)}
+body.panel-open .drawer{transform:none}
+.drawer::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/calc(100%/12) 100%}
+.big{padding:22px 28px 18px;display:flex;flex-direction:column;border-right:1px solid var(--paper);min-width:0;position:relative}
+.kicker{display:flex;gap:14px;font:600 10.5px 'Consolas',monospace;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.kicker .on{color:var(--lime);opacity:1}
+.big h2{margin:14px 0 6px;font:800 clamp(30px,4.2vw,58px)/.95 'Segoe UI Variable',sans-serif;letter-spacing:-.03em;text-transform:uppercase;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.big .sub{font:400 15px 'Segoe UI Variable';opacity:.75}
+.scrub{display:flex;align-items:center;gap:12px;margin-top:auto;font:700 12px 'Consolas',monospace}
+.scrub input{flex:1;appearance:none;height:14px;background:linear-gradient(90deg,var(--lime) var(--p),transparent var(--p));border:1px solid var(--paper);outline:none}
+.scrub input::-webkit-slider-thumb{appearance:none;width:6px;height:22px;background:var(--paper)}
+.scrub .live{color:var(--lime);letter-spacing:.2em}
+.ctl{display:flex;border:1px solid var(--paper);margin-top:12px;height:46px}
+.ctl .sq{flex:1;width:auto}.ctl .sq .ic{width:19px;height:19px}
+.ctl .sq.main{flex:1.6}
+.ctl .lbl{display:flex;align-items:center;gap:6px;font:700 10px 'Consolas',monospace;letter-spacing:.1em}
+.idx{display:flex;flex-direction:column;min-height:0}
+.idx header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--paper);font:600 10.5px 'Consolas',monospace;letter-spacing:.14em;text-transform:uppercase}
+.idx header button{color:var(--paper);font:inherit;display:flex;gap:6px;align-items:center}
+.idx header .box{width:14px;height:14px;border:1px solid var(--paper);display:inline-block}
+.idx header .box.on{background:var(--lime);border-color:var(--lime)}
+.list{overflow:auto;flex:1;scrollbar-width:thin;scrollbar-color:#444 transparent}
+.it{display:grid;grid-template-columns:44px 1fr auto;width:100%;align-items:center;text-align:left;border-bottom:1px solid var(--grid);color:var(--paper);padding:10px 18px 10px 0}
+.it .n{font:800 22px/1 'Segoe UI Variable';text-align:right;padding-right:12px;opacity:.35}
+.it.sel .n,.it:hover .n{opacity:1;color:var(--lime)}
+.it span{display:flex;flex-direction:column;min-width:0}
+.it b{font:600 13px 'Segoe UI Variable';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it small{font:10.5px 'Consolas',monospace;opacity:.55;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it i{font:700 10px 'Consolas',monospace;font-style:normal;padding:2px 6px;border:1px solid currentColor}
+.it i.p{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.extra{display:flex;gap:0;border:1px solid var(--paper);height:34px;margin-top:10px;align-self:flex-start}
+.extra .go{padding:0 14px;font:700 10.5px 'Consolas',monospace;letter-spacing:.1em;color:var(--paper);text-transform:uppercase}
+.extra .go:hover{background:var(--lime);color:var(--ink)}
+.empty{grid-column:1/-1;display:grid;place-items:center;font:800 40px 'Segoe UI Variable';text-transform:uppercase;letter-spacing:-.02em;opacity:.8;text-align:center}
+.empty small{display:block;font:400 13px 'Segoe UI Variable';text-transform:none;letter-spacing:0;opacity:.6;margin-top:8px}
+body.panel-open .vf-page{filter:grayscale(1) contrast(1.1) brightness(.6)}
+</style></head><body>
+<script src="../shared/icons.js"></script><script src="../shared/media.js"></script>
+<script>
+let sel=null;
+const pad=n=>String(n).padStart(2,'0');
+function renderMini(slot,list,{tick}){
+  if(tick)return;
+  const m=Media.primary();if(!m){slot.innerHTML='';return;}
+  const b=buttonsOf(m);
+  const three=b.transport.filter(x=>x.main||x.id===(b.c.previous?'prev':'back')||x.id===(b.c.next?'next':'fwd'));
+  slot.innerHTML=`<div class="tag" title="Apri il lettore"><span class="no">${pad(list.length)}</span><span class="tx"><b>${m.title}</b><span>${m.pip?'In finestrella / ':''}${m.subtitle}</span></span><span class="k" style="display:flex"></span></div>`;
+  drawButtons(slot.querySelector('.k'),three,'sq');
+  slot.querySelector('.tag').onclick=()=>Media.toggleOpen();
+}
+function renderPanel(slot,list,{tick}){
+  if(!slot.firstChild)slot.innerHTML='<div class="drawer" role="dialog" aria-label="In riproduzione"></div>';
+  const box=slot.firstChild;
+  if(tick){tickScrubbers(box);return;}
+  if(!list.length){box.innerHTML='<div class="empty">Silenzio.<small>Audio e video di schede, pannelli web e widget, di ogni workspace, compaiono qui.</small></div>';return;}
+  const m=list.find(x=>x.key===sel)||Media.primary();sel=m.key;
+  const b=buttonsOf(m);
+  box.innerHTML=`<div class="big" data-key="${m.key}"><div class="kicker"><span class="${m.playing?'on':''}">${m.playing?'● In riproduzione':'❚❚ In pausa'}</span><span>${m.where}</span><span>${m.workspace}</span><span>${m.site}</span></div>
+    <h2>${m.title}</h2><div class="sub">${m.subtitle}</div><div class="sc" style="margin-top:auto"></div><div class="ctl"></div><div class="extra"></div></div>
+    <div class="idx"><header><span>Indice · ${pad(list.length)}</span><button class="ap"><span class="box ${Media.autoPip?'on':''}"></span>Finestrella automatica</button></header><div class="list"></div></div>`;
+  box.querySelector('.sc').append(scrubber(m));
+  drawButtons(box.querySelector('.ctl'),[...b.modes.slice(0,1),...b.transport,...b.modes.slice(1)],'sq');
+  box.querySelectorAll('.ctl .b-shuffle,.ctl .b-repeat').forEach(el=>{el.classList.add('lbl');el.insertAdjacentText('beforeend',el.classList.contains('b-shuffle')?'SHUF':({off:'RIP',all:'RIP·TUTTO',one:'RIP·1'}[m.repeat]));});
+  const ex=box.querySelector('.extra');drawButtons(ex,b.extra,'sq');
+  const go=document.createElement('button');go.className='go';go.textContent='Vai →';go.onclick=()=>Media.act(m.key,'focus');ex.append(go);
+  box.querySelector('.ap').onclick=()=>Media.setAutoPip(!Media.autoPip);
+  box.querySelector('.list').replaceChildren(...list.map((x,i)=>{const r=document.createElement('button');r.className='it'+(x.key===m.key?' sel':'');
+    r.innerHTML=`<span class="n">${pad(i+1)}</span><span><b>${x.title}</b><small>${x.where} / ${x.workspace}</small></span><i class="${x.playing?'p':''}">${x.playing?'ON':x.live?'LIVE':Media.time(x.position)}</i>`;
+    r.onclick=()=>{sel=x.key;renderPanel(slot,Media.items,{});};return r;}));
+}
+Media.start({renderMini,renderPanel});
+document.querySelector('.vf-page').addEventListener('click',()=>Media.open&&Media.setOpen(false));
+</script></body></html>

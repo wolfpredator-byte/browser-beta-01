@@ -80,6 +80,7 @@ function start(){
   require('./lib/icon-urls.cjs').setup(); // Beta 0.37: icone leggere per le cornici
   require('./lib/drm.cjs').start(); // Beta 0.37: Widevine (Spotify, Netflix…), senza bloccare l'avvio
   require('./lib/media.cjs').setup(); // Beta 0.37.1: lettore multimediale (audio e video di tutte le schede)
+  require('./lib/media-overlay.cjs').setup(bus); // Beta 0.37.1: scheda e lettore completo sopra la pagina
   registerCommands(bus);
   registerGameCommands(bus);
   registerProjectCommands(bus);

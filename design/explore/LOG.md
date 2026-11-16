@@ -51,3 +51,49 @@ Direzione: riquadri fitti e alti su 4 colonne, vetro più trasparente e sfocato,
 - Da tenere d'occhio: nessuna icona "telefono" nel set di VARCO (uso `external`); "Sistema" resta da solo nell'ultima riga a 4 colonne.
 
 Nel portarlo in VARCO: accento, sfocatura e luminosità dello sfondo restano quelli scelti dall'utente in Impostazioni → Aspetto (sono già impostazioni dell'app); gli altri token valgono solo dentro la pagina Impostazioni.
+
+## 2026-11-16 · Lettore multimediale · Round 1 (struttura + famiglia)
+Brief: [../BRIEF-lettore.md](../BRIEF-lettore.md). Stile dalla board Pinterest dell'utente "Website design" ([../inspiration/pinterest-website-design/notes.md](../inspiration/pinterest-website-design/notes.md)).
+Correzioni richieste dall'utente presenti in tutte le varianti: YouTube con −10/+10 nella barra; Spotify con shuffle e ripeti (spento → playlist → brano); pannello che si apre dalla barra in basso.
+
+| Variante | Struttura | Famiglia |
+|---|---|---|
+| v1-isola | pillola che si allarga in un'isola centrata sopra la barra; altre fonti come pillole | liquid-glass |
+| v2-scaffale | scaffale a tutta larghezza, una card comandabile per media; shuffle/ripeti anche nel mini | neon-glass |
+| v3-console | deck ancorato a destra: cassette a sinistra, tasti in rilievo, interruttori arancioni | tactile-hardware |
+| v4-dock | popover ancorato al mini: elenco denso + dettaglio + barra verticale a pillola | pro-dock |
+| v5-editoriale | cassetto a tutta larghezza: titolo enorme, indice numerato, accento lime | brutalist-editorial |
+
+Stati (barra in alto a destra di ogni variante): Normale · Solo YouTube · Molti (12) · Titoli lunghi · Niente. Tasti a lettore aperto: Spazio, ← →, Esc.
+
+**Scelta:** V4 · Dock compatto. L'utente: «rendiamolo inerente allo stile del browser senza fargli perdere troppo la propria identità».
+
+## 2026-11-16 · Lettore multimediale · Round 2 (dalla V4)
+Asse indicato dall'utente: **quanto stile VARCO, quanto identità del dock**. Struttura identica (shared/dock.js); la cornice finta ha l'aspetto vero di VARCO
+(sfondo del preset, barre di vetro). Tema di base **Cyan Flash** (quello in uso: accento #00e5ff), con selettore "VARCO viola" per vedere che il lettore segue il tema.
+
+| Variante | Quanto VARCO |
+|---|---|
+| 4a-grafite | poco: la V4 com'è (grafite solida); da VARCO accento del tema, titoli spaziati, linee del tema, play pieno |
+| 4b-vetro | molto: vetro scuro coprente, sfondo che traspare ai bordi, bagliore dell'accento su ciò che è attivo, raggi morbidi |
+| 4c-ibrido | metà: guscio di vetro con anello di luce (come le Impostazioni), elenco grafite solido, alone dal colore della copertina |
+
+Nota: con il vetro trasparente (55%) sopra una pagina bianca il pannello diventava grigio e poco leggibile; portato all'80–84% e pagina scurita a lettore aperto, come i menu di VARCO.
+
+**Scelta:** 4b · Vetro VARCO.
+
+## 2026-11-16 · Lettore · 4b finale (lettore-final/)
+Richieste dell'utente sulla 4b, prima di portarla nel browser:
+- nella barra in basso i comandi di **ogni sorgente che suona** (fino a 3, poi "+N"), ciascuna con i comandi del suo sito;
+- **volume** per sorgente: nella barra un'icona con cursore a comparsa (passaggio del mouse o clic), nel pannello un cursore con percentuale;
+- **chiudere** dal lettore: × su ogni riga dell'elenco e nella barra verticale ("Chiudi la scheda" / "Chiudi il pannello web" / "Ferma il widget").
+
+Richiesta successiva: barra più compatta, per non togliere spazio alle schede. Aggiunto il selettore "Barra":
+- completa: titolo, comandi, volume (2 sorgenti ≈ 590 px);
+- compatta: copertina con anello di avanzamento + 3 comandi del sito (2 sorgenti ≈ 250 px);
+- minima: solo la copertina, clic = play/pausa (2 sorgenti ≈ 100 px).
+Nelle due strette titolo, barra, shuffle/ripeti e volume compaiono in una scheda sopra la barra al passaggio del mouse.
+
+**Scelta:** barra **minima**. Portata nel browser nella 0.37.1 (lib/media-overlay.cjs, media-overlay.*): scheda al passaggio e lettore completo sono una vista sopra la pagina.
+
+

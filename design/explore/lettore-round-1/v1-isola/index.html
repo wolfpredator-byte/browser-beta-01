@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>V1 · Isola di vetro liquido</title>
+<link rel="stylesheet" href="../shared/frame.css">
+<style>
+/* Famiglia: liquid-glass (pin 1, 3, 27). Il mini-lettore è una pillola di vetro chiaro che si allarga in un'isola sopra la barra. */
+:root{--glass:rgba(235,240,255,.14);--glass-hi:rgba(255,255,255,.32);--ink:#f7f8ff;--soft:rgba(240,244,255,.62)}
+.pill{display:flex;align-items:center;gap:6px;height:36px;padding:3px 4px 3px 3px;border-radius:999px;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -6px 14px rgba(255,255,255,.06),0 6px 20px rgba(0,0,0,.35);backdrop-filter:blur(22px) saturate(1.6);
+  transition:transform .3s cubic-bezier(.2,.9,.3,1.2)}
+.pill:hover{transform:translateY(-1px)}
+.pill .art{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.pill .art.spin{animation:spin 8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.pill .txt{display:flex;flex-direction:column;min-width:0;width:170px;line-height:1.15;padding:0 2px}
+.pill .txt b{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill .txt span{font-size:10.5px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill .btns{display:flex;gap:2px}
+.gbtn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:var(--ink);transition:background .2s,transform .15s}
+.gbtn:hover{background:rgba(255,255,255,.16)}.gbtn:active{transform:scale(.9)}
+.gbtn.main{background:rgba(255,255,255,.9);color:#141420}
+.gbtn .ic{width:16px;height:16px}
+.count{font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.18)}
+/* Isola */
+.island{position:absolute;left:50%;bottom:10px;width:min(620px,calc(100% - 40px));transform:translate(-50%,24px) scale(.94);opacity:0;pointer-events:none;
+  border-radius:34px;padding:18px;color:var(--ink);
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.32);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -20px 40px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.5);backdrop-filter:blur(40px) saturate(1.8);
+  transition:transform .45s cubic-bezier(.2,.9,.25,1.15),opacity .25s}
+body.panel-open .island{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+body.panel-open .vf-page{filter:blur(10px) brightness(.42) saturate(1.4)}
+.now{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:center}
+.now .art{width:120px;height:120px;border-radius:26px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3),0 14px 30px rgba(0,0,0,.35)}
+.now h3{margin:0;font-size:19px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.now .sub{color:var(--soft);margin:3px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now .where{font-size:11px;color:var(--soft);opacity:.8;display:flex;gap:6px;align-items:center}
+.now .where button{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.14);font-size:11px}
+.now .where .ic{width:12px;height:12px}
+.scrub{display:flex;align-items:center;gap:10px;font-size:11px;font-variant-numeric:tabular-nums;color:var(--soft);margin:14px 2px 6px}
+.scrub input{flex:1;appearance:none;height:6px;border-radius:999px;background:linear-gradient(90deg,#fff var(--p),rgba(255,255,255,.2) var(--p));outline:none}
+.scrub input::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.scrub .live{color:#ff8a8a;font-weight:700;letter-spacing:.1em}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.transport{display:flex;gap:10px;align-items:center;justify-content:center;flex:1}
+.transport .gbtn{width:42px;height:42px}.transport .gbtn .ic{width:20px;height:20px}
+.transport .gbtn.main{width:56px;height:56px}.transport .gbtn.main .ic{width:24px;height:24px}
+.side{display:flex;gap:4px;min-width:90px}.side.r{justify-content:flex-end}
+.gbtn.on{background:rgba(255,255,255,.85);color:#141420}
+.others{display:flex;gap:8px;overflow-x:auto;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);scrollbar-width:none}
+.chip{display:flex;align-items:center;gap:8px;flex:none;max-width:220px;padding:5px 12px 5px 5px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);text-align:left}
+.chip.sel{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.5)}
+.chip .art{width:26px;height:26px;border-radius:50%;flex:none}
+.chip span{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.chip b{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chip small{font-size:10px;color:var(--soft)}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:#7dffb3;box-shadow:0 0 8px #7dffb3;flex:none}
+.foot{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--soft)}
+.switch{width:34px;height:20px;border-radius:999px;background:rgba(255,255,255,.18);position:relative;flex:none}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .25s}
+.switch.on{background:rgba(125,255,179,.55)}.switch.on::after{left:16px}
+.empty{text-align:center;padding:28px 10px;color:var(--soft)}
+.empty .ic{width:28px;height:28px;margin:0 auto 8px;opacity:.7}
+</style></head><body>
+<script src="../shared/icons.js"></script><script src="../shared/media.js"></script>
+<script>
+let sel=null;
+const art=(m,cls)=>`<span class="art ${cls||''}" style="${artStyle(m)}"></span>`;
+function renderMini(slot,list,{tick}){
+  if(tick)return;
+  const m=Media.primary();
+  if(!m){slot.innerHTML='';return;}
+  const b=buttonsOf(m);
+  // Nella barra: i tre comandi principali del sito (YouTube: −10 · play · +10; Spotify: ◀◀ · play · ▶▶).
+  const three=b.transport.filter(x=>x.main||x.id===(b.c.previous?'prev':'back')||x.id===(b.c.next?'next':'fwd'));
+  slot.innerHTML=`<div class="pill" title="Apri il lettore">${art(m,m.playing&&!m.video?'spin':'')}<span class="txt"><b>${m.title}</b><span>${m.pip?'In finestrella · ':''}${m.subtitle}</span></span>${list.length>1?`<span class="count">+${list.length-1}</span>`:''}<span class="btns"></span></div>`;
+  drawButtons(slot.querySelector('.btns'),three,'gbtn');
+  slot.querySelector('.pill').onclick=()=>Media.toggleOpen();
+}
+function renderPanel(slot,list,{tick}){
+  if(!slot.firstChild)slot.innerHTML='<div class="island" role="dialog" aria-label="In riproduzione"></div>';
+  const box=slot.firstChild;
+  if(tick){tickScrubbers(box);return;}
+  if(!list.length){box.innerHTML=`<div class="empty">${IC.note}Niente in riproduzione.<br>Audio e video di schede, pannelli web e widget, di ogni workspace, compaiono qui.</div>`;return;}
+  const m=list.find(x=>x.key===sel)||Media.primary();sel=m.key;
+  const b=buttonsOf(m);
+  box.innerHTML=`<div data-key="${m.key}"><div class="now">${art(m)}<div><h3>${m.title}</h3><div class="sub">${m.subtitle}</div>
+    <div class="where">${m.where} · ${m.workspace} · ${m.site}<button class="go">${IC.go}Vai</button></div></div></div><div class="sc"></div>
+    <div class="row"><div class="side m"></div><div class="transport"></div><div class="side r"></div></div></div>
+    ${list.length>1?'<div class="others"></div>':''}
+    <div class="foot"><button class="switch ${Media.autoPip?'on':''}" aria-label="Finestrella automatica"></button>Finestrella automatica quando cambi scheda</div>`;
+  box.querySelector('.sc').append(scrubber(m));
+  drawButtons(box.querySelector('.transport'),b.transport,'gbtn');
+  drawButtons(box.querySelector('.side.m'),b.modes,'gbtn');
+  drawButtons(box.querySelector('.side.r'),b.extra,'gbtn');
+  box.querySelector('.go').onclick=()=>Media.act(m.key,'focus');
+  box.querySelector('.switch').onclick=()=>Media.setAutoPip(!Media.autoPip);
+  const others=box.querySelector('.others');
+  if(others)others.replaceChildren(...list.map(x=>{const c=document.createElement('button');c.className='chip'+(x.key===m.key?' sel':'');
+    c.innerHTML=`${art(x)}<span><b>${x.title}</b><small>${x.where} · ${x.workspace}</small></span>${x.playing?'<i class="dot"></i>':''}`;
+    c.onclick=()=>{sel=x.key;renderPanel(slot,Media.items,{});};return c;}));
+}
+Media.start({renderMini,renderPanel});
+document.querySelector('.vf-page').addEventListener('click',()=>Media.open&&Media.setOpen(false));
+</script></body></html>

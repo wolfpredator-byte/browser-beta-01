@@ -1,0 +1,20 @@
+/* Round 2: la cornice finta prende l'aspetto vero di VARCO (sfondo del preset, barre di vetro, accento del tema).
+   Due temi per vedere che il lettore segue il tema scelto: Cyan Flash (quello che usi) e VARCO (viola). */
+:root,:root[data-theme="cyan"]{--acc:#00e5ff;--acc-rgb:0,229,255;--acc2:#6b7a89;--bgc:#0d0f12;--bg-rgb:13,15,18;--glass-rgb:16,20,26;--line-rgb:120,200,220;
+  --wall:url(../../../../assets/presets/cyan-flash/wallpaper.jpg)}
+:root[data-theme="varco"]{--acc:#7c6cff;--acc-rgb:124,108,255;--acc2:#a99bff;--bgc:#07070e;--bg-rgb:7,7,14;--glass-rgb:24,23,44;--line-rgb:150,140,255;
+  --wall:url(../../../../assets/home-bg.jpg)}
+.vf{background:var(--bgc)}
+.vf::before{content:'';position:absolute;inset:-30px;background:var(--wall) center/cover;filter:blur(18px) brightness(.62);z-index:0}
+.vf>*{position:relative;z-index:1}
+.vf>.vf-panel-slot{position:absolute;z-index:6}
+.vf-top{color:#e7eef5}
+.vf-addr{background:rgba(var(--glass-rgb),.45);border-color:rgba(var(--line-rgb),.18);backdrop-filter:blur(14px)}
+.vf-side span{background:rgba(255,255,255,.14)}
+.vf-side span:nth-child(5){background:rgba(var(--acc-rgb),.35);box-shadow:0 0 0 1px rgba(var(--acc-rgb),.6)}
+.vf-page{border-radius:10px;box-shadow:0 0 0 1px rgba(var(--line-rgb),.25),0 0 24px rgba(var(--acc-rgb),.12)}
+.vf-tab{background:rgba(var(--glass-rgb),.4);border-color:rgba(var(--line-rgb),.14)}
+.vf-tab.active{background:rgba(var(--acc-rgb),.14);border-color:rgba(var(--acc-rgb),.55)}
+.vf-ws{border-color:rgba(var(--line-rgb),.2)}
+.vf-toast{background:rgba(var(--glass-rgb),.92);border-color:rgba(var(--acc-rgb),.35);backdrop-filter:blur(20px)}
+.vf-states .sep{width:1px;height:14px;background:rgba(255,255,255,.2);margin:0 4px}
