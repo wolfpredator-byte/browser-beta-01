@@ -4,7 +4,66 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.37.2 — Verifiche anti-bot ed estensioni
+
+Installer PC: `dist\VARCO Setup 0.37.2.exe` (con la firma VMP). Il telefono non cambia.
+
+### Cosa cambia
+- **Verifiche "sei umano?"** (CAPTCHA, controlli prima di un download, "Verifica di essere umano" di Cloudflare). Le cause trovate:
+  - **Due identità nella stessa pagina.** La pagina vedeva un browser normale, ma i riquadri di verifica, che girano in un processo a parte, vedevano "personal-workspace-browser … Electron". È il segnale più forte di "browser sospetto". Ora VARCO usa la stessa identità ovunque, impostata all'avvio prima di qualsiasi pagina. Il login Google continua a usare quella originale, che vuole apposta.
+  - **reCAPTCHA non poteva usare i propri cookie.** VARCO gli negava l'accesso (`requestStorageAccess`). Ora lo concede, come Chrome; i cookie di terze parti erano già permessi, quindi non perdi privacy.
+  - **VARCO lasciava tracce nelle pagine.** Gli agganci per notifiche e lettore cambiavano funzioni del browser e creavano una variabile globale (`__varcoMedia`), proprio ciò che i sistemi anti-bot controllano.
+    - Ora le funzioni risultano originali e la variabile non c'è più.
+    - Nei siti dei servizi di verifica VARCO non aggancia proprio nulla: Cloudflare, reCAPTCHA, hCaptcha, Arkose/FunCaptcha, GeeTest, DataDome, PerimeterX, AWS WAF, Friendly Captcha, MTCaptcha.
+  - **Il blocco pubblicità** non blocca mai le richieste di questi servizi.
+- **Estensioni che si installano ma non agiscono sul sito.** Le cause trovate:
+  - **Permessi letti male.** La libreria delle estensioni confrontava i permessi come testo: "https://sito.it/*" non è letteralmente "tutti i siti", quindi l'estensione si sentiva dire "non hai il permesso" anche quando l'aveva. Ignorava anche i siti delle estensioni più vecchie (Manifest V2). Ora il confronto è quello vero.
+  - **Estensioni che in Chrome agiscono "quando clicchi l'icona"** o chiedono il sito mentre le usi. Electron non sa concedere l'accesso un sito alla volta, quindi venivano respinte dalla pagina. Ora per queste estensioni c'è **Accesso ai siti**:
+    - **Su tutti i siti** (predefinito): funzionano come in Chrome, ma possono leggere e cambiare ogni pagina;
+    - **Solo i siti dichiarati**: più chiuse, ma potrebbero non fare nulla.
+    - Si sceglie all'installazione e si cambia in Impostazioni → Estensioni.
+  - **File .crx** (estensioni scaricate da un sito, fuori dal Chrome Web Store). Prima restavano un file nei Download. Ora:
+    - a download finito il toast ha **Installa estensione**;
+    - in Impostazioni → Estensioni ci sono **Installa da file .crx o .zip…** e **Da una cartella…**;
+    - c'è sempre la domanda prima di installare;
+    - le estensioni da file si ricaricano a ogni avvio e sono segnate "da file".
+
+### Modalità insegnamento
+- `lib/identity.cjs`: all'avvio `app.userAgentFallback` diventa l'identità pulita; l'originale resta per il login Google. Prima i riquadri in un altro processo prendevano la versione grezza.
+- `lib/verification-rules.cjs`: elenco dei servizi di verifica. `page-preload.cjs` ne ha una copia, perché gira isolato, e un test controlla che coincidano.
+- `page-preload.cjs`:
+  - gli agganci ora sono `Proxy` sul prototipo con lo stesso descrittore, e risultano "codice nativo";
+  - i comandi del lettore arrivano con `WebFrameMain.send('media:cmd')`, dopo il gesto dell'utente dato con `executeJavaScript('void 0', true)`, e non serve più una variabile globale.
+- `lib/permission-rules.cjs`: `storage-access` e `top-level-storage-access` sono sempre concessi.
+- `lib/extension-rules.cjs` (con test): confronto dei match pattern di Chrome, siti MV2/MV3, `needsSiteAccess`/`widenManifest`, lettura dei .crx (CRX2 e CRX3 contengono uno ZIP).
+- `lib/extensions.cjs`:
+  - sostituisce i gestori `permissions.*` della libreria (`ctx.router.handle`);
+  - con "Su tutti i siti" aggiunge `<all_urls>` al manifest della copia installata (l'originale resta in `manifest.varco-original.json`) e la ricarica in tutte le sessioni, anche dopo un aggiornamento dal Web Store;
+  - installa da file in `userData/ExtensionsLocal`.
+
+### Test da fare
+- [ ] **T260** — Un sito con la verifica di Cloudflare (o il download che prima falliva): la verifica passa come negli altri browser. **📸** se non passa, con l'indirizzo.
+- [ ] **T261** — Un modulo con reCAPTCHA o hCaptcha (es. registrazione a un sito): il riquadro si carica e la verifica va.
+- [ ] **T262** — L'estensione .crx che non funzionava: dal toast del download "Installa estensione" (oppure Impostazioni → Estensioni → Installa da file…). Scegli "Su tutti i siti" e usala sul sito: ora agisce. **📸**
+- [ ] **T263** — Impostazioni → Estensioni: per quella estensione passa a "Solo i siti dichiarati" e poi di nuovo a "Su tutti i siti". Riavvia VARCO: resta installata con la scelta fatta.
+- [ ] **T264** — Un'estensione dal Chrome Web Store che prima non agiva sul sito: dopo l'aggiornamento prova di nuovo. Se non va ancora, scrivimi il nome.
+- [ ] **T265** — Lettore multimediale: tutto come nella 0.37.1 (pausa, salti, volume, finestrella).
+
+**Stato:**
+- 222 test superati (nuovi: `verification-rules`, `extension-rules`).
+- **Provato in VARCO** con una copia dei tuoi dati:
+  - **Verifiche:** sulle pagine dimostrative di reCAPTCHA, hCaptcha e Turnstile l'identità è la stessa ovunque (prima il riquadro di Cloudflare vedeva "Electron"). Niente più accesso ai cookie negato, nessuna funzione modificata, nessuna variabile di VARCO. Non ho risolto CAPTCHA: ho solo guardato cosa vedevano del browser.
+  - **Estensioni:** con un'estensione di prova che agisce sui siti in tutti i modi comuni (script nella pagina, messaggi col background, `tabs.query`, `scripting.executeScript`, messaggi alla scheda, storage) funziona tutto. `permissions.contains` prima diceva "no" con "tutti i siti", ora dice il vero.
+  - **Estensione "al clic":** prima veniva respinta. Installata da .zip con "Su tutti i siti" entra nella pagina; con "Solo i siti dichiarati" resta fuori e dice onestamente di no. Dopo un riavvio resta installata con la sua scelta.
+  - **Lettore:** pausa, ripresa, brano successivo, salto, volume e finestrella col nuovo canale dei comandi.
+- **Non provato:** CAPTCHA "veri" su siti reali, la tua estensione .crx, l'installer.
+- **Limite noto:** una funzione agganciata ora risulta "nativa" ma senza il suo nome. Solo un controllo molto pignolo se ne accorge.
+
+---
+
 ## Beta 0.37.1 — Lettore multimediale
+
+**Pubblicata (v0.37.1) e unita in main il 2026-11-16, dopo la tua prova.**
 
 Installer PC: `dist\VARCO Setup 0.37.1.exe` (con la firma VMP). Il telefono non cambia.
 

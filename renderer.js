@@ -905,14 +905,20 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const x=state.extensions;
    if(!x)return el('span');
    const rows=x.list.map(e=>el('div',{className:'pw-row'},
-     el('div',{className:'pw-site'},el('span',{className:'pw-host',textContent:`${e.name} ${e.version}`}),
+     el('div',{className:'pw-site'},el('span',{className:'pw-host',textContent:`${e.name} ${e.version}${e.local?' · da file':''}`}),
        el('span',{className:'pw-user',textContent:e.description||e.id,title:e.id})),
      el('span',{className:'inline-buttons'},
+       // Beta 0.37.2: accesso ai siti, per le estensioni che in Chrome agiscono al clic o chiedendo i siti.
+       ...(e.siteAccess?[selectBox({all:'Su tutti i siti',declared:'Solo i siti dichiarati'},e.siteAccess,v=>settingsAction('extensionSetAccess',
+         v==='all'?`«${e.name}» ora agisce su tutti i siti.`:`«${e.name}» ora agisce solo sui siti dichiarati.`,{id:e.id,mode:v}))]:[]),
        ...(e.options?[addButton(el('span'),'Impostazioni',()=>act('extensionOptions',{id:e.id}))]:[]),
        confirmButton('Rimuovi','Conferma',()=>settingsAction('extensionRemove',`«${e.name}» rimossa.`,{id:e.id})))));
    return section('Estensioni',
      ...(x.list.length?rows:[hint('Nessuna estensione. Aprile dal Chrome Web Store: il pulsante «Aggiungi» funziona anche in VARCO.')]),
-     projectButtons(['Apri il Chrome Web Store',()=>act('openWebStore'),'primary']),
+     projectButtons(['Apri il Chrome Web Store',()=>act('openWebStore'),'primary'],
+       ['Installa da file .crx o .zip…',()=>settingsAction('extensionInstallFile',r=>r.cancelled?'':`«${r.name}» installata.`,{})],
+       ['Da una cartella…',()=>settingsAction('extensionInstallFile',r=>r.cancelled?'':`«${r.name}» installata.`,{folder:true})]),
+     hint('«Accesso ai siti»: alcune estensioni in Chrome agiscono su un sito solo quando clicchi la loro icona. VARCO non può concedere l’accesso un sito alla volta: con «Su tutti i siti» funzionano come in Chrome, con «Solo i siti dichiarati» sono più chiuse ma potrebbero non fare nulla.'),
      hint('Le icone delle estensioni compaiono accanto alla barra degli indirizzi; un clic apre il loro menu. Funzionano quasi tutte le estensioni comuni (blocchi, temi scuri, gestori di password, traduttori); quelle che usano funzioni rare di Chrome possono funzionare solo in parte. VARCO chiede sempre prima di installare.'));
  }
  // Telefono collegato (Beta 0.31): QR per abbinare, telefoni abbinati, stato del server sulla rete di casa.
