@@ -1,0 +1,55 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V4 · Tessere di vetro</title>
+<link rel="stylesheet" href="../shared/lx.css">
+<style>
+/* V4 — frosted-tiles: tessere di vetro grandi (fissati 3×3) e a lato i frequenti; scrivendo le tessere diventano i risultati, raggruppati per tipo. */
+.lx{position:absolute;left:50%;top:50%;transform:translate(-50%,-54%);width:min(900px,calc(100vw - 32px));display:grid;gap:12px}
+.lx.enter{animation-name:v4In}@keyframes v4In{from{opacity:0;transform:translate(-50%,-50%) scale(.96)}}
+.glass{background:rgba(255,255,255,.07);backdrop-filter:blur(30px) saturate(1.4);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 60px rgba(0,0,0,.35);border-radius:22px}
+.search{display:flex;align-items:center;gap:12px;padding:14px 18px}.search>.ic{color:var(--acc);width:20px;height:20px}
+.ctx{font-size:11.5px;color:var(--mut);display:flex;gap:6px;align-items:center;white-space:nowrap}.ctx i{width:7px;height:7px;border-radius:50%;background:var(--w)}
+.mid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;min-height:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{position:relative;min-height:112px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;min-width:0;border-radius:20px;transition:transform .12s,border-color .12s}
+.tile:hover{transform:translateY(-2px)}.tile.sel{border-color:rgba(var(--acc-rgb),.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 3px rgba(var(--acc-rgb),.18),0 20px 60px rgba(0,0,0,.35)}
+.tile b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}.tile span{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tile kbd{position:absolute;top:12px;right:12px}
+.tile.free{opacity:.45;border-style:dashed;justify-content:center;align-items:center;color:var(--mut);font-size:12px}
+.side{padding:12px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
+.side .lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding:2px 6px 6px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:12px;cursor:pointer;min-width:0}.row.sel{background:rgba(var(--acc-rgb),.12)}
+.row .t{flex:1;display:grid;min-width:0}.row .t b{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .t span{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-height:52vh;overflow:auto;padding:2px}
+.res .tile{min-height:96px}
+.bottom{display:flex;align-items:center;gap:8px;padding:8px 10px;flex-wrap:wrap}
+.bottom .who{display:flex;gap:8px;align-items:center;min-width:0;max-width:260px}.bottom .who b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.bottom .sp{flex:1}
+@media (max-width:760px){.mid{grid-template-columns:1fr}.res{grid-template-columns:repeat(2,minmax(0,1fr))}.bottom .lx-hint{display:none}.lx{top:12px;transform:translateX(-50%)}}
+</style></head><body><div id="app"></div>
+<script src="../shared/lx.js"></script>
+<script>
+const {I,esc,icon,meta,chips,actbar,hint,emptyMsg,WS,SCENES}=LX;
+function tile(x,i,s,k){return `<button class="tile glass${i===s.sel?' sel':''}" data-i="${i}">${icon(x,true)}${k?`<kbd>${k}</kbd>`:''}<div><b class="${x.broken?'lx-broken':''}">${esc(x.title)}</b><span>${x.broken?'Non trovato · Cambia percorso':esc(x.dyn?x.sub:meta(x))}</span></div></button>`;}
+LX.start({render(s,r){
+  const c=SCENES[s.scene],fl=LX.flat(),cur=LX.current();
+  let mid;
+  if(r.empty){
+    const t=[1,2,3,4,5,6,7,8,9].map(k=>{const x=r.pinned.find(p=>p.key===k);return x?tile(x,fl.indexOf(x),s,k):`<div class="tile glass free">${I.plus}Posto ${k} libero<br>Fissa un risultato</div>`;}).join('');
+    mid=`<div class="mid"><div class="tiles">${t}</div><div class="side glass"><div class="lab">Frequenti · ${c.ws}</div>${[...r.frequent,...r.extra].map(x=>{const i=fl.indexOf(x);return `<div class="row${i===s.sel?' sel':''}" data-i="${i}">${icon(x)}<div class="t"><b>${esc(x.title)}</b><span>${esc(x.dyn?x.sub:meta(x))}</span></div></div>`;}).join('')}</div></div>`;
+  }else mid=(r.list.length||r.bang?'':`<div class="glass">${emptyMsg()}</div>`)+`<div class="res">${fl.map((x,i)=>tile(x,i,s)).join('')}</div>`;
+  return `<div class="search glass">${I.search}<span id="lxSlot"></span><span class="ctx"><i style="--w:${WS[c.ws]}"></i>${esc(c.who)}</span></div>
+    <div class="glass" style="padding:6px 8px;border-radius:999px">${chips()}</div>${mid}
+    ${cur?`<div class="bottom glass"><span class="who">${icon(cur)}<b>${esc(cur.title)}</b></span><span class="sp"></span>${actbar(cur)}</div>`:''}
+    <div style="display:flex;justify-content:center">${hint}</div>`;
+},keys(e,s){
+  /* Nelle tessere ← → si muovono di una, ↑ ↓ di una riga (3 a vuoto, 4 nei risultati). */
+  const fl=LX.flat(),n=fl.length;if(!n)return false;
+  const cols=s.q?4:3;
+  /* Scrivendo ← → restano al testo (si sposta il cursore). */
+  if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!s.q){s.sel=(s.sel+(e.key==='ArrowRight'?1:-1)+n)%n;s.act=0;LX.draw();return true;}
+  if((e.key==='ArrowDown'||e.key==='ArrowUp')&&(s.q||fl[s.sel]?.pinned)){
+    const pinCount=s.q?n:LX.results().pinned.length;let j=s.sel+(e.key==='ArrowDown'?cols:-cols);
+    if(!s.q&&j>=pinCount)j=pinCount;if(j<0)return false;if(j>=n)j=n-1;s.sel=j;s.act=0;LX.draw();return true;}
+  return false;
+}});
+</script></body></html>

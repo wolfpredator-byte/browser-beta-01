@@ -1,0 +1,52 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V1 · Barra dall'alto</title>
+<link rel="stylesheet" href="../shared/lx.css">
+<style>
+/* V1 — island: una barra che scende dall'alto; a vuoto una fila di fissati 1–9 e i frequenti; scrivendo una lista con le azioni sulla riga. */
+.lx{position:absolute;left:50%;top:9vh;transform:translateX(-50%);width:min(680px,calc(100vw - 32px));--enter-from:translate(-50%,-24px) scale(.97);
+  background:var(--glass);backdrop-filter:blur(26px) saturate(1.3);border:1px solid rgba(var(--ink-rgb),.12);border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);overflow:hidden}
+.lx.enter{animation-name:v1In}@keyframes v1In{from{opacity:0;transform:translate(-50%,-24px) scale(.97)}}
+.top{display:flex;align-items:center;gap:12px;padding:14px 18px}
+.top>.ic{color:var(--acc);width:20px;height:20px}
+.ctx{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11.5px;color:var(--mut);background:rgba(var(--ink-rgb),.06);white-space:nowrap}
+.ctx i{width:7px;height:7px;border-radius:50%;background:var(--w)}
+.bar2{display:flex;align-items:center;gap:10px;padding:0 14px 10px;border-bottom:1px solid var(--line)}
+.dock{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;padding:14px 14px 6px}
+.key{position:relative;display:grid;justify-items:center;gap:6px;padding:10px 4px 8px;border-radius:14px;border:1px solid transparent;min-width:0}
+.key:hover,.key.sel{background:rgba(var(--ink-rgb),.06)}.key.sel{border-color:rgba(var(--acc-rgb),.5)}
+.key span{font-size:11px;color:var(--mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.key kbd{position:absolute;top:4px;left:6px;font-size:9.5px;padding:2px 4px}
+.key.free{opacity:.35}.key.free .lx-ic{border-style:dashed}
+.lab{display:flex;align-items:center;gap:6px;padding:12px 18px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.lab .ic{width:13px;height:13px}
+.list{max-height:46vh;overflow:auto;padding:4px 8px 8px}
+.row{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;cursor:pointer;min-width:0}
+.row.sel{background:rgba(var(--acc-rgb),.09);box-shadow:inset 3px 0 0 var(--acc)}
+.row .t{flex:1;min-width:0;display:grid}.row .t b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .t span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .when{font-size:11.5px;color:var(--mut);white-space:nowrap}
+.row .acts{display:flex;gap:2px}
+.foot{display:flex;justify-content:space-between;gap:10px;padding:10px 18px;border-top:1px solid var(--line);background:rgba(0,0,0,.15)}
+.foot .add{font-size:11.5px;color:var(--mut);display:flex;gap:6px;align-items:center}.foot .add .ic{width:14px;height:14px}
+@media (max-width:640px){.dock{grid-template-columns:repeat(5,minmax(0,1fr))}.row .acts .lx-act:not(.on){display:none}.lx-hint span:nth-child(n+3){display:none}}
+</style></head><body><div id="app"></div>
+<script src="../shared/lx.js"></script>
+<script>
+const {I,esc,icon,meta,ago,chips,actbar,hint,emptyMsg,WS,SCENES}=LX;
+function row(x,i,s){const sel=i===s.sel;return `<div class="row${sel?' sel':''}" data-i="${i}">${icon(x)}<div class="t"><b class="${x.broken?'lx-broken':''}">${esc(x.title)}</b><span>${x.broken?'Non trovato · il file è stato spostato':esc(meta(x)||x.sub)}</span></div>${sel?`<div class="acts">${actbar(x)}</div>`:x.last!==undefined&&!x.dyn?`<span class="when">${ago(x.last)}</span>`:''}${x.key&&x.pinned?`<kbd>${x.key}</kbd>`:''}</div>`;}
+LX.start({render(s,r){
+  const c=SCENES[s.scene];
+  let body='';
+  if(r.empty){
+    const keys=[1,2,3,4,5,6,7,8,9].map(k=>{const x=r.pinned.find(p=>p.key===k);if(!x)return `<div class="key free"><kbd>${k}</kbd><span class="lx-ic">${I.plus}</span><span>Libero</span></div>`;
+      const i=r.flat.indexOf(x);return `<button class="key${i===s.sel?' sel':''}" data-i="${i}"><kbd>${k}</kbd>${icon(x,true)}<span>${esc(x.title.split(' · ')[0])}</span></button>`;}).join('');
+    const cur=LX.current();
+    body=`<div class="lab">${I.pin}Fissati · premi il numero</div><div class="dock">${keys}</div>
+      ${cur&&cur.pinned?`<div class="bar2" style="border:0;padding-top:4px"><b style="font-size:12.5px">${esc(cur.title)}</b><span style="color:var(--mut);font-size:12px">${esc(meta(cur))}</span><span style="flex:1"></span>${actbar(cur)}</div>`:''}
+      <div class="lab">${I.clock}Frequenti · ${s.chip==='all'?c.ws:'filtro'}</div><div class="list">${[...r.frequent,...r.extra].map(x=>row(x,r.flat.indexOf(x),s)).join('')}</div>`;
+  }else{
+    const l=r.flat||r.list;
+    body=`<div class="bar2">${chips()}</div><div class="list" style="padding-top:8px">${r.list.length||r.bang?l.map((x,i)=>row(x,i,s)).join(''):emptyMsg()+(r.dyn||[]).map((x,i)=>row(x,i,s)).join('')}</div>`;
+  }
+  return `<div class="top">${I.search}<span id="lxSlot"></span><span class="ctx"><i style="--w:${WS[c.ws]}"></i>${esc(c.who)}</span></div>${r.empty?`<div class="bar2">${chips()}</div>`:''}${body}
+  <div class="foot">${hint}<span class="add">${I.drop}Trascina qui un file per aggiungerlo</span></div>`;
+}});
+</script></body></html>

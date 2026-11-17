@@ -4,6 +4,84 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.40 — Launcher: più anelli, cartelle del PC, media, chiusura animata
+
+Installer PC: `dist\VARCO Setup 0.40.0.exe` (con la firma VMP). Contiene anche tutta la 0.39 (il launcher), che non era stata pubblicata. Il telefono non cambia.
+
+### Cosa cambia
+- **Più anelli per profilo, come pagine.** Ogni profilo può avere fino a 5 anelli da 8 posti.
+  - In modifica (`F2`): «Nuovo anello» (o il «+» sotto l'anello) e «Togli questo anello». I fast link di un anello tolto passano in «Altro nel profilo».
+  - Per passare da un anello all'altro: `PagSu` / `PagGiù`, `Ctrl+← →`, la rotella del mouse sull'anello o i pallini sotto. L'anello gira di un ottavo nella direzione scelta.
+  - `1`–`8` aprono i posti dell'anello che vedi. Aggiungendo un fast link, va nel primo posto libero di tutti gli anelli.
+- **Cartelle e file del computer.**
+  - In modifica, in cima al ventaglio: «Scegli una cartella del PC…» e «Scegli un file del PC…» (Esplora file). Vanno nel posto che stai modificando.
+  - Cercando trovi anche Desktop, Documenti, Download, Immagini, Video, Musica, la cartella utente e i dischi (`Disco C:`, `Disco D:`…).
+- **Media di siti e app.** In cima al ventaglio, «In riproduzione»:
+  - i siti che suonano in VARCO (lettore della 0.37.1): clic sulla copertina per andare alla scheda;
+  - le app di Windows che usano i controlli multimediali di sistema (Spotify, lettore multimediale, Chrome, VLC…);
+  - indietro, play/pausa e avanti, anche con `F7`, `F8` e `F9` (sul primo, cioè quello che suona). Si aggiorna da solo ogni 2,5 secondi.
+- **Chiusura animata:** il contrario dell'entrata. Gli spicchi rientrano in ordine inverso, il centro si rimpicciolisce, il ventaglio scivola via e il velo sparisce. Con «riduci movimento» di Windows solo una dissolvenza.
+
+### Test da fare
+- [ ] **T291** — `F2` → «Nuovo anello»: compare il secondo anello. Mettici qualcosa, poi passa da un anello all'altro con `PagGiù`, la rotella e i pallini. Chiudi e riapri: c'è ancora. **📸**
+- [ ] **T292** — «Togli questo anello» sul secondo: i suoi fast link sono in «Altro nel profilo».
+- [ ] **T293** — «Scegli una cartella del PC…»: scegli una cartella qualsiasi, finisce nel posto. Cerca «documenti» e «disco»: trovi le cartelle di Windows e i dischi.
+- [ ] **T294** — Con YouTube che suona in VARCO e Spotify (app) aperto: tutti e due in «In riproduzione». Play/pausa e avanti funzionano dai pulsanti e da `F8` / `F9`. **📸**
+- [ ] **T295** — Chiudi il launcher con `Esc`, con un clic fuori e aprendo un fast link: ogni volta esce con l'animazione al contrario.
+
+**Stato:**
+- 238 test superati (1 nuovo per gli anelli).
+- **Provato in VARCO** con un profilo di prova: «Dal computer» in modifica, nuovo anello, «Documenti» messo nel primo posto del secondo anello e salvato (16 posti), `PagSu` per tornare al primo. Le schede che suonavano comparivano in «In riproduzione» e il pulsante play/pausa le comandava. La chiusura dura circa 0,3 s, poi la finestra si nasconde.
+- La lettura dei media delle app di Windows funziona sul PC, ma al momento della prova nessuna app suonava: **comandi di Spotify e simili non provati**.
+- **Non provati:** la finestra «Scegli una cartella…» (aperta a mano) e l'installer.
+
+---
+
+## Beta 0.39 — Launcher: due anelli, anche fuori da VARCO
+
+Non pubblicata da sola: è dentro la 0.40 (installer `dist\VARCO Setup 0.40.0.exe`).
+
+### Cosa cambia
+- **Una scorciatoia di sistema apre il launcher ovunque:** in gioco, sul desktop, in un altro programma.
+  - Di base è `Ctrl+Alt+Spazio`. Se un altro programma la usa già, VARCO prende la prima libera e te lo dice con una notifica (sul PC di prova: `Ctrl+Maiusc+Spazio`).
+  - La cambi in **Impostazioni → Launcher**, dove puoi anche spegnerlo.
+- **Due anelli, come il menu di un videogioco:**
+  - **Fast launcher:** i fast link del programma in primo piano.
+  - **Command center:** le sezioni della 0.38 (schede, progetti, fast link, comandi, web, JARVIS, crea) della finestra di VARCO usata per ultima.
+  - La scorciatoia premuta di nuovo (o `F1`) gira l'anello sull'altro. Il fast launcher prende il colore del profilo, il command center l'accento del tema.
+- **Profili per programma:** VARCO riconosce il programma in primo piano dal suo eseguibile (es. `destiny2.exe`) e mostra i suoi 8 posti.
+  - Sul desktop, in VARCO o in Esplora file vale il **profilo generale**. La prima volta parte dai fast link del workspace attivo.
+  - Un programma senza profilo mostra **«Crea il profilo»**. Se è un gioco del pannello Giochi, il profilo parte già con i suoi siti.
+- **Modifica del profilo:** `F2`, «Modifica» o clic su un posto libero.
+  - `← →` scegli il posto, `Alt+← →` lo sposti, `Canc` lo svuoti, scrivi per cercare, `Invio` metti.
+  - Puoi metterci siti, app installate, giochi, cartelle e file, comandi dei progetti, note dei workspace, pannelli web, prompt di JARVIS e la pagina aperta in VARCO.
+  - Anche trascinando file e cartelle sul launcher.
+- **Suggeriti:** i siti del gioco (pannello Giochi) e quello che apri almeno 2 volte dal launcher con quel programma in primo piano. «Aggiungi al profilo» o «Ignora».
+- **Ricerca:** scrivendo trovi tutto (profili, fast link, preferiti, progetti, app installate), più «Cerca sul web» e «Chiedi a JARVIS».
+- **Casi particolari:**
+  - un file o una cartella che non esiste più è segnato in rosso, con «Cambia percorso» o «Togli dal profilo»;
+  - un file eseguibile (.exe, .bat, .ps1…) chiede sempre conferma prima di partire; le app trovate da VARCO no;
+  - senza finestre di VARCO aperte, il command center offre «Apri VARCO».
+- **Tasti dentro il launcher:** `1`–`8` aprono i posti, `← →` girano l'anello (o le sezioni), `↑ ↓` il ventaglio, `Tab` le azioni, `Ctrl+Invio` la seconda azione, `Esc` un passo indietro e poi chiude. Un clic fuori lo chiude.
+- Anche dalla palette: «Apri il launcher».
+
+### Test da fare
+- [ ] **T283** — Dal desktop premi la scorciatoia: si apre il fast launcher con il profilo generale. `Esc` lo chiude. **📸**
+- [ ] **T284** — Con un gioco del pannello Giochi in primo piano (in finestra o a schermo intero senza bordi): il launcher dice il suo nome e propone «Crea il profilo» con i siti del gioco. **📸**
+- [ ] **T285** — `F2` nel profilo: riempi un posto libero cercando un'app installata, sposta un posto con `Alt+→`, svuotane uno con `Canc`. Chiudi e riapri: è tutto salvato.
+- [ ] **T286** — Premi la scorciatoia due volte: l'anello gira sul command center. Apri una scheda da «Schede»: VARCO viene davanti su quella scheda.
+- [ ] **T287** — Trascina un file e una cartella sul launcher: finiscono nel profilo. Un .exe trascinato chiede conferma prima di partire.
+- [ ] **T288** — Apri 2 volte lo stesso sito dal launcher (cercandolo) con un programma in primo piano: alla terza apertura è tra i «Suggeriti».
+- [ ] **T289** — Impostazioni → Launcher: cambia la scorciatoia, poi spegni e riaccendi il launcher.
+- [ ] **T290** — Gioco a schermo intero «esclusivo»: il launcher potrebbe non comparire sopra (Windows lo impedisce). Annota quali giochi.
+
+**Stato:**
+- 237 test superati (7 nuovi per profili, suggeriti, ricerca e conferma degli eseguibili).
+- **Provato in VARCO** con un profilo di prova: apertura, profilo generale, Destiny 2 simulato in primo piano (profilo creato dai siti del pannello Giochi), ricerca e posto riempito, salvataggio, giro sul command center con le schede vere. Riconoscimento del programma in primo piano provato sul PC (~10 ms dopo la prima volta).
+- **Non provato:** la scorciatoia premuta davvero sopra un gioco, il trascinamento di file e l'installer.
+
+---
+
 ## Beta 0.38.1 — Correzioni del command center
 
 Installer PC: `dist\VARCO Setup 0.38.1.exe` (con la firma VMP). Contiene tutta la 0.38, che non era stata pubblicata.

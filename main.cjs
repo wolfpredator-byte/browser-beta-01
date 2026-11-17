@@ -93,6 +93,7 @@ function start(){
   registerAppearanceCommands(bus);
   require('./lib/toasts.cjs').setup(bus);
   require('./lib/command-center.cjs').setup(bus); // Beta 0.38: command center (F1)
+  require('./lib/launcher.cjs').setup(bus); // Beta 0.39: launcher (Ctrl+Alt+Spazio, anche fuori da VARCO)
   require('./lib/popup.cjs').setup();
 
   windows.setShortcutHandler((contents,input)=>{

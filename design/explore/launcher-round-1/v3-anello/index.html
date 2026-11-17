@@ -1,0 +1,72 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V3 · Anello</title>
+<link rel="stylesheet" href="../shared/lx.css">
+<style>
+/* V3 — radial-command (come l'Anello della 0.38): i fissati 1–8 sui settori attorno alla ricerca; accanto un ventaglio con frequenti o risultati. */
+.lx{position:absolute;inset:0 0 56px;display:flex;align-items:center;justify-content:center;gap:34px;pointer-events:none}
+.lx>*{pointer-events:auto}
+.lx.enter .ring{animation:v3In .3s cubic-bezier(.2,.9,.3,1.15)}@keyframes v3In{from{opacity:0;transform:scale(.85) rotate(-12deg)}}
+.lx.enter{animation:none}
+.ring{position:relative;flex:none}
+.ring>svg{position:absolute;inset:0;overflow:visible}
+.seg path{fill:rgba(14,19,26,.7);stroke:rgba(var(--ink-rgb),.1);cursor:pointer;transition:fill .15s}
+.seg:hover path{fill:rgba(30,40,52,.8)}.seg.on path{fill:rgba(var(--acc-rgb),.16);stroke:rgba(var(--acc-rgb),.6)}
+.seg.free path{fill:rgba(14,19,26,.35);stroke-dasharray:4 4}
+.arc{fill:none;stroke:var(--acc);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--acc))}
+.sl{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:4px;width:86px;text-align:center;pointer-events:none}
+.sl span{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:86px}.sl.on span{color:var(--ink)}
+.sl kbd{font-size:9px;padding:1px 4px}
+.core{position:absolute;border-radius:50%;background:rgba(10,14,19,.85);backdrop-filter:blur(20px);border:1px solid rgba(var(--ink-rgb),.12);display:grid;place-content:center;justify-items:center;gap:8px;padding:20px;text-align:center}
+.core .lx-input{text-align:center;font-size:15px;width:150px;border-bottom:1px solid rgba(var(--acc-rgb),.4);padding-bottom:6px}
+.core .who{font-size:11px;color:var(--mut);display:flex;gap:5px;align-items:center}.core .who i{width:7px;height:7px;border-radius:50%;background:var(--w)}
+.core .sel{font-size:12.5px;font-weight:600;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fan{width:min(380px,40vw);display:grid;gap:4px}
+.fan .lx-chips{margin-bottom:6px}
+.fan .lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.7);padding:0 6px 4px;text-shadow:0 1px 4px #000}
+.item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;background:rgba(14,19,26,.78);backdrop-filter:blur(18px);border:1px solid rgba(var(--ink-rgb),.08);cursor:pointer;min-width:0;transform:translateX(calc(var(--k)*-6px));transition:transform .15s}
+.item.sel{border-color:rgba(var(--acc-rgb),.6);background:rgba(16,30,38,.88);transform:translateX(calc(var(--k)*-6px + 8px))}
+.item .t{flex:1;display:grid;min-width:0}.item .t b{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.item .t span{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acts{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);display:flex;gap:4px;padding:6px;border-radius:14px;background:rgba(14,19,26,.85);backdrop-filter:blur(18px);border:1px solid rgba(var(--ink-rgb),.1);pointer-events:auto;align-items:center}
+.acts .lx-hint{margin-left:10px;padding-left:10px;border-left:1px solid var(--line)}
+@media (max-width:900px){.lx{flex-direction:column;gap:14px;justify-content:flex-start;padding-top:14px}.fan{width:min(440px,calc(100vw - 32px))}.acts .lx-hint{display:none}}
+</style></head><body><div id="app"></div>
+<script src="../shared/lx.js"></script>
+<script>
+const {I,esc,icon,meta,chips,actbar,hint,emptyMsg,WS,SCENES}=LX;
+const N=8;
+function R(){return Math.max(140,Math.min(220,(innerHeight-200)/2));}
+LX.start({render(s,r){
+  const Ro=R(),Ri=Ro*.56,step=360/N,c=SCENES[s.scene];
+  const pt=(rad,a)=>[Ro+rad*Math.cos((a-90)*Math.PI/180),Ro+rad*Math.sin((a-90)*Math.PI/180)];
+  const path=(a0,a1)=>{const [x0,y0]=pt(Ro,a0),[x1,y1]=pt(Ro,a1),[x2,y2]=pt(Ri,a1),[x3,y3]=pt(Ri,a0);return `M${x0},${y0}A${Ro},${Ro} 0 0 1 ${x1},${y1}L${x2},${y2}A${Ri},${Ri} 0 0 0 ${x3},${y3}Z`;};
+  const fl=LX.flat(),cur=LX.current();
+  let segs='',labs='',arc='';
+  for(let k=1;k<=N;k++){
+    const x=LX.ITEMS.find(i=>i.pinned&&i.key===k),a=(k-1)*step,on=x&&cur===x;
+    const i=x?fl.indexOf(x):-1;
+    segs+=`<g class="seg${x?'':' free'}${on?' on':''}" ${x?`data-pin="${k}"`:''}><path d="${path(a-step/2+1.5,a+step/2-1.5)}"/></g>`;
+    const [lx,ly]=pt((Ro+Ri)/2,a);
+    labs+=`<div class="sl${on?' on':''}" style="left:${lx}px;top:${ly}px">${x?icon(x):`<span class="lx-ic" style="--c:#667">${I.plus}</span>`}<span>${x?esc(x.title.split(' · ')[0]):'Libero'}</span><kbd>${k}</kbd></div>`;
+    if(on)arc=`<path class="arc" d="M${pt(Ro+8,a-step/2+6).join(',')}A${Ro+8},${Ro+8} 0 0 1 ${pt(Ro+8,a+step/2-6).join(',')}"/>`;
+  }
+  const cs=(Ri-10)*2;
+  const ring=`<div class="ring" style="width:${2*Ro}px;height:${2*Ro}px"><svg viewBox="0 0 ${2*Ro} ${2*Ro}" width="${2*Ro}" height="${2*Ro}">${segs}${arc}</svg>${labs}
+    <div class="core" style="width:${cs}px;height:${cs}px;left:${Ro-cs/2}px;top:${Ro-cs/2}px">${I.search.replace('class="ic"','class="ic" style="color:var(--acc)"')}<span id="lxSlot"></span><span class="who"><i style="--w:${WS[c.ws]}"></i>${esc(c.who.split(' · ')[0])}</span>${cur?`<span class="sel">${esc(cur.title)}</span>`:''}</div></div>`;
+  const items=r.empty?[...r.frequent,...r.extra]:fl;
+  const mid=(items.length-1)/2;
+  const fan=`<div class="fan">${chips()}<div class="lab">${r.empty?'Frequenti · '+c.ws:'Risultati'}</div>${!r.empty&&!r.list.length&&!r.bang?emptyMsg().replace('lx-none','lx-none item'):''}
+    ${items.map((x,j)=>{const i=fl.indexOf(x);return `<div class="item${i===s.sel?' sel':''}" style="--k:${Math.abs(j-mid).toFixed(1)}" data-i="${i}">${icon(x)}<div class="t"><b class="${x.broken?'lx-broken':''}">${esc(x.title)}</b><span>${x.broken?'Non trovato · Cambia percorso':esc(x.dyn?x.sub:meta(x))}</span></div></div>`;}).join('')}</div>`;
+  return ring+fan+(cur?`<div class="acts">${actbar(cur)}${hint}</div>`:'');
+},
+keys(e,s){
+  /* A vuoto ← → girano attorno all'anello (solo i fissati). */
+  if(s.q||!(e.key==='ArrowLeft'||e.key==='ArrowRight'))return false;
+  const fl=LX.flat(),pins=LX.ITEMS.filter(i=>i.pinned&&i.key&&i.key<=N).sort((a,b)=>a.key-b.key);if(!pins.length)return false;
+  let j=pins.indexOf(fl[s.sel]);j=j<0?0:(j+(e.key==='ArrowRight'?1:-1)+pins.length)%pins.length;s.sel=fl.indexOf(pins[j]);s.act=0;LX.draw();return true;
+},
+bind(root){root.querySelectorAll('[data-pin]').forEach(g=>{const x=LX.ITEMS.find(i=>i.pinned&&i.key===+g.dataset.pin);
+  g.onclick=()=>LX.run(x,0);g.onmouseenter=()=>{const i=LX.flat().indexOf(x);if(i>=0&&LX.s.sel!==i){LX.s.sel=i;LX.s.act=0;LX.draw();}};});}
+});
+document.querySelector('.lx-input').placeholder='Cerca, o premi 1–8';
+addEventListener('resize',()=>LX.draw());
+</script></body></html>

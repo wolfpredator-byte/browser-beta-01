@@ -1,0 +1,16 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2b · Orbite</title>
+<link rel="stylesheet" href="../../launcher-round-1/shared/lx.css"><link rel="stylesheet" href="../shared/r2.css">
+</head><body><div id="app"></div>
+<script src="../shared/r2.js"></script>
+<script>
+const {fastRing,ccRing,core,fan,bar,switcher,s,I,prof}=R2;
+const H=()=>innerHeight-56-130;
+/* 2b — due anelli concentrici: dentro il Fast launcher (profilo dell'app), fuori il Command center. Quello attivo si accende, l'altro resta in penombra e cliccabile. */
+R2.start({layout:'orbits',render(s){
+  const Ro=Math.max(170,Math.min(255,H()/2+20)),cs=Ro*.41*2;
+  const outer=ccRing(Ro,Ro*.745,{cls:s.mode==='cc'?'':'idle'});
+  const inner=fastRing(Ro*.715,Ro*.44,{small:true,cls:s.mode==='fast'?'':'idle'});
+  return `<div class="stage" style="width:${2*Ro}px;height:${2*Ro}px">${outer}${inner}${core(cs)}</div>`+fan()+bar();
+}});
+</script></body></html>

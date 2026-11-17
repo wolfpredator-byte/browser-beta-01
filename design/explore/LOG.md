@@ -131,3 +131,61 @@ Portati nel browser i due stili, con lo stesso motore:
 - Scelta in Impostazioni → Command center e dal pulsante rotondo in alto.
 - Codice: `command-center.js` e `command-center.css` (cornice), `command-center-rules.js` (sezioni e ordine), `lib/command-center.cjs` (risultati, azioni, anteprime, suggerimenti).
 - Colori dai token del tema (--v-accent, --v-bg, --v-ink) invece dei colori fissi degli esempi.
+
+## 2026-11-16 · Launcher e fast link · Round 1 (launcher-round-1/)
+Brief: design/BRIEF-launcher.md. Il launcher si apre con una combinazione anche **fuori da VARCO** (gioco, desktop) e trova fast link, app, file, siti, comandi, JARVIS, ricerche salvate (`!lg`).
+Ogni esempio si prova sopra **Gioco / Desktop / VARCO** (barra in basso) e ha gli stessi casi: vuoto, risultati, `!lg`, nessun risultato, collegamento rotto, `.exe` con conferma, file trascinato.
+Motore comune in shared/lx.js (frecenza = uso × recenza, contesto dalla finestra in primo piano, 1–9 per i fissati, Ctrl+Alt+Spazio apre e chiude).
+
+| Variante | Struttura | Famiglia |
+|---|---|---|
+| v1-barra | barra che scende dall'alto: fila dei fissati 1–9, frequenti, azioni sulla riga | island |
+| v2-colonna | fissati come cerchi sul bordo destro (anello = quanto li usi), pannello accanto | side-rail (pin recente) |
+| v3-anello | fissati 1–8 sui settori attorno alla ricerca, ventaglio di frequenti/risultati | radial-command |
+| v4-tessere | tessere di vetro 3×3 per i fissati, frequenti a lato; scrivendo, griglia di risultati | frosted-tiles (pin recente) |
+
+**Scelta:** V3 · Anello («per stare in tema con il command center»).
+L'utente aggiunge:
+- command center e fast launcher **restano due cose diverse**, ma sono due anelli e si passa dall'uno all'altro con un tasto, senza confonderli;
+- **profili per app**: se in primo piano c'è un gioco o un programma (Destiny 2, Call of Duty, Unity…), l'anello mostra i siti, le app e i progetti consigliati per quell'app, scelti dall'utente (Destiny 2 → light.gg, DIM, il progetto Destiny Builder…). Sul desktop resta il fast launcher generico.
+
+## 2026-11-16 · Launcher · Round 2 (launcher-round-2/, da V3)
+Asse (dato dall'utente): **come convivono i due anelli** — fast launcher e command center — e come si passa dall'uno all'altro. In tutte e tre ci sono i profili per app (Destiny 2, Call of Duty, Unity, Desktop).
+Cambio: `Ctrl+Alt+Spazio` apre il fast launcher, premuto di nuovo passa all'altro anello; `F1` apre direttamente il command center; Esc chiude.
+
+| Variante | Come convivono |
+|---|---|
+| 2a-scambio | un anello solo al centro che si gira (flip) quando cambi; colore diverso per ciascuno |
+| 2b-orbite | due anelli concentrici: dentro il fast launcher, fuori il command center; quello attivo si accende |
+| 2c-carosello | quello attivo grande, l'altro piccolo accanto (si vede sempre); cambiando scorrono di posto |
+
+**Scelta:** 2a · Scambio («sembra il menu di un videogioco»). L'utente chiede una **versione finale**, rifinita, pronta per essere portata nel browser.
+
+## 2026-11-16 · Launcher · Versione finale (launcher-final/)
+Dalla 2a, con tutto quello che serve per portarla in VARCO:
+- giro dell'anello in due tempi (si chiude di taglio, cambia, si riapre) e settori che entrano in sequenza, come un menu di gioco; con «riduci movimento» solo dissolvenza;
+- al centro il dettaglio del settore scelto (icona grande, nome, dove porta);
+- **editor del profilo** (F2, «Modifica» o clic su un posto libero): scegli il posto sull'anello, metti / togli / sposta, aggiungi dai suggeriti o cercando; si attiva con l'eseguibile dell'app;
+- app **senza profilo** (Blender): «Crea il profilo» con i suggeriti già pronti;
+- stati: nessun risultato, collegamento rotto, .exe con conferma, file trascinato, finestra piccola;
+- pannello **Tweaks** (solo negli esempi) con i token da copiare.
+
+File: `launcher-final/index.html` + `final.js` + `final.css` (autonomi, nessuna dipendenza dagli altri giri).
+Tasti finali: `Ctrl+Alt+Spazio` apre il Fast launcher / gira l'anello · `F1` Command center · `1`–`8` posti · `← →` anello o sezioni · `↑ ↓` ventaglio · `Tab` azioni · `Ctrl+Invio` seconda azione · `F2` modifica profilo (dentro: `← →` posto, `Alt+← →` sposta, `Canc` svuota, `Invio` metti, `Esc` fatto) · `Esc` passo indietro / chiude.
+Controllo anti-slop: niente gradienti decorativi né emoji; colori solo da token (accento del tema per il Command center, colore del profilo per il Fast launcher); movimento con scopo (giro = cambio di anello), ridotto con «riduci movimento».
+Scelte consapevoli: Ctrl+E scartato per la modifica (lo prende il browser), F2 come in Windows; l'anello tiene 8 posti, il resto va in «Altro nel profilo».
+
+**Da portare in VARCO (0.39):** finestra sempre in primo piano con scorciatoia di sistema (globalShortcut), app in primo piano rilevata dall'eseguibile, profili e suggeriti salvati in storage, Command center riusato dalla 0.38 (lib/command-center.cjs) come secondo anello.
+
+## 2026-11-17 · Launcher · In VARCO (Beta 0.39)
+Portato dalla versione finale (launcher-final/) dentro il browser:
+- finestra trasparente sempre in primo piano (`launcher.html/.js/.css`, `lib/launcher.cjs`), regole condivise in `launcher-rules.js`;
+- programma in primo piano da un PowerShell che resta aperto (`lib/foreground.cjs`, ~10 ms a domanda);
+- scorciatoia di sistema con ripiego automatico se quella di base è occupata (sul PC dell'utente Ctrl+Alt+Spazio era già presa → Ctrl+Maiusc+Spazio);
+- tolti dagli esempi: scene finte, barra della demo, Tweaks (token tenuti ai valori di base); sopra il desktop niente sfocatura (la finestra è trasparente), quindi il vetro è più pieno (0.86).
+
+## 2026-11-17 · Launcher · Beta 0.40
+Richieste dell'utente dopo la 0.39: cartelle del PC, più anelli «come pagine», chiusura inversa all'entrata, media dei siti e delle app.
+- Più anelli: fino a 5 per profilo, pallini sotto l'anello, l'anello gira di 45° cambiando pagina.
+- Media: lettore di VARCO + controlli multimediali di Windows (stesso PowerShell del programma in primo piano).
+- Chiusura: stesse animazioni dell'entrata al contrario (ordine degli spicchi invertito), ~0,3 s.

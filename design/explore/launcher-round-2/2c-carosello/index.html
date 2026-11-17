@@ -1,0 +1,19 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2c · Carosello</title>
+<link rel="stylesheet" href="../../launcher-round-1/shared/lx.css"><link rel="stylesheet" href="../shared/r2.css">
+</head><body><div id="app"></div>
+<script src="../shared/r2.js"></script>
+<script>
+const {fastRing,ccRing,core,fan,bar,switcher,s,I,prof}=R2;
+const H=()=>innerHeight-56-130;
+/* 2c — quello attivo grande al centro, l'altro piccolo a sinistra: si vede sempre che esiste. Cambiando scorrono di posto. */
+R2.start({layout:'carousel',render(s){
+  const R=Math.max(150,Math.min(215,H()/2)),Ri=R*.56,cs=(Ri-10)*2;
+  const other=s.mode==='fast'?'cc':'fast';
+  const miniCore=`<div class="core" style="width:84px;height:84px;--mc:${other==='fast'?prof().c:'var(--acc)'}"><span class="mode-name">${other==='fast'?I.bolt:I.spark}</span></div>`;
+  const mini=`<div class="mini" data-goto="${other}" style="--mc:${other==='fast'?prof().c:'var(--acc)'}">${other==='fast'?fastRing(88,50,{small:true,core:miniCore}):ccRing(88,50,{small:true,core:miniCore})}
+    <b>${other==='fast'?'Fast launcher · '+(prof().generic?'Generale':prof().app):'Command center'}</b><span class="k"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Spazio</kbd></span></div>`;
+  const big=s.mode==='fast'?fastRing(R,Ri,{core:core(cs)}):ccRing(R,Ri,{core:core(cs)});
+  return mini+`<div class="stage">${big}</div>`+fan()+bar();
+}});
+</script></body></html>

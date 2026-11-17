@@ -49,3 +49,12 @@ I pin aggiunti dopo la 0.37 sono in cima alla board. Ricorrono:
 ### 9. soft-glass-controls / island (pin 2, 22, 23, 28, 29)
 **Vocabolario:** card a capsula impilate come widget (pin 2), barra di ricerca a pillola, segmentati "Messaggi | Task | File", isola che si apre dalla tacca in alto ("hover the notch", pin 23), pulsante principale pieno e secondari in vetro.
 **Prompt:** "soft glass UI kit, pill search field, segmented control, capsule widget cards, island expanding from the top notch".
+
+## Pin recenti (vista del 2026-11-16 sera, board a 102 pin) — per il launcher 0.39
+In cima alla board (senza login si vede solo la prima fila):
+
+### 10. frosted-tiles / side-rail (primi 4 pin)
+**Vocabolario:** tessere di vetro "Frosted / Clear / Blur" sopra una foto viva (il vetro cambia sfocatura, non colore), colonna verticale stretta sul bordo del telefono con widget rotondi di avanzamento (cerchi con percentuale), card prodotto in vetro sopra un fondo arancione pieno, pulsanti rotondi piccoli in fila.
+**Distingue:** il contenuto si appoggia sul bordo dello schermo (rail) o galleggia come tessera di vetro; quello che sta dietro resta visibile.
+**Prompt:** "vertical edge rail of circular glass widgets over a vivid photo, frosted / clear / blur glass tiles comparison, compact round buttons".
+Ancora visibili più in basso: manopola radiale con voci a ventaglio, isola arancione dalla tacca, pulsanti neon "Get started".

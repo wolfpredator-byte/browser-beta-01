@@ -1,0 +1,60 @@
+/* Launcher 0.39 — base comune: token di VARCO (Cyan Flash), scene finte, demo, pezzi comuni. */
+:root{--acc:#00e5ff;--acc-rgb:0,229,255;--bg:#0b0f14;--bg-rgb:11,15,20;--ink:#e9f1f7;--ink-rgb:233,241,247;--mut:rgba(233,241,247,.55);--line:rgba(233,241,247,.1);--glass:rgba(14,19,26,.72);--r:16px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#05070a;color:var(--ink);font:14px/1.4 "Segoe UI Variable","Segoe UI",system-ui,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+kbd{font:600 10.5px/1 "Cascadia Mono",Consolas,monospace;padding:3px 5px;border-radius:5px;background:rgba(var(--ink-rgb),.1);border:1px solid rgba(var(--ink-rgb),.14);color:var(--ink)}
+.ic{width:18px;height:18px;flex:none}
+
+/* ── Scene dietro al launcher (disegnate, nessuna immagine presa da giochi reali) ── */
+.sc{position:absolute;inset:0}
+.sc-game .sky{position:absolute;inset:0;background:radial-gradient(120% 70% at 70% 20%,#ff9a4a 0,#c4502b 22%,#4b1f3a 48%,#120d1c 75%)}
+.sc-game .hills{position:absolute;left:-5%;right:-5%;bottom:0;height:46%;background:radial-gradient(60% 90% at 20% 100%,#1b1425 60%,transparent 61%),radial-gradient(70% 80% at 80% 100%,#140f1d 60%,transparent 61%),linear-gradient(#0c0a12,#07060a);}
+.sc-game .hud-tl{position:absolute;left:28px;top:24px;display:flex;gap:6px}.sc-game .hud-tl i{width:34px;height:34px;border:1.5px solid rgba(255,255,255,.55);transform:rotate(45deg);border-radius:4px}
+.sc-game .hud-hp{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);width:300px;height:7px;background:rgba(255,255,255,.18);border-radius:3px}.sc-game .hud-hp b{display:block;height:100%;background:#fff;border-radius:3px}
+.sc-game .hud-ammo{position:absolute;right:40px;bottom:36px;font:700 34px/1 "Segoe UI";color:#fff}.sc-game .hud-ammo small{font-size:14px;opacity:.6;margin-left:6px}
+.sc-game .hud-map{position:absolute;right:30px;top:24px;width:110px;height:110px;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);background:radial-gradient(circle,rgba(255,255,255,.12) 2px,transparent 3px) 0 0/14px 14px}
+.sc-game .cross{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px;border:2px solid rgba(255,255,255,.7);border-radius:50%}
+.sc-desk .wall{position:absolute;inset:0;background:radial-gradient(80% 80% at 20% 10%,#1d4f7a,#0b1a2e 60%,#060b14)}
+.sc-desk .win{position:absolute;left:8%;top:8%;right:14%;bottom:16%;background:#1b1f27;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden}
+.sc-desk .wt{padding:9px 14px;font-size:12px;color:#aab;background:#14171d}.sc-desk .code{padding:16px 22px;display:grid;gap:9px}.sc-desk .code i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,#4fc1ff 0 20%,#c586c0 20% 35%,#9cdcfe 35%);opacity:.55}
+.sc-desk .task{position:absolute;left:0;right:0;bottom:0;height:46px;background:rgba(20,24,32,.85);backdrop-filter:blur(20px);display:flex;justify-content:center;align-items:center;gap:10px}.sc-desk .task i{width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.18)}
+.sc-varco{background:#0b0f14}.sc-varco .vt{height:44px;display:flex;align-items:center;gap:8px;padding:0 14px;background:#0f141b;border-bottom:1px solid var(--line);font-size:12px}
+.sc-varco .dot{width:10px;height:10px;border-radius:50%;background:var(--acc)}.sc-varco .tab{padding:6px 12px;border-radius:8px;color:var(--mut)}.sc-varco .tab.on{background:rgba(var(--ink-rgb),.08);color:var(--ink)}.sc-varco .url{margin-left:auto;color:var(--mut)}
+.sc-varco .vp{max-width:760px;margin:40px auto;display:grid;gap:12px}.sc-varco h1{margin:0 0 10px;font-size:34px}.sc-varco .vp i{display:block;height:9px;border-radius:5px;background:rgba(var(--ink-rgb),.14)}
+
+/* Velo: in gioco leggero (si vede cosa succede), altrove più sfocato */
+.lx-veil{position:absolute;inset:0;background:rgba(5,7,10,.35);backdrop-filter:blur(6px) saturate(.9)}
+.lx-veil.game{background:rgba(5,7,10,.18);backdrop-filter:blur(2px)}
+.lx.enter{animation:lxIn .22s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes lxIn{from{opacity:0;transform:var(--enter-from,translateY(-10px) scale(.98))}}
+
+/* Pezzi comuni */
+.lx-input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--ink);font:500 17px/1.2 inherit;font-family:inherit}
+.lx-input::placeholder{color:rgba(var(--ink-rgb),.4)}
+.lx-ic{--c:var(--acc);width:32px;height:32px;flex:none;border-radius:9px;display:grid;place-items:center;position:relative;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+.lx-ic b{font:700 14px/1 inherit;font-family:inherit}.lx-ic.big{width:46px;height:46px;border-radius:13px}.lx-ic.big .ic{width:22px;height:22px}.lx-ic.big b{font-size:19px}
+.lx-ic .bad{position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;background:#ff6b6b;border:2px solid #10151c}
+.lx-chips{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}.lx-chips button{padding:5px 10px;border-radius:999px;font-size:12px;color:var(--mut);white-space:nowrap}
+.lx-chips button:hover{color:var(--ink);background:rgba(var(--ink-rgb),.06)}.lx-chips button.on{color:#001218;background:var(--acc);font-weight:600}
+.lx-act{padding:6px 11px;border-radius:9px;font-size:12.5px;color:var(--mut);white-space:nowrap;border:1px solid transparent}
+.lx-act:hover{color:var(--ink);background:rgba(var(--ink-rgb),.06)}.lx-act.on{color:var(--ink);border-color:rgba(var(--acc-rgb),.55);background:rgba(var(--acc-rgb),.12)}
+.lx-hint{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--mut)}.lx-hint span{display:flex;gap:3px;align-items:center}
+.lx-none{padding:26px 20px;text-align:center;display:grid;gap:6px;color:var(--mut)}.lx-none b{color:var(--ink);font-size:15px}
+.lx-broken{color:#ff8b8b}
+.lx-toast{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);padding:11px 16px;border-radius:12px;background:rgba(14,19,26,.92);border:1px solid rgba(var(--acc-rgb),.4);display:grid;gap:2px;z-index:20;box-shadow:0 20px 50px rgba(0,0,0,.5);animation:lxIn .2s}
+.lx-toast span{font-size:12px;color:var(--mut)}
+.lx-closed{position:absolute;left:50%;top:40%;transform:translateX(-50%);padding:10px 16px;border-radius:999px;background:rgba(5,7,10,.6);color:rgba(255,255,255,.8);font-size:13px;display:flex;gap:5px;align-items:center}
+.lx-confirm{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);z-index:15}
+.lx-confirm .box{width:min(380px,90vw);padding:22px;border-radius:18px;background:#121820;border:1px solid rgba(255,107,107,.4);display:grid;gap:10px;justify-items:start}
+.lx-confirm .box>.ic{color:#ff8b8b;width:26px;height:26px}.lx-confirm b{font-size:16px}.lx-confirm span{color:var(--mut);font-size:13px}
+.lx-confirm .row{display:flex;gap:8px;margin-top:6px}.lx-confirm .row button{padding:8px 13px;border-radius:10px;background:rgba(var(--ink-rgb),.07);display:flex;gap:6px;align-items:center}.lx-confirm .row .go{background:#ff6b6b;color:#1a0505;font-weight:600}
+.lx-drop{position:absolute;inset:18px;border:2px dashed rgba(var(--acc-rgb),.7);border-radius:24px;background:rgba(var(--bg-rgb),.75);display:grid;place-content:center;justify-items:center;gap:8px;z-index:16}
+.lx-drop .ic{width:40px;height:40px;color:var(--acc)}.lx-drop b{font-size:18px}.lx-drop span{color:var(--mut)}
+
+/* Barra della demo */
+.lx-demo{position:absolute;left:12px;right:12px;bottom:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 8px;border-radius:12px;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);font-size:11.5px;z-index:30;color:#cfd8df}
+.lx-demo button{padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.07)}.lx-demo button.on{background:#fff;color:#000}.lx-demo .t{opacity:.55;margin:0 2px 0 4px}.lx-demo .sep{width:1px;height:16px;background:rgba(255,255,255,.15);margin:0 4px}
+.lx-demo .hot{display:flex;gap:3px;align-items:center;margin-left:auto}.lx-demo .hot .ic{width:15px;height:15px;margin-right:3px}
+@media (max-width:700px){.lx-demo .t,.lx-demo .sep{display:none}}

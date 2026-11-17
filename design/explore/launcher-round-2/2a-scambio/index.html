@@ -1,0 +1,15 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2a · Scambio</title>
+<link rel="stylesheet" href="../../launcher-round-1/shared/lx.css"><link rel="stylesheet" href="../shared/r2.css">
+</head><body><div id="app"></div>
+<script src="../shared/r2.js"></script>
+<script>
+const {fastRing,ccRing,core,fan,bar,switcher,s,I,prof}=R2;
+const H=()=>innerHeight-56-130;
+/* 2a — un anello solo al centro: Ctrl+Alt+Spazio lo gira e diventa l'altro. Colore del profilo per il Fast launcher, ciano per il Command center. */
+R2.start({layout:'flip',render(s){
+  const R=Math.max(150,Math.min(220,H()/2)),Ri=R*.56,cs=(Ri-10)*2;
+  const r=s.mode==='fast'?fastRing(R,Ri,{core:core(cs)}):ccRing(R,Ri,{core:core(cs)});
+  return switcher()+`<div class="stage">${r}</div>`+fan()+bar();
+}});
+</script></body></html>

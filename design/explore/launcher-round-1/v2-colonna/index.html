@@ -1,0 +1,50 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V2 · Colonna sul bordo</title>
+<link rel="stylesheet" href="../shared/lx.css">
+<style>
+/* V2 — side-rail: una colonna di fissati rotondi sul bordo destro; il pannello si apre accanto. Copre solo un lato dello schermo. */
+.lx{position:absolute;top:16px;right:16px;bottom:62px;display:flex;gap:10px;align-items:stretch}
+.lx.enter{animation-name:v2In}@keyframes v2In{from{opacity:0;transform:translateX(40px)}}
+.rail{width:66px;padding:10px 0;border-radius:33px;background:var(--glass);backdrop-filter:blur(24px);border:1px solid rgba(var(--ink-rgb),.12);display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.dot{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:1px solid transparent}
+.dot .lx-ic{width:42px;height:42px;border-radius:50%}
+.dot.sel{border-color:var(--acc);box-shadow:0 0 0 3px rgba(var(--acc-rgb),.18)}
+.dot kbd{position:absolute;right:-4px;bottom:-2px;font-size:9px;padding:1px 4px;background:#0d1218}
+.dot.ring{background:conic-gradient(var(--acc) calc(var(--p)*1%),rgba(var(--ink-rgb),.1) 0);padding:3px}.dot.ring>span{width:100%;height:100%;border-radius:50%;background:#10151c;display:grid;place-items:center}
+.rail .sep{width:28px;height:1px;background:var(--line);margin:2px 0}
+.rail .free{width:42px;height:42px;border-radius:50%;border:1px dashed rgba(var(--ink-rgb),.25);display:grid;place-items:center;color:var(--mut)}
+.rail .ctx{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;color:var(--mut);margin-top:auto;display:flex;gap:6px;align-items:center}.rail .ctx i{width:7px;height:7px;border-radius:50%;background:var(--w)}
+.pane{width:min(430px,calc(100vw - 120px));border-radius:24px;background:var(--glass);backdrop-filter:blur(24px) saturate(1.2);border:1px solid rgba(var(--ink-rgb),.12);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.search{display:flex;align-items:center;gap:10px;margin:12px;padding:10px 14px;border-radius:14px;background:rgba(var(--ink-rgb),.06)}.search>.ic{color:var(--acc)}
+.pane .lx-chips{padding:0 12px 8px}
+.lab{padding:10px 18px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.list{flex:1;overflow:auto;padding:0 8px}
+.row{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:12px;cursor:pointer;min-width:0}
+.row.sel{background:rgba(var(--acc-rgb),.1)}
+.row .t{flex:1;min-width:0;display:grid}.row .t b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .t span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .bar{width:42px;height:4px;border-radius:2px;background:rgba(var(--ink-rgb),.1);overflow:hidden}.row .bar i{display:block;height:100%;background:var(--acc)}
+.detail{border-top:1px solid var(--line);padding:12px 14px;display:grid;gap:10px;background:rgba(0,0,0,.18)}
+.detail .h{display:flex;gap:10px;align-items:center;min-width:0}.detail .h div{display:grid;min-width:0}.detail .h b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.detail .h span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail .acts{display:flex;flex-wrap:wrap;gap:4px}
+.detail .lx-hint{font-size:11px}
+@media (max-width:600px){.lx{left:16px}.pane{flex:1;width:auto}}
+</style></head><body><div id="app"></div>
+<script src="../shared/lx.js"></script>
+<script>
+const {I,esc,icon,meta,ago,chips,actbar,hint,emptyMsg,WS,SCENES,frecency}=LX;
+const maxF=()=>Math.max(...LX.ITEMS.map(frecency));
+function row(x,i,s){return `<div class="row${i===s.sel?' sel':''}" data-i="${i}">${icon(x)}<div class="t"><b class="${x.broken?'lx-broken':''}">${esc(x.title)}</b><span>${x.broken?'Non trovato · Cambia percorso':esc(x.dyn?x.sub:meta(x))}</span></div>${x.dyn?'':`<span class="bar" title="Uso recente"><i style="width:${Math.round(100*frecency(x)/maxF())}%"></i></span>`}</div>`;}
+LX.start({render(s,r){
+  const c=SCENES[s.scene];const pins=LX.ITEMS.filter(x=>x.pinned&&x.key).sort((a,b)=>a.key-b.key);const fl=LX.flat();
+  const rail=pins.map(x=>{const i=r.empty?fl.indexOf(x):-1;const p=Math.round(100*frecency(x)/maxF());
+    return `<button class="dot ring${i===s.sel&&r.empty?' sel':''}" style="--p:${p}" ${i>=0?`data-i="${i}"`:`data-pin="${x.key}"`} title="${esc(x.title)}"><span>${icon(x)}</span><kbd>${x.key}</kbd></button>`;}).join('')+
+    (pins.length<9?`<div class="free" title="Posto libero: Fissa un risultato">${I.plus}</div>`:'');
+  const cur=LX.current();
+  let list;
+  if(r.empty)list=`<div class="lab">Frequenti · ${c.ws}</div>${[...r.frequent,...r.extra].map(x=>row(x,fl.indexOf(x),s)).join('')}`;
+  else list=(r.list.length||r.bang?'':emptyMsg())+fl.map((x,i)=>row(x,i,s)).join('');
+  return `<div class="pane"><div class="search">${I.search}<span id="lxSlot"></span></div>${chips()}<div class="list">${list}</div>
+    ${cur?`<div class="detail"><div class="h">${icon(cur,true)}<div><b>${esc(cur.title)}</b><span>${esc(cur.broken?'Non trovato: '+cur.sub:cur.sub||'')}</span></div></div><div class="acts">${actbar(cur)}</div>${hint}</div>`:''}</div>
+    <div class="rail"><span class="lx-ic" style="border-radius:50%;width:42px;height:42px">${I.search}</span><span class="sep"></span>${rail}<span class="ctx"><i style="--w:${WS[c.ws]}"></i>${esc(c.who)}</span></div>`;
+},bind(root){root.querySelectorAll('[data-pin]').forEach(b=>b.onclick=e=>{e.stopPropagation();const x=LX.ITEMS.find(i=>i.pinned&&i.key===+b.dataset.pin);LX.run(x,0);});}});
+</script></body></html>
