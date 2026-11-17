@@ -251,6 +251,35 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    if(error&&errorBox)errorBox.textContent=error;
    return !error;
  }
+ /** Beta 0.43.1: sezione «Tipo di progetto». */
+ function projectKindSection(k,error){
+   const box=el('div',{className:'project-kind'});
+   const choose=el('select',{className:'kind-select','aria-label':'Tipo di progetto'});
+   if(!k.type)choose.append(el('option',{value:'',textContent:'Scegli il tipo…',selected:true}));
+   for(const t of k.types)choose.append(el('option',{value:t.id,textContent:t.label+(!k.chosen&&k.detected?.type===t.id?' (proposto)':''),selected:t.id===k.type}));
+   choose.onchange=()=>runAndReport('projectSetType',{type:choose.value},error);
+   box.append(el('div',{className:'kind-head'},el('span',{className:'kind-label',textContent:'Tipo'}),choose,
+     ...(k.scanning?[el('span',{className:'kind-scan',textContent:'leggo la cartella…'})]:[])));
+   box.append(el('p',{className:'panel-hint',textContent:k.broad?'La cartella è un disco intero o la cartella utente: scegli una cartella di progetto per i file importanti.':
+     (!k.chosen&&k.detected?.reason?k.detected.reason+' ':'')+k.hint}));
+   if(k.actions.length)box.append(projectButtons(...k.actions.map(a=>[a.label,()=>runAndReport('projectTypeAction',{id:a.id},error)])));
+   if(k.panels.length){
+     const chips=el('div',{className:'kind-panels'});
+     for(const pn of k.panels){
+       const b=el('button',{type:'button',className:'kind-chip'+(pn.added?' added':''),textContent:(pn.added?'✓ ':'＋ ')+pn.title,title:pn.added?'Già tra i tuoi pannelli web':'Aggiungi come pannello web: '+pn.url,disabled:pn.added});
+       b.onclick=()=>runAndReport('webPanelAdd',{url:pn.url,title:pn.title},error);
+       chips.append(b);
+     }
+     box.append(el('div',{className:'kind-sub',textContent:'Pannelli consigliati'}),chips);
+   }
+   const fileList=files=>el('ul',{className:'kind-files'},...files.map(f=>{
+     const name=f.rel.split('/').pop(),dir=f.rel.split('/').slice(0,-1).join('/');
+     const li=el('li',{title:f.rel},el('span',{className:'kf-name',textContent:name}),el('span',{className:'kf-meta',textContent:(dir?dir+' · ':'')+f.ago}));
+     li.onclick=()=>runAndReport('projectOpenRel',{rel:f.rel},error);return li;}));
+   for(const g of k.important){box.append(el('div',{className:'kind-sub',textContent:`${g.label} · ${g.count}`}),fileList(g.files));}
+   if(k.recent.length)box.append(el('div',{className:'kind-sub',textContent:'Modificati di recente'}),fileList(k.recent.slice(0,6)));
+   return section('Tipo di progetto',box);
+ }
  function renderProject(){
    const p=state.project;
    $('sidePanelTitle').textContent=p?.config?.nome||'Progetto';
@@ -266,12 +295,20 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    list.replaceChildren();
    const error=el('p',{className:'panel-error',role:'alert'});
    list.append(workEnvSection());
+   // Beta 0.43.1: tipo di progetto (anche senza progetto.browser.json): azioni rapide, pannelli, file importanti.
+   if(p?.kind)list.append(projectKindSection(p.kind,error));
    if(!p||p.status==='none'){
      list.append(el('p',{className:'panel-hint',textContent:'Collega la cartella del progetto: il browser leggerà progetto.browser.json da lì.'}),
        projectButtons(['Collega cartella',()=>act('projectFolder')]));
      return;
    }
    list.append(el('p',{className:'project-folder',textContent:p.folder,title:p.folder}));
+   if(p.status==='missing'&&p.kind?.type&&p.kind.type!=='web'){
+     // Per un progetto non web i comandi (dev server, script) sono facoltativi.
+     list.append(el('p',{className:'panel-hint',textContent:'Comandi del progetto (facoltativi): crea progetto.browser.json se vuoi avviare script o un server da qui.'}),
+       projectButtons(['Crea il file dei comandi',()=>runAndReport('projectCreateFile',{},error)]),error);
+     return;
+   }
    if(p.status==='missing'){
      list.append(el('p',{className:'panel-hint',textContent:'Nella cartella non c’è progetto.browser.json. Questa è la proposta, ricavata da package.json:'}),
        el('pre',{className:'json-preview',textContent:JSON.stringify(p.proposal,null,2)}),

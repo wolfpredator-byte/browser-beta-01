@@ -4,6 +4,42 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.43.1 — Tipi di progetto (0.43, fase B)
+
+Installer PC: `dist\VARCO Setup 0.43.1.exe` (con la firma VMP). Seguono la pagina del progetto (0.43.2) e la sessione di gioco (0.43.3).
+
+### Cosa cambia
+- **Ogni progetto ha un tipo**, che cambia azioni rapide, pannelli consigliati e file importanti (pannello Progetto → «Tipo di progetto»):
+  - **Web e app** — anteprima, editor, build, repository;
+  - **Game dev** — avvia il motore, apri repo, build, log ed errori;
+  - **3D** — apri Blender (l’ultimo .blend), cartella asset, render, reference;
+  - **Video** — apri progetto (l’ultimo Premiere/DaVinci/…), footage, export, musica;
+  - **Musica** — apri la DAW (l’ultimo progetto FL Studio/Ableton/Reaper/…), sample, testi, mix;
+  - **Studio** — apri PDF, appunti, bibliografia, tesi;
+  - **Gaming** — wiki, build, Discord, stream (dai siti del gioco collegato).
+- **VARCO propone il tipo guardando la cartella:** Unity (anche in una sottocartella), Unreal, Godot, package.json/Gradle/.sln/pyproject, .blend e HDRI, progetti di montaggio, DAW, PDF e bibliografia; un workspace collegato a un gioco è «Gaming». Provato sulle cartelle di C:\Projects: riconosciute tutte tranne quelle di soli dati (lì scegli tu).
+- **Lo scegli tu:** la scelta si salva in **`.varco/project.json` dentro la cartella del progetto**, così viaggia con il progetto (e con git).
+- **Unity si apre con l’editor della versione giusta** (letta da ProjectSettings/ProjectVersion.txt; se non c’è, Unity Hub). «Log ed errori» apre l’Editor.log di Unity (o i log di Unreal) nel visualizzatore di VARCO.
+- **Apri repo** apre il repository remoto (da .git/config, senza credenziali nell’indirizzo).
+- **Pannelli consigliati** del tipo (es. 3D → ArtStation, Pinterest, YouTube, Poly Haven): un clic e diventano pannelli web.
+- **File importanti a gruppi** (es. Scene / Script / Asset, Texture / Render, MIDI / Stems / Export) e **modificati di recente**: un clic e si aprono.
+- Funziona anche **senza progetto.browser.json** (serve solo per i comandi, ora facoltativo per i progetti non web).
+
+### Test da fare
+- [ ] **T319** — Collega la cartella di un progetto Unity: tipo «Game dev» proposto, «Avvia Unity» apre l’editor della versione del progetto. **📸**
+- [ ] **T320** — «Log ed errori» su un progetto Unity: si apre l’Editor.log.
+- [ ] **T321** — Una cartella con un .blend: «Apri Blender» apre l’ultimo file; «Render» apre la cartella dei render.
+- [ ] **T322** — Cambia il tipo dal menu: in .varco/project.json c’è il tipo, e riaprendo VARCO resta quello.
+- [ ] **T323** — «＋ Pinterest» tra i pannelli consigliati: diventa un pannello web.
+- [ ] **T324** — «Apri repo» su un progetto con git: si apre la pagina GitHub del repository.
+
+**Stato:**
+- 270 test superati (5 nuovi: riconoscimento dei tipi, file importanti, cartelle, versione di Unity, repository).
+- **Provato in VARCO** su C:\Projects\Car_Highway (3D proposto, azioni, pannelli, 190 texture e 182 render a gruppi) e sul cambio di tipo in una cartella di prova (.varco/project.json scritto, azioni della musica). Riconoscimento provato su tutte le cartelle di C:\Projects.
+- **Non provati** (aprono programmi sul PC): l’avvio di Unity/Blender/DAW, l’Editor.log, l’installer.
+
+---
+
 ## Beta 0.43.0 — Dev server affidabili e companion sul monitor giusto (0.43, fase A)
 
 Installer PC: `dist\VARCO Setup 0.43.0.exe` (con la firma VMP). Prima parte della 0.43 (workbench): seguono i tipi di progetto (0.43.1), la pagina del progetto (0.43.2) e la sessione di gioco (0.43.3).

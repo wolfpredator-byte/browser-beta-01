@@ -1271,3 +1271,19 @@ body[data-mode="chiaro"] #suggest.v3 .sg-tabs button.on{color:#fff}
 .command-status.busy{background:#ffb648;color:#111}
 @keyframes ps-blink{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.project-state.busy .dot{animation:none}}
+
+/* ── Beta 0.43.1: tipo di progetto ── */
+.project-kind{display:grid;gap:8px}
+.kind-head{display:flex;gap:8px;align-items:center}
+.kind-label{font-size:12px;color:var(--v-muted)}
+.kind-select{flex:1;min-width:0;padding:6px 8px;border-radius:9px;background:rgba(var(--v-field-rgb),.3);color:var(--v-text);border:1px solid var(--v-line)}
+.kind-scan{font-size:11px;color:var(--v-muted)}
+.kind-sub{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--v-muted);margin-top:4px}
+.kind-panels{display:flex;flex-wrap:wrap;gap:5px}
+.kind-chip{padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--v-line-strong);background:transparent}
+.kind-chip.added{opacity:.55;cursor:default}
+.kind-files{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+.kind-files li{display:grid;padding:5px 8px;border-radius:8px;cursor:pointer;min-width:0}
+.kind-files li:hover{background:rgba(var(--v-ink-rgb),.06)}
+.kf-name{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kf-meta{font-size:11px;color:var(--v-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
