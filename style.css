@@ -1256,3 +1256,18 @@ body[data-motion="off"] .home-aurora i,body[data-motion="reduced"] .home-aurora 
 #suggest.v3 .sg-badge{font-size:10.5px;padding:1px 7px;border-radius:999px;color:var(--v-muted);background:rgba(var(--v-ink-rgb),.07);white-space:nowrap}
 #suggest.v3 .sg-kind{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--v-muted);min-width:64px;text-align:right;flex:none}
 body[data-mode="chiaro"] #suggest.v3 .sg-tabs button.on{color:#fff}
+
+/* ── Beta 0.43: stato del dev server nel pannello del progetto ── */
+.project-state{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:6px 0 10px;border-radius:12px;background:rgba(var(--v-ink-rgb),.05);border:1px solid var(--v-line)}
+.project-state .dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:none;background:var(--v-muted)}
+.project-state.ready .dot{background:#3ddc84;box-shadow:0 0 10px #3ddc84}
+.project-state.busy .dot{background:#ffb648;animation:ps-blink 1s ease-in-out infinite}
+.project-state.error{border-color:rgba(255,107,107,.45)}.project-state.error .dot{background:#ff6b6b}
+.project-state .ps-text{display:grid;gap:3px;min-width:0}
+.project-state .ps-text b{font-weight:600}
+.project-state .ps-text a{color:var(--v-accent);text-decoration:none;font-family:Consolas,monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.project-state .ps-net{font-size:11.5px;color:var(--v-muted)}
+.project-state .ps-warn{font-size:11.5px;color:#ffb648}
+.command-status.busy{background:#ffb648;color:#111}
+@keyframes ps-blink{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.project-state.busy .dot{animation:none}}

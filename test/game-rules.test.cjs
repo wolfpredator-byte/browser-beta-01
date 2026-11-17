@@ -49,7 +49,7 @@ test('un gioco valido: nome pulito, solo il file .exe, siti normalizzati e senza
   assert.equal(r.ok,true);
   assert.deepEqual(r.game,{name:'Destiny 2',exe:'destiny2.exe',workspace:'Gaming',
     sites:['https://app.destinyitemmanager.com/','https://www.light.gg/','https://light.gg/'],
-    display:null,alwaysOnTop:true,closeOnExit:false});
+    display:null,side:'full',size:100,alwaysOnTop:true,closeOnExit:false});
   assert.equal(normalizeGame({...valid,display:2528732444},ws).game.display,2528732444);
 });
 

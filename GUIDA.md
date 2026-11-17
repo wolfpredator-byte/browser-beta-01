@@ -4,6 +4,49 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.43.0 — Dev server affidabili e companion sul monitor giusto (0.43, fase A)
+
+Installer PC: `dist\VARCO Setup 0.43.0.exe` (con la firma VMP). Prima parte della 0.43 (workbench): seguono i tipi di progetto (0.43.1), la pagina del progetto (0.43.2) e la sessione di gioco (0.43.3).
+
+### Cosa cambia — dev server
+- **VARCO osserva il server invece di aprire un indirizzo fisso:** avvio → legge il log → trova indirizzo e porta → **aspetta che risponda** → apre la pagina. Mai più la pagina aperta prima che il server sia pronto.
+- **Indirizzo trovato in due modi:**
+  - dal log, per Vite, Next.js, webpack, Angular, Astro, Python, Django, Flask, Rails, PHP, Hugo, Express («listening on port 3000»), anche con i colori del terminale;
+  - **chiedendo a Windows su quali porte ascolta** il processo e i suoi figli: funziona anche se il server **non stampa niente** o **usa un’altra porta**.
+- **Più indirizzi:** si apre quello locale (0.0.0.0 diventa localhost); quello di rete si vede a parte («Dalla rete (telefono)»).
+- **Server che cambia porta da solo** (es. «Port 5173 is in use, trying another one»): VARCO segue il nuovo indirizzo.
+- **Comando che finisce ma lascia il server acceso** (processo staccato): VARCO lo ritrova e «Ferma» lo spegne davvero.
+- **Una scheda di anteprima per progetto:** si ricarica invece di aprirne una nuova; se il server cambia porta, la scheda va al nuovo indirizzo restando sulla stessa pagina.
+- **Stato sempre visibile** nel pannello del progetto: Avvio… → In attesa di localhost:5173… → **Pronto** (pallino verde) / **Errore** con il motivo.
+- **Errori riconosciuti:** porta occupata («la porta 3000 è usata da node.exe»), programma non installato, dipendenze mancanti (npm install), script inesistente, errore di compilazione (il server resta acceso).
+- **Pulsanti:** Apri anteprima (se il server è spento lo avvia e apre la pagina quando risponde; se si sta avviando la apre appena è pronto), Riavvia, Ferma, Termina tutto, Apri cartella, Modifica file; Riavvia anche su ogni comando.
+- Un comando che non è un server (build, script) dopo qualche secondo dice «In esecuzione» invece di restare su «Avvio…».
+
+### Cosa cambia — posizione delle finestre (bug del companion)
+- **Il bug:** il companion si apriva sull’ultimo monitor usato da VARCO. Succedeva perché il monitor era salvato solo con l’id di Electron, che su Windows **cambia** (riavvio, driver, monitor ricollegato): non trovandolo, la finestra nasceva accanto all’ultima finestra di VARCO.
+- **Ora il monitor si riconosce dall’impronta** (id, nome, risoluzione, posizione): provato con 3 monitor e un id cambiato, il companion va comunque sul monitor giusto e l’id si aggiorna da solo.
+- **Monitor scollegato → principale.** Il companion **non eredita mai** la posizione dell’ultima finestra di VARCO.
+- **Per ogni gioco:** monitor, **lato dello schermo** (tutto, metà sinistra/destra/alto/basso, centro) e **dimensione** (25–100%). «Dove l’hai lasciato l’ultima volta» ricorda davvero la posizione del companion.
+- **Dal companion, nella palette (F1):** «Apri sempre qui», «Sposta sull’altro monitor», «Ricorda la posizione».
+- **Impostazioni → Companion dei giochi:** monitor, lato e dimensione predefiniti per i giochi senza un monitor scelto.
+
+### Test da fare
+- [ ] **T311** — Un progetto Vite o Next: Apri anteprima con il server spento. Lo stato passa da Avvio… a In attesa… a Pronto e la pagina si apre solo allora. **📸**
+- [ ] **T312** — Avvia due volte lo stesso server (la seconda trova la porta occupata): il secondo segue la nuova porta, oppure l’errore dice chi usa la porta.
+- [ ] **T313** — Riavvia: la stessa scheda di anteprima si ricarica, nessuna scheda nuova.
+- [ ] **T314** — Un server che non scrive l’indirizzo nel log: VARCO lo trova dalle porte.
+- [ ] **T315** — Ferma / Termina tutto: nessun node.exe resta acceso (Gestione attività).
+- [ ] **T316** — Companion di Destiny 2 su un monitor scelto, metà destra: si apre lì anche se usavi VARCO su un altro monitor. **📸**
+- [ ] **T317** — Dal companion: F1 → «Sposta sull’altro monitor», chiudi, riapri il gioco: si apre sul nuovo monitor.
+- [ ] **T318** — Impostazioni → Companion dei giochi: cambia la posizione predefinita e prova un gioco senza monitor scelto.
+
+**Stato:**
+- 265 test superati (16 nuovi: indirizzi dai log di 12 tool, porte, errori, stati; monitor per impronta, lato e dimensione, monitor scollegato, «Apri sempre qui»).
+- **Provato in VARCO** con un progetto di prova: server senza indirizzo nel log che risponde dopo 3 s (trovato dalla porta, scheda aperta al momento giusto), server che cambia porta (5790 → 5791, con indirizzo di rete), comando che finisce lasciando il server acceso (trovato, «Ferma» lo spegne). Companion con i 3 monitor veri del PC e un id cambiato: monitor giusto, metà destra; monitor scollegato → principale.
+- **Non provati:** un progetto Next/Vite vero, HTTPS locale, l’installer.
+
+---
+
 ## Beta 0.42 — Tutorial: setup, tour e suggerimenti
 
 Installer PC: `dist\VARCO Setup 0.42.0.exe` (con la firma VMP). Il telefono non cambia.

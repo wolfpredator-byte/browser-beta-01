@@ -186,8 +186,13 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const sites=el('textarea',{value:game.sites.join('\n'),rows:5,
      placeholder:'Un indirizzo per riga, es.\napp.destinyitemmanager.com\nlight.gg'});
    const display=el('select');
-   display.append(el('option',{value:'',textContent:'Dove era l’ultima volta'}));
+   display.append(el('option',{value:'',textContent:'Dove l’hai lasciato l’ultima volta'}));
    for(const d of state.displays||[])display.append(el('option',{value:String(d.id),textContent:d.label,selected:d.id===game.display}));
+   // Beta 0.43: lato e dimensione del companion sul monitor scelto (il monitor si ricorda per impronta fisica).
+   const place=game.place||{};
+   const side=el('select');for(const [v,l] of [['full','Tutto lo schermo'],['left','Metà sinistra'],['right','Metà destra'],['top','Metà in alto'],['bottom','Metà in basso'],['center','Al centro']])side.append(el('option',{value:v,textContent:l,selected:(place.side==='custom'?'full':place.side||'full')===v}));
+   const size=el('select');for(const [v,l] of [[100,'100%'],[75,'75%'],[67,'2/3'],[60,'60%'],[50,'Metà'],[40,'40%'],[33,'1/3'],[25,'25%']])size.append(el('option',{value:String(v),textContent:l,selected:(place.size||100)===v}));
+   if(place.side==='custom')side.prepend(el('option',{value:'custom',textContent:'Dove l’hai fissato tu («Apri sempre qui»)',selected:true}));
    let alwaysOnTop=game.alwaysOnTop,closeOnExit=game.closeOnExit;
    const error=el('p',{className:'panel-error',role:'alert'});
    const submit=el('button',{type:'submit',textContent:'Salva'});
@@ -202,7 +207,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    }
    const form=el('form',{className:'panel-form'},
      field('Nome',name),field('Eseguibile',exe),exeTools,processes,field('Workspace da aprire',workspace),
-     field('Siti da aprire',sites),field('Monitor',display),
+     field('Siti da aprire',sites),field('Monitor',display),field('Lato dello schermo',side),field('Dimensione',size),
      checkRow('Sempre in primo piano mentre giochi',alwaysOnTop,v=>{alwaysOnTop=v;}),
      checkRow('Chiudi la finestra quando esci dal gioco',closeOnExit,v=>{closeOnExit=v;}),
      error,buttons);
@@ -213,6 +218,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      const args={name:name.value,exe:exe.value,workspace:workspace.value,sites:sites.value,alwaysOnTop,closeOnExit};
      if(id)args.id=id;
      if(display.value)args.display=Number(display.value);
+     if(side.value!=='custom'){args.side=side.value;args.size=Number(size.value);}else{args.side='full';args.size=100;}
      const response=await act('saveGame',args);
      submit.disabled=false;
      if(response?.ok&&response.result?.ok)back();
@@ -295,23 +301,41 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        el('p',{className:'panel-hint',textContent:'Se comandi o monitor cambiano, te lo chiederò di nuovo.'})));
      return;
    }
+   // Beta 0.43: stato del server in testa (avvio → in attesa → pronto / errore) e i comandi principali.
+   const live=p.commands.filter(x=>x.status==='running');
+   const server=p.commands.find(x=>x.url&&x.status==='running')||p.commands.find(x=>x.status==='running'&&(x.phase==='waiting'||x.phase==='starting'))||null;
+   const tone=server?(server.phase==='ready'?'ready':server.phase==='error'?'error':'busy'):p.commands.some(x=>x.phase==='error')?'error':'idle';
+   const lastErr=(server||p.commands.find(x=>x.phase==='error'))?.error;
+   list.append(el('div',{className:'project-state '+tone},
+     el('span',{className:'dot'}),
+     el('div',{className:'ps-text'},el('b',{textContent:server?server.phaseLabel:(lastErr?lastErr.text:live.length?'In esecuzione':'Server spento')}),
+       ...(server?.url?[el('a',{href:'#',textContent:server.url.replace(/\/$/,''),onclick:e=>{e.preventDefault();act('projectOpenPreview');}})]:[]),
+       ...(server?.network?[el('span',{className:'ps-net',textContent:'Dalla rete (telefono): '+server.network.replace(/\/$/,'')})]:[]),
+       ...(server?.ports?.length?[el('span',{className:'ps-net',textContent:'Porte in ascolto: '+server.ports.join(', ')})]:[]),
+       ...(server?.warning?[el('span',{className:'ps-warn',textContent:server.warning.text})]:[]))));
+   const serverCmd=server||p.commands.find(x=>/\b(dev|serve|server|start|preview|watch)\b/i.test(x.name+' '+x.command))||p.commands[0];
    list.append(projectButtons(
-     ...(c.anteprima?[['Anteprima',()=>act('projectOpenPreview')]]:[]),
+     ...(p.commands.length||c.anteprima?[[server?.phase==='ready'?'Apri anteprima':server?'Apri quando è pronto':'Avvia e apri anteprima',()=>runAndReport('projectOpenPreview',{},error),'primary']]:[]),
+     ...(server&&serverCmd?[['Riavvia',()=>runAndReport('projectRestart',{index:serverCmd.index},error)],['Ferma',()=>runAndReport('projectStop',{index:serverCmd.index},error)]]:[]),
+     ...(live.length>1||(live.length&&!server)?[['Termina tutto',()=>runAndReport('projectStopAll',{},error)]]:[]),
      ...(c.editor?[['Apri in '+c.editor,()=>runAndReport('projectOpenEditor',{},error)]]:[]),
+     ['Apri cartella',()=>act('projectOpenFolder')],
      ['Modifica file',()=>act('projectOpenFile')]),error);
 
    if(p.commands.length){
      const rows=p.commands.map(cmd=>{
        const running=cmd.status==='running';
-       const status=STATUS_LABELS[cmd.status]+(cmd.status==='exited'&&cmd.exitCode!==null?` (${cmd.exitCode})`:'');
+       const status=(running||cmd.phase==='error'?cmd.phaseLabel:STATUS_LABELS[cmd.status])+(cmd.status==='exited'&&cmd.exitCode!==null&&cmd.phase!=='error'?` (${cmd.exitCode})`:'');
        const head=el('div',{className:'command-head'},el('span',{className:'command-name',textContent:cmd.name}),
-         el('span',{className:'command-status '+cmd.status,textContent:status}));
+         el('span',{className:'command-status '+(cmd.phase==='error'?'error':cmd.phase==='ready'?'running':running?'busy':cmd.status),textContent:status,title:status}));
        const buttons=projectButtons(
          running?['■ Ferma',()=>runAndReport('projectStop',{index:cmd.index},error)]:['▶ Avvia',()=>{projectUi.openLogs.add(cmd.index);runAndReport('projectRun',{index:cmd.index},error);}],
+         ...(running?[['↻ Riavvia',()=>runAndReport('projectRestart',{index:cmd.index},error)]]:[]),
          [projectUi.openLogs.has(cmd.index)?'Nascondi log':'Log',()=>{
            projectUi.openLogs.has(cmd.index)?projectUi.openLogs.delete(cmd.index):projectUi.openLogs.add(cmd.index);renderProject();}],
          ...(cmd.lines.length?[['Svuota',()=>act('projectClearLog',{index:cmd.index})]]:[]));
-       const row=el('div',{className:'command-row'},head,el('code',{className:'command-text',textContent:cmd.command}),buttons);
+       const row=el('div',{className:'command-row'},head,el('code',{className:'command-text',textContent:cmd.command}),
+         ...(cmd.error&&cmd.phase==='error'?[el('p',{className:'panel-error',textContent:cmd.error.text})]:[]),buttons);
        if(projectUi.openLogs.has(cmd.index)){
          const pre=el('pre',{className:'log',textContent:cmd.lines.join('\n')||'Nessun output.'});
          pre.dataset.index=cmd.index;row.append(pre);
@@ -1020,6 +1044,13 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      section('Browser e file',
        projectButtons(['Apri le App predefinite di Windows',()=>act('openDefaultApps')]),
        hint('VARCO compare in "Apri con" per i file che sa mostrare (PDF, immagini, video, codice, modelli 3D…). Per aprirli sempre con VARCO, o per usarlo come browser, sceglilo lì per ogni tipo.')),
+     // Beta 0.43: posizione predefinita del companion (per i giochi senza un monitor scelto).
+     section('Companion dei giochi',
+       row('Monitor predefinito',selectBox([['','Principale'],...((state.displays||[]).map(d=>[String(d.id),d.label]))],
+         s.companionDefault?.displayId!=null?String(s.companionDefault.displayId):'',v=>act('setCompanionDefault',{...(v?{display:Number(v)}:{}),side:s.companionDefault?.side||'full',size:s.companionDefault?.size||100}))),
+       row('Lato',selectBox([['full','Tutto lo schermo'],['left','Metà sinistra'],['right','Metà destra'],['top','Metà in alto'],['bottom','Metà in basso'],['center','Al centro']],s.companionDefault?.side==='custom'?'full':s.companionDefault?.side||'full',v=>act('setCompanionDefault',{...(s.companionDefault?.displayId!=null?{display:s.companionDefault.displayId}:{}),side:v,size:s.companionDefault?.size||100}))),
+       row('Dimensione',selectBox([[100,'100%'],[75,'75%'],[67,'2/3'],[60,'60%'],[50,'Metà'],[40,'40%'],[33,'1/3'],[25,'25%']].map(([v,l])=>[String(v),l]),String(s.companionDefault?.size||100),v=>act('setCompanionDefault',{...(s.companionDefault?.displayId!=null?{display:s.companionDefault.displayId}:{}),side:s.companionDefault?.side==='custom'?'full':s.companionDefault?.side||'full',size:Number(v)}))),
+       hint('Vale per i giochi che non hanno un monitor scelto. Il monitor si riconosce anche se Windows gli cambia numero; se non è collegato si usa il principale. Dal companion, nella palette (F1): «Apri sempre qui», «Sposta sull’altro monitor», «Ricorda la posizione».')),
      section('Avvio e background',
        checkRow('Resta nell’area di notifica quando chiudo le finestre',s.runInBackground,enabled=>act('setRunInBackground',{enabled})),
        checkRow('Avvia con Windows (solo l’icona, nessuna finestra)',s.openAtLogin,enabled=>act('setOpenAtLogin',{enabled})),
