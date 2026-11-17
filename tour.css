@@ -1,0 +1,42 @@
+/* Beta 0.42 — tutorial «Riflettore» (tour.js). Colori dal tema di VARCO. */
+#tour{position:fixed;inset:0;z-index:5000;pointer-events:none}
+#tour[hidden]{display:none}
+#tour .tr-card,#tour .tr-tip,#tour button{pointer-events:auto}
+#tour .ic{width:16px;height:16px;flex:none}
+/* Il riflettore: un buco nella penombra sul pulsante vero, che resta cliccabile. */
+.tr-hole{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(3,4,10,.62),0 0 0 2px var(--v-accent),0 0 26px rgba(var(--v-accent-rgb),.8);transition:all .35s cubic-bezier(.3,.8,.3,1)}
+.tr-hole.pulse::after{content:'';position:absolute;inset:-2px;border-radius:inherit;animation:tr-pulse 1.4s infinite}
+@keyframes tr-pulse{0%{box-shadow:0 0 0 0 rgba(var(--v-accent-rgb),.7)}70%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.tr-dim{position:absolute;inset:0;background:rgba(3,4,10,.62)}
+.tr-card{position:absolute;z-index:2;width:340px;padding:18px 18px 12px;border-radius:18px;background:var(--v-glass-strong,rgba(18,17,34,.96));border:1px solid var(--v-line-strong);
+  box-shadow:0 24px 70px rgba(0,0,0,.6);display:grid;gap:10px;color:var(--v-text);animation:tr-in .25s ease-out}
+@keyframes tr-in{from{opacity:0;transform:translateY(6px) scale(.98)}}
+.tr-card.center{left:50%;top:50%;transform:translate(-50%,-50%);width:420px;text-align:center;justify-items:center;padding:28px 26px 14px;animation:none}
+.tr-card.center h3{font-size:24px}
+.tr-n{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--v-accent);font-weight:700}
+.tr-card h3{margin:0;font-size:19px;font-weight:600}
+.tr-card p{margin:0;color:var(--v-muted);font-size:13.5px;line-height:1.45}
+.tr-arrow{position:absolute;width:14px;height:14px;background:inherit;border-left:1px solid var(--v-line-strong);border-top:1px solid var(--v-line-strong)}
+.tr-btn{display:inline-flex;gap:6px;align-items:center;padding:8px 14px;border-radius:10px;font-weight:600;font-size:13px;background:var(--v-accent);color:#0a0a12;border:0}
+.tr-btn:hover{filter:brightness(1.08);background:var(--v-accent)}
+.tr-btn.done{background:#2fd38a}
+.tr-foot{display:flex;align-items:center;gap:4px;width:100%;margin-top:4px;padding-top:10px;border-top:1px solid var(--v-line)}
+.tr-dots{display:flex;gap:5px;margin-right:auto}
+.tr-dots i{width:7px;height:7px;border-radius:50%;background:rgba(var(--v-ink-rgb),.22)}.tr-dots i.on{width:18px;border-radius:4px;background:var(--v-accent)}.tr-dots i.ok{background:#2fd38a}
+.tr-ghost{display:inline-flex;gap:5px;align-items:center;padding:7px 10px;border-radius:9px;font-size:12.5px;color:var(--v-muted);background:transparent;border:0}
+.tr-ghost:hover{color:var(--v-text);background:rgba(var(--v-ink-rgb),.07)}
+.tr-never{display:inline-flex;gap:5px;align-items:center;justify-self:start;font-size:11.5px;color:var(--v-muted);padding:5px 7px;border-radius:7px;background:transparent;border:0}
+.tr-never:hover{color:var(--v-text);background:rgba(var(--v-ink-rgb),.06)}
+.tr-card.center .tr-never{justify-self:center}
+.tr-x{position:absolute;top:10px;right:10px;width:28px;height:28px;padding:0;border-radius:8px;display:grid;place-items:center;color:var(--v-muted);background:transparent;border:0}
+.tr-x:hover{background:rgba(var(--v-ink-rgb),.08);color:var(--v-text)}
+.tr-swatches{display:flex;gap:6px;flex-wrap:wrap}
+.tr-sw{display:grid;justify-items:center;gap:5px;font-size:11px;color:var(--v-muted);width:62px;padding:4px 0;background:transparent;border:0}
+.tr-sw i{width:36px;height:36px;border-radius:11px;background:var(--c);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2)}
+.tr-sw.on i{box-shadow:0 0 0 3px #fff,0 0 18px var(--c)}
+.tr-tip{position:absolute;max-width:300px;padding:12px 14px;border-radius:14px;background:var(--v-glass-strong,rgba(18,17,34,.96));border:1px solid var(--v-line-strong);box-shadow:0 16px 40px rgba(0,0,0,.5);display:grid;gap:8px;color:var(--v-text);font-size:13px;animation:tr-in .2s ease-out}
+.tr-tip b{display:flex;gap:6px;align-items:center;color:var(--v-accent);font-size:12px}
+.tr-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+body[data-mode="chiaro"] .tr-card,body[data-mode="chiaro"] .tr-tip{background:rgba(252,252,255,.98)}
+body[data-mode="oled"] .tr-card,body[data-mode="oled"] .tr-tip{background:#000}
+@media (prefers-reduced-motion:reduce){.tr-hole,.tr-card,.tr-tip{transition:none;animation:none}.tr-hole.pulse::after{animation:none}}

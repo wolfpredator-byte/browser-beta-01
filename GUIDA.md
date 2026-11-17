@@ -4,6 +4,39 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.42 — Tutorial: setup, tour e suggerimenti
+
+Installer PC: `dist\VARCO Setup 0.42.0.exe` (con la firma VMP). Il telefono non cambia.
+
+### Cosa cambia
+- **Una visita guidata sui pulsanti veri** (stile «Riflettore», scelto negli esempi): tutto in penombra tranne il pulsante di cui si parla, che resta cliccabile. Accanto una scheda con il passo, la freccia, i pallini di avanzamento, Indietro / Avanti, «Non mostrare più» e la ×.
+- **Primo avvio (~60 s), 7 passi:** benvenuto, workspace, tema (i colori nella scheda, si applicano subito), telefono, JARVIS, preferiti, fine. Parte da solo **solo al primo avvio** di un profilo nuovo, una volta.
+- **Tour completo (3–5 min), 8 passi, un concetto ciascuno:** VARCO, Workspace, Palette (F1), Fast link (launcher), Progetti, Pannelli, Giochi, Sicurezza («usa l’incognito e un password manager esterno»).
+- **L’azione vera completa il passo:** cliccare il pulsante evidenziato, premere F1, aprire il launcher. Il pulsante della scheda fa la stessa cosa (es. «Apri Telefono» apre Impostazioni → Telefono). «Avanti» c’è sempre: non blocca mai.
+- **Pulsanti fuori vista:** se la barra laterale è lunga, scorre da sola fino al pulsante (Progetti, Giochi, Impostazioni…).
+- **Si chiude in ogni momento** con `Esc` o la ×, e **riprende dal passo dove eri**. `←` `→` passano da un passo all’altro.
+- **Suggerimenti della prima volta**, una volta sola ciascuno: palette, Progetti, Pannelli, Giochi, link rapidi della Home. «Capito» o «Non mostrare più suggerimenti».
+- **«Non mostrare più» rispettato al 100%:** niente setup, tour né suggerimenti finché non li riapri tu.
+- **Impostazioni → Sistema → Guida:** «Ripeti il tour», «Apri il setup», «Riprendi il tour (passo N)» se l’hai lasciato a metà, e l’interruttore dei suggerimenti.
+- Durante il tour la pagina web è nascosta e al suo posto c’è la sua foto, come con il command center: così il riflettore copre anche lei.
+
+### Test da fare
+- [ ] **T303** — Installa su un profilo nuovo (o cancella i dati): al primo avvio parte il setup. Riavvia senza finirlo: non riparte da solo. **📸**
+- [ ] **T304** — Setup: scegli un tema nella scheda, si applica subito e il tour prende il suo colore.
+- [ ] **T305** — Impostazioni → Guida → Ripeti il tour: al passo Palette premi F1, il passo si spunta; chiudi la palette e il tour riprende.
+- [ ] **T306** — Al passo Fast link apri il launcher con la sua scorciatoia: il passo si spunta.
+- [ ] **T307** — Al passo Giochi (finestra non massimizzata): la barra laterale scorre fino a Giochi e il riflettore è sul pulsante giusto. **📸**
+- [ ] **T308** — `Esc` a metà tour: in Impostazioni → Guida compare «Riprendi il tour (passo N di 8)» e riparte da lì; «Ripeti il tour» ricomincia da capo.
+- [ ] **T309** — Primo clic su Progetti: compare il suggerimento, una volta sola.
+- [ ] **T310** — «Non mostrare più»: nessun suggerimento né tour finché non premi Ripeti il tour.
+
+**Stato:**
+- 255 test superati (6 nuovi per passi, primo avvio, progresso, «Non mostrare più», suggerimenti).
+- **Provato in VARCO** con un profilo nuovo: il setup parte da solo, il tema Ember si applica, `Esc` chiude e salva il passo, la pagina torna. Tour completo: F1 spunta il passo Palette e il tour riprende dopo la palette; la barra laterale scorre fino a Giochi e Impostazioni; il clic vero su Giochi completa il passo; suggerimento di Progetti una volta sola; «Non mostrare più» spegne tutto. Sezione Guida nelle Impostazioni.
+- **Non provati:** il passo del launcher con la scorciatoia premuta davvero, tema chiaro e OLED, l’installer.
+
+---
+
 ## Beta 0.41 — Suggerimenti nuovi nella barra degli indirizzi e nella Home
 
 Installer PC: `dist\VARCO Setup 0.41.0.exe` (con la firma VMP). Il telefono non cambia.

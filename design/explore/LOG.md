@@ -206,3 +206,16 @@ Il motore è già codice vero (`suggest-rules.js`, `suggest-sites.js`, 194 siti,
 - Motore: `scope:'web'` (predefinito). Esempi aggiornati: solo barra degli indirizzi e Home; in V2 a destra restano le ricerche.
 
 **Scelta dell'impaginazione:** V3 · In evidenza. Portata in VARCO nella Beta 0.41 (barra degli indirizzi e Home; i suggerimenti del motore di ricerca vanno sotto la ricerca normale).
+
+## 2026-11-17 · Tutorial · Round 1 (tutorial-round-1/)
+Brief: design/BRIEF-tutorial.md. Tre livelli: primo avvio (~60 s), tour completo (8 passi), suggerimenti della prima volta; «Ripeti il tour» e «Apri il setup» nelle Impostazioni.
+Gli esempi stanno sopra la **vera interfaccia** (cattura della 0.41 a 1366×768 con le posizioni reali; `shared/frame-rects.js`). A quella misura Progetti, Giochi, Pannelli e Impostazioni sono sotto il bordo della barra laterale: il tour la fa scorrere (seconda cattura).
+Board: 102 pin, nessuno nuovo.
+
+| Variante | Come guida |
+|---|---|
+| v1-riflettore | penombra con il buco sul pulsante vero (resta cliccabile), scheda con freccia accanto |
+| v2-isola | niente penombra: isola dalla barra del titolo, anello che pulsa + «Qui» sul pulsante |
+| v3-guida | pannello a destra con tutti i passi (spunte, progresso), faro sul pulsante; si salta a qualsiasi passo |
+
+**Scelta:** V1 · Riflettore («mi sembra perfetto»). Portato in VARCO nella Beta 0.42: `tour.js`, `tour.css`, `tour-rules.js`, `lib/tour.cjs`; durante il tour la pagina è nascosta e al suo posto c'è la sua foto.

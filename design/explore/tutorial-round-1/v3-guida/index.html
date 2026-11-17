@@ -1,0 +1,46 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V3 · Guida a lato</title><link rel="stylesheet" href="../shared/tut.css">
+<style>
+/* V3 — guida a lato: un pannello a destra con la lista dei passi (spuntati quelli fatti, aperto quello di adesso);
+   sul pulsante vero un faro che pulsa. Si vede subito quanto manca e si salta a qualsiasi passo. */
+.dock{position:absolute;right:14px;top:14px;bottom:64px;width:330px;border-radius:20px;background:var(--glass);border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.55);display:flex;flex-direction:column;animation:slide .3s cubic-bezier(.3,.8,.3,1)}
+@keyframes slide{from{opacity:0;transform:translateX(24px)}}
+.dock .head{padding:16px 16px 12px;border-bottom:1px solid var(--line);display:grid;gap:8px;position:relative}
+.dock .head b{font-size:15px}.dock .head span{font-size:12px;color:var(--mut)}
+.bar{height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}.bar i{display:block;height:100%;background:var(--acc);transition:width .4s}
+.list{flex:1;overflow:auto;padding:8px}
+.st{display:flex;gap:10px;padding:9px 10px;border-radius:12px;cursor:pointer;align-items:flex-start}
+.st:hover{background:rgba(255,255,255,.04)}
+.st .num{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:700;border:1.5px solid rgba(255,255,255,.25);color:var(--mut)}
+.st.ok .num{background:#2fd38a;border-color:#2fd38a;color:#06140d}.st.ok .num .ic{width:13px;height:13px}
+.st.on{background:rgba(255,255,255,.05);box-shadow:inset 3px 0 0 var(--acc)}.st.on .num{border-color:var(--acc);color:var(--acc)}
+.st .b{display:grid;gap:7px;min-width:0}.st .b b{font-size:13.5px}.st:not(.on) .b b{color:var(--mut);font-weight:500}.st .b span{font-size:12.5px;color:var(--mut)}
+.dock .foot{display:flex;gap:4px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.dock .foot .sp{flex:1}
+.beacon{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 0 var(--acc);animation:pulse 1.3s infinite}
+.outline{position:absolute;border-radius:11px;border:1.5px dashed var(--acc);transition:all .35s}
+.tip{position:absolute;max-width:280px;padding:11px 13px;border-radius:13px;background:var(--glass);border:1px solid rgba(255,255,255,.18);box-shadow:0 14px 36px rgba(0,0,0,.5);display:grid;gap:8px;font-size:12.5px;animation:popIn .2s}
+.tip .row{display:flex;gap:4px;align-items:center}
+</style></head><body><div id="app"></div>
+<script src="../shared/frame-rects.js"></script><script src="../shared/tut.js"></script>
+<script>
+const {I,esc}=TUT;
+TUT.start({
+  render({st,idx,total,r,done,steps,doneSet,THEMES,accent,level}){
+    const n=steps.filter(x=>doneSet.has(x.id)).length;
+    const list=steps.map((x,i)=>{const on=i===idx,ok=doneSet.has(x.id);
+      return `<div class="st${on?' on':''}${ok?' ok':''}" data-goto="${i}"><span class="num">${ok?I.check:i+1}</span><span class="b"><b>${esc(x.title)}</b>${on?`<span>${esc(x.text)}</span>
+        ${x.themes?`<div class="swatches">${THEMES.map(([nm,c])=>`<button class="sw${accent===c?' on':''}" style="--c:${c}" data-theme="${c}"><i></i>${nm}</button>`).join('')}</div>`:
+          `<span><button class="btn${done?' done':''}" ${x.target||x.action.key?'data-do':'data-next'}>${done?I.check+'Fatto':esc(x.action.label)}</button></span>`}`:''}</span></div>`;}).join('');
+    const mark=r?`<div class="outline" style="left:${r.x-5}px;top:${r.y-5}px;width:${r.w+10}px;height:${r.h+10}px"></div><div class="beacon" style="left:${r.x+r.w-6}px;top:${r.y-8}px"></div>`:'';
+    return `${mark}<div class="dock"><div class="head"><b>${level==='setup'?'Prepara VARCO · circa 1 minuto':'Tour di VARCO · 3–5 minuti'}</b><span>${n} di ${total} fatti · riprende da qui se chiudi</span><div class="bar"><i style="width:${n/total*100}%"></i></div><button class="x" data-close title="Chiudi (Esc)">${I.close}</button></div>
+      <div class="list">${list}</div>
+      <div class="foot"><button class="never" data-never>${I.eyeoff}Non mostrare più</button><span class="sp"></span>${idx?`<button class="ghost" data-prev>${I.left}</button>`:''}<button class="ghost" data-next>${idx===total-1?'Fine':'Avanti'}${I.right}</button></div></div>`;
+  },
+  hint({h,r}){
+    if(!r)return '';
+    const left=r.x+r.w<innerWidth*0.25?r.x+r.w+18:Math.max(12,Math.min(innerWidth-300,r.cx-140)),top=r.x+r.w<innerWidth*0.25?r.cy-30:(r.y<innerHeight*0.4?r.y+r.h+16:r.y-118);
+    return `<div class="beacon" style="left:${r.x+r.w-6}px;top:${r.y-8}px"></div><div class="tip" style="left:${left}px;top:${top}px"><span>${esc(h.text)}</span><div class="row"><button class="btn" data-hint-ok>Capito</button><button class="never" data-hint-never>${I.eyeoff}Basta suggerimenti</button></div></div>`;
+  }
+});
+</script></body></html>

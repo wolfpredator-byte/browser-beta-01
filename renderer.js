@@ -991,6 +991,15 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        row('Stile',selectBox([['board','Bacheca: tessere e card'],['ring','Anello: sezioni attorno alla ricerca']],s.commandCenter?.style||'board',style=>act('ccSetStyle',{style}))),
        checkRow('Suggerimenti di ricerca dal motore scelto',s.commandCenter?.webSuggestions!==false,enabled=>act('ccSetWebSuggestions',{enabled})),
        hint('Si apre con F1 o Ctrl+Shift+P. Lo stile si cambia anche dal pulsante in alto nel command center. I suggerimenti mandano al motore di ricerca quello che scrivi (dopo 2 lettere), come fa la barra di Chrome; gli indirizzi e i percorsi non partono mai.')),
+     // Beta 0.42: tutorial.
+     section('Guida',
+       // Un tour lasciato a metà si riprende dal passo salvato; «Ripeti» e «Apri il setup» ricominciano da capo.
+       projectButtons(...(()=>{const t=s.tour||{},half=l=>t[l]&&t[l].idx>0&&!t[l].finished&&!t.never,tot={tour:8,setup:7};
+         return [...(half('tour')?[[`Riprendi il tour (passo ${t.tour.idx+1} di ${tot.tour})`,()=>window.Tour?.start('tour')]]:[]),['Ripeti il tour',()=>window.Tour?.restart('tour')],
+           ...(half('setup')?[[`Riprendi il setup (passo ${t.setup.idx+1} di ${tot.setup})`,()=>window.Tour?.start('setup')]]:[]),['Apri il setup',()=>window.Tour?.restart('setup')]];})()),
+       checkRow('Suggerimenti la prima volta che usi una funzione',s.tour?.hints!==false&&!s.tour?.never,on=>act('tourEvent',{type:'hints',on})),
+       ...(s.tour?.never?[hint('«Non mostrare più» è attivo: tour e suggerimenti restano spenti finché non premi Ripeti il tour o Apri il setup.')]:[]),
+       hint('Il setup (circa 1 minuto) prepara workspace, tema, telefono, JARVIS e preferiti. Il tour (3–5 minuti) mostra workspace, palette, fast link, progetti, pannelli, giochi e sicurezza, evidenziando i pulsanti veri. Si chiude in ogni momento con Esc e riprende dal passo dove eri.')),
      // Beta 0.39: launcher (anche fuori da VARCO).
      section('Launcher',
        checkRow('Launcher con la scorciatoia di sistema (funziona anche fuori da VARCO, in gioco e sul desktop)',s.launcher?.enabled!==false,enabled=>act('launcherSettings',{enabled})),
@@ -1076,6 +1085,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      if(sec){sec.scrollIntoView({block:'center'});sec.classList.remove('flash');void sec.offsetWidth;sec.classList.add('flash');}
    }
  }
+ window.openSettingsCategory=openSettingsCategory; // Beta 0.42: il tutorial apre Impostazioni → Telefono, Sistema, Privacy
  function closeSettingsCategory(){settingsView.category=null;layoutSettings();}
  function layoutSettings(){
    const list=$('settingsBody'),sheet=$('settingsSheet');
@@ -2435,6 +2445,9 @@ window.browserAPI.onUi(message=>{
  else if(message?.type==='closeSuggestions')closeSuggestions();
  else if(message?.type==='openFind')openFind();
  else if(message?.type==='palette')showSuggestions(message);
+ // Beta 0.42: tutorial — foto della pagina al posto della pagina (nascosta) e eventi che completano i passi.
+ else if(message?.type==='tourBackdrop')setBackdrop(message,true);
+ else if(message?.type==='tourEvent')window.Tour?.event(message.name);
  else if(message?.type==='glance')showGlance(message);
  else if(message?.type==='shot')showShot(message);
  else if(message?.type==='shotPreview')showShotPreview(message);

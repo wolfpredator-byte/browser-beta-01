@@ -1,0 +1,49 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V1 · Riflettore</title><link rel="stylesheet" href="../shared/tut.css">
+<style>
+/* V1 — riflettore: tutto in penombra tranne il pulsante vero (resta cliccabile); la scheda del passo gli sta accanto. */
+.hole{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(3,5,8,.62),0 0 0 2px var(--acc),0 0 24px var(--acc);transition:all .35s cubic-bezier(.3,.8,.3,1)}
+.hole.pulse::after{content:'';position:absolute;inset:-2px;border-radius:inherit;animation:pulse 1.4s infinite}
+.dim{position:absolute;inset:0;background:rgba(3,5,8,.62)}
+.card{position:absolute;width:340px;padding:18px 18px 12px;border-radius:18px;background:var(--glass);border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.6);animation:popIn .25s;display:grid;gap:10px}
+.card .n{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);font-weight:700}
+.card h3{margin:0;font-size:19px}.card p{margin:0;color:var(--mut)}
+.card .arrow{position:absolute;width:14px;height:14px;background:var(--glass);border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(-45deg)}
+.card .foot{display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:10px;border-top:1px solid var(--line)}
+.card .foot .dots{margin-right:auto}
+.card.center{left:50%;top:50%;transform:translate(-50%,-50%);width:420px;text-align:center;justify-items:center;padding:28px 26px 14px}
+.card.center h3{font-size:24px}
+.tip{position:absolute;max-width:290px;padding:12px 14px;border-radius:14px;background:var(--glass);border:1px solid rgba(255,255,255,.18);box-shadow:0 16px 40px rgba(0,0,0,.5);display:grid;gap:8px;animation:popIn .2s}
+.tip b{display:flex;gap:6px;align-items:center;color:var(--acc);font-size:12px}
+.tip .row{display:flex;gap:4px;align-items:center}
+</style></head><body><div id="app"></div>
+<script src="../shared/frame-rects.js"></script><script src="../shared/tut.js"></script>
+<script>
+const {I,esc}=TUT;
+function place(r,w,h){
+  const W=innerWidth,H=innerHeight-50,gap=18;
+  if(r.x+r.w<W*0.25)return {left:r.x+r.w+gap,top:Math.max(12,Math.min(H-h-12,r.cy-h/2)),arrow:{left:-8,top:Math.min(h-26,Math.max(18,r.cy-Math.max(12,Math.min(H-h-12,r.cy-h/2))-7))}};
+  if(r.y<H*0.35)return {left:Math.max(12,Math.min(W-w-12,r.cx-w/2)),top:r.y+r.h+gap,arrow:{top:-8,left:Math.min(w-26,Math.max(18,r.cx-Math.max(12,Math.min(W-w-12,r.cx-w/2))-7)),rot:45}};
+  return {left:Math.max(12,Math.min(W-w-12,r.cx-w/2)),top:Math.max(12,r.y-h-gap),arrow:{bottom:-8,left:Math.min(w-26,Math.max(18,r.cx-Math.max(12,Math.min(W-w-12,r.cx-w/2))-7)),rot:225}};
+}
+TUT.start({
+  render({st,idx,total,r,done,pulse,steps,doneSet,THEMES,accent}){
+    const dots=`<span class="dots">${steps.map((x,i)=>`<i class="${i===idx?'on':doneSet.has(x.id)?'ok':''}"></i>`).join('')}</span>`;
+    const body=`<span class="n">${idx+1} di ${total}</span><h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>
+      ${st.themes?`<div class="swatches">${THEMES.map(([n,c])=>`<button class="sw${accent===c?' on':''}" style="--c:${c}" data-theme="${c}"><i></i>${n}</button>`).join('')}</div>`:''}
+      ${st.themes?'':`<div><button class="btn${done?' done':''}" ${st.target||st.action.key?'data-do':'data-next'}>${done?I.check+'Fatto':esc(st.action.label)}</button></div>`}
+      <div class="foot">${dots}${idx?`<button class="ghost" data-prev>${I.left}Indietro</button>`:''}<button class="ghost" data-next>${idx===total-1?'Fine':'Avanti'}${I.right}</button></div>
+      <button class="never" data-never>${I.eyeoff}Non mostrare più</button><button class="x" data-close title="Chiudi (Esc)">${I.close}</button>`;
+    if(!r)return `<div class="dim"></div><div class="card center">${body}</div>`;
+    const pad=6,w=340,h=st.themes?350:290,pos=place(r,w,h);
+    const a=pos.arrow,arrow=`<span class="arrow" style="${a.left!=null?'left:'+a.left+'px;':''}${a.top!=null?'top:'+a.top+'px;':''}${a.bottom!=null?'bottom:'+a.bottom+'px;':''}transform:rotate(${a.rot??-45}deg)"></span>`;
+    return `<div class="hole${pulse?'':' pulse'}" style="left:${r.x-pad}px;top:${r.y-pad}px;width:${r.w+pad*2}px;height:${r.h+pad*2}px"></div>
+      <div class="card" style="left:${pos.left}px;top:${pos.top}px">${arrow}${body}</div>`;
+  },
+  hint({h,r}){
+    if(!r)return '';
+    const w=290,H=innerHeight-50,left=r.x+r.w<innerWidth*0.25?r.x+r.w+14:Math.max(12,Math.min(innerWidth-w-12,r.cx-w/2)),top=r.x+r.w<innerWidth*0.25?Math.max(12,r.cy-40):(r.y<H*.4?r.y+r.h+12:r.y-110);
+    return `<div class="tip" style="left:${left}px;top:${top}px"><b>${I.bulb}Suggerimento</b><span>${esc(h.text)}</span><div class="row"><button class="btn" data-hint-ok>Capito</button><button class="never" data-hint-never>${I.eyeoff}Non mostrare più suggerimenti</button></div></div>`;
+  }
+});
+</script></body></html>
