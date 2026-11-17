@@ -189,3 +189,20 @@ Richieste dell'utente dopo la 0.39: cartelle del PC, più anelli «come pagine»
 - Più anelli: fino a 5 per profilo, pallini sotto l'anello, l'anello gira di 45° cambiando pagina.
 - Media: lettore di VARCO + controlli multimediali di Windows (stesso PowerShell del programma in primo piano).
 - Chiusura: stesse animazioni dell'entrata al contrario (ordine degli spicchi invertito), ~0,3 s.
+
+## 2026-11-17 · Suggerimenti · Round 1 (suggest-round-1/)
+Richiesta: un motore solo per barra degli indirizzi, Home, launcher e command center; risultati per categoria (siti e ricerche → app → progetti → VARCO; nella barra degli indirizzi prima gli indirizzi); archivio interno dei siti più usati; ricerca tollerante; priorità da cronologia, preferiti, fast link e workspace attivo; intenti; ripiego; siti imparati dopo 5 visite.
+Il motore è già codice vero (`suggest-rules.js`, `suggest-sites.js`, 194 siti, 10 test) e gli esempi lo usano direttamente. Nessun pin nuovo sulla board (102): stesse famiglie del launcher.
+
+| Variante | Impaginazione |
+|---|---|
+| v1-sezioni | una lista a sezioni; la riga scelta si apre con pagine principali e azioni |
+| v2-colonne | a sinistra il migliore in grande + siti e ricerche; a destra app, progetti, VARCO |
+| v3-evidenza | il migliore in evidenza con pagine e azioni a vista; categorie come linguette che filtrano |
+
+**Cambio di idea dell'utente:** troppe cose uguali in troppi posti; ogni casella deve fare una cosa sola.
+- Barra degli indirizzi e Home = **solo web**, come un browser normale: indirizzi, siti (archivio, cronologia, preferiti, imparati) e ricerche (anche «Cerca lofi su YouTube»). Niente app, progetti né JARVIS.
+- Launcher = PC e fast link; Command center = VARCO (schede, progetti, comandi, JARVIS).
+- Motore: `scope:'web'` (predefinito). Esempi aggiornati: solo barra degli indirizzi e Home; in V2 a destra restano le ricerche.
+
+**Scelta dell'impaginazione:** V3 · In evidenza. Portata in VARCO nella Beta 0.41 (barra degli indirizzi e Home; i suggerimenti del motore di ricerca vanno sotto la ricerca normale).

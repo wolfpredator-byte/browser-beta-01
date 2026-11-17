@@ -2622,6 +2622,8 @@ function showSuggestions(message){
  if(message.mode==='palette'){openFloatingPalette(message);return;}
  const input=suggestField();
  suggestItems=message.items||[];suggestRequested=false;
+ // Beta 0.41: il motore dei suggerimenti (solo web) si prepara una volta per apertura.
+ if(message.web&&window.SuggestRules){webCtx=message.web;webIx=window.SuggestRules.createIndex({...message.web});webFilter='all';webRemote={q:'',list:[]};}
  setBackdrop(message,false);
  suggestOpen=true;
  closeFind(false);
@@ -2655,17 +2657,20 @@ function webItem(q){
  const address=/^https?:\/\//i.test(q)||/^localhost\b/i.test(q)||/^[^\s/]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(q);
  return {kind:'web',label:address?q:`Cerca «${q}»`,detail:address?'Apri l’indirizzo':'Ricerca sul web',run:{command:'navigate',args:{url:q}}};
 }
-function renderSuggestions(){
+function renderSuggestions(keep=false){
  if(!suggestOpen)return;
  const raw=suggestField().value,commandsOnly=raw.startsWith('>');
  const q=(commandsOnly?raw.slice(1):raw).trim();
  if(!raw.trim()){closeSuggestions();return;}
+ const list=$('suggest');
+ if(!commandsOnly&&webIx){renderWebSuggestions(q,keep);return;}
+ list.classList.remove('v3');
  if(commandsOnly){
    const pool=suggestItems.filter(i=>COMMAND_KINDS.has(i.kind));
    suggestShown=q?window.paletteRules.filterItems(pool,q,30):pool.filter(i=>i.kind==='command');
  }else suggestShown=[webItem(q),...window.paletteRules.filterItems(suggestItems,q,MAX_SUGGESTIONS-1)];
  suggestIndex=0;
- const list=$('suggest');list.replaceChildren();
+ list.replaceChildren();
  suggestShown.forEach((item,index)=>{
    const icon=item.favicon?el('img',{className:'palette-icon',src:item.favicon,alt:''}):
      el('span',{className:'palette-icon glyph',textContent:item.kind==='web'?'⌕':item.kind==='command'?'›':''});
@@ -2683,17 +2688,121 @@ function renderSuggestions(){
  list.hidden=false;
  highlightSuggestion(true);
 }
+// ── Beta 0.41: suggerimenti web (barra degli indirizzi e Home), impaginazione «In evidenza» ──
+// Solo indirizzi, siti e ricerche, come un browser: app, progetti e comandi stanno nel launcher e nel command center.
+// In alto il risultato migliore con le pagine principali del sito e le azioni (Tab); sotto le categorie come linguette.
+let webCtx=null,webIx=null,webFilter='all',webAct=0,webRemote={q:'',list:[]},webRemoteTimer=null;
+const WEB_GROUP_LABEL={addr:'Indirizzo',sites:'Siti',search:'Ricerche'};
+const webHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch{return '';}};
+function webActions(x){
+ const url=x.url;
+ switch(x.kind){
+   case 'site':return [['Apri',()=>webGo(x,'navigate')],['Nuova scheda',()=>webGo(x,'newTab')],...(x.site?.search?[[`Cerca su ${x.site.name}…`,()=>webPrefix(x.site.name)]]:[]),['Copia il link',()=>{act('copyText',{text:url});closeSuggestions();}]];
+   case 'page':return [['Apri',()=>webGo(x,'navigate')],['Nuova scheda',()=>webGo(x,'newTab')],['Copia il link',()=>{act('copyText',{text:url});closeSuggestions();}]];
+   case 'url':return [['Apri',()=>webGo(x,'navigate')],['Nuova scheda',()=>webGo(x,'newTab')]];
+   default:return [['Cerca',()=>webGo(x,'navigate')],['In una nuova scheda',()=>webGo(x,'newTab')]];
+ }
+}
+async function webGo(x,command){
+ const input=suggestField(),q=input.value.trim();
+ if(x.key&&q)act('suggestChoice',{query:q,key:x.key});
+ const target=x.url||x.text||q;
+ await closeSuggestions();
+ input.value='';input.blur();
+ act(command,{url:target});
+}
+function webPrefix(name){const input=suggestField();input.value=name+' ';input.focus();renderSuggestions();}
+function webIcon(x,big){
+ const host=webHost(x.url||''),img=webCtx?.icons?.[host]||(x.site&&webCtx?.icons?.[x.site.domain]);
+ const box=el('span',{className:'sg-ic'+(big?' big':'')});
+ if(img){box.append(el('img',{src:img,alt:''}));return box;}
+ if(x.site){box.style.setProperty('--c',x.site.color||'var(--v-accent)');box.append(el('b',{textContent:(x.site.name.match(/[A-Za-z0-9]/)||['·'])[0].toUpperCase()}));return box;}
+ box.textContent=x.kind==='url'||x.kind==='page'?'↗':'⌕';return box;
+}
+function renderWebSuggestions(q,keep){
+ const list=$('suggest');list.classList.add('v3');
+ const mode=suggestField()===$('homeQuery')?'home':'address';
+ const res=webIx.query(q,{mode});
+ const groups=res.groups.map(g=>({...g,items:[...g.items]}));
+ // Scorciatoie «!yt gatti» (Beta 0.28): prima di tutto.
+ const bang=bangOf(q),bangLabel=bang&&state.bangs?.[bang.key];
+ let search=groups.find(g=>g.id==='search');
+ if(!search){search={id:'search',title:'Ricerche',items:[]};groups.push(search);}
+ if(bangLabel){search.items.unshift({kind:'bang',key:'bang:'+bang.key,title:`Cerca «${bang.query}» su ${bangLabel}`,sub:'Scorciatoia !'+bang.key,text:q});groups.splice(groups.indexOf(search),1);groups.unshift(search);}
+ // Suggerimenti del motore di ricerca (se attivi): dopo la ricerca normale.
+ if(webRemote.q===q&&webRemote.list.length){const at=search.items.findIndex(x=>x.kind==='web');search.items.splice(at<0?search.items.length:at+1,0,...webRemote.list.map(t=>({kind:'web',key:'',title:t,sub:'Suggerito da '+(webCtx.engine?.label||'motore'),text:t})));}
+ else if(webCtx?.webSuggestions&&q.length>=2&&!window.SuggestRules.isUrlLike(q)&&webRemote.q!==q){
+   clearTimeout(webRemoteTimer);
+   webRemoteTimer=setTimeout(()=>act('ccSuggest',{text:q}).then(r=>{const l=Array.isArray(r?.result)?r.result:[];if(suggestOpen&&suggestField().value.trim()===q){webRemote={q,list:l.slice(0,4)};if(l.length)renderSuggestions(true);}}),180);
+ }
+ for(const g of groups)if(g.id==='search')g.items=g.items.slice(0,6);
+ const all=groups.filter(g=>g.items.length);
+ if(webFilter!=='all'&&!all.some(g=>g.id===webFilter))webFilter='all';
+ const shown=webFilter==='all'?all:all.filter(g=>g.id===webFilter);
+ const prevKey=keep?suggestShown[suggestIndex]?.key:null;
+ suggestShown=shown.flatMap(g=>g.items.map(x=>({...x,group:g.id,web:true})));
+ suggestIndex=keep?Math.max(0,suggestShown.findIndex(x=>x.key===prevKey&&x.title===suggestShown.find(y=>y.key===prevKey)?.title)):0;
+ if(!keep)webAct=0;
+ drawWebSuggestions(all);
+}
+function drawWebSuggestions(all){
+ const list=$('suggest');list.replaceChildren();
+ const first=suggestShown[0];
+ const noFocus=node=>{node.onmousedown=e=>e.preventDefault();return node;};
+ if(first){
+   const acts=webActions(first);
+   const hero=noFocus(el('div',{className:'sg-hero palette-row'+(suggestIndex===0?' selected':''),role:'option'}));
+   const body=el('div',{className:'sg-body'});
+   body.append(el('b',{className:'sg-title',textContent:first.title}));
+   const sub=el('span',{className:'sg-sub',textContent:[first.sub,first.site?.cat&&first.site.cat!=='Imparato'?first.site.cat:''].filter(Boolean).join(' · ')});
+   for(const b of (first.badges||[]).filter(Boolean).slice(0,3))sub.append(el('span',{className:'sg-badge',textContent:b}));
+   body.append(sub);
+   if(first.site?.urls?.length&&(first.kind==='site'))body.append(el('div',{className:'sg-chips'},...first.site.urls.slice(0,5).map(u=>{const c=noFocus(el('button',{type:'button',className:'sg-chip',textContent:u.label}));c.onclick=e=>{e.stopPropagation();webGo({...first,url:u.url,key:first.key},'navigate');};return c;})));
+   body.append(el('div',{className:'sg-acts'},...acts.map(([label,fn],j)=>{const b=noFocus(el('button',{type:'button',className:'sg-act'+(suggestIndex===0&&j===webAct?' on':''),textContent:label}));b.onclick=e=>{e.stopPropagation();fn();};return b;})));
+   hero.append(webIcon(first,true),body);
+   hero.onmousemove=()=>{if(suggestIndex!==0){suggestIndex=0;webAct=0;highlightSuggestion(false);}};
+   hero.onclick=()=>acts[0][1]();
+   list.append(hero);
+ }
+ if(all.length>1){
+   const tabs=el('div',{className:'sg-tabs'});
+   const tab=(id,label,n)=>{const b=noFocus(el('button',{type:'button',className:webFilter===id?'on':''},label,...(n!=null?[el('i',{textContent:String(n)})]:[])));b.onclick=()=>{webFilter=id;renderSuggestions();};return b;};
+   tabs.append(tab('all','Tutto'),...all.map(g=>tab(g.id,g.id==='sites'&&suggestField()===$('address')?'Indirizzi':WEB_GROUP_LABEL[g.id]||g.title,g.items.length)));
+   list.append(tabs);
+ }
+ suggestShown.slice(1).forEach((x,j)=>{
+   const index=j+1;
+   const row=noFocus(el('div',{className:'palette-row sg-row'+(index===suggestIndex?' selected':''),role:'option'}));
+   row.append(webIcon(x),el('span',{className:'palette-text'},el('span',{className:'palette-label',textContent:x.title}),...(x.sub?[el('span',{className:'palette-detail',textContent:x.sub})]:[])),
+     ...(x.badges||[]).filter(Boolean).slice(0,2).map(b=>el('span',{className:'sg-badge',textContent:b})),
+     el('span',{className:'sg-kind',textContent:x.group==='sites'&&suggestField()===$('address')?'Indirizzi':WEB_GROUP_LABEL[x.group]||''}));
+   row.onmousemove=()=>{if(suggestIndex!==index){suggestIndex=index;webAct=0;highlightSuggestion(false);}};
+   row.onclick=()=>webActions(x)[0][1]();
+   list.append(row);
+ });
+ list.hidden=false;
+ highlightSuggestion(true);
+}
 function highlightSuggestion(scroll){
  const rows=$('suggest').querySelectorAll('.palette-row');
  rows.forEach((row,i)=>row.classList.toggle('selected',i===suggestIndex));
+ $('suggest').querySelectorAll('.sg-hero .sg-act').forEach((b,j)=>b.classList.toggle('on',suggestIndex===0&&j===webAct));
  if(scroll)rows[suggestIndex]?.scrollIntoView({block:'nearest'});
 }
-async function runSuggestion(item){
+async function runSuggestion(item,actionIndex=0){
  if(!item)return;
+ if(item.web){const acts=webActions(item);(acts[actionIndex]||acts[0])[1]();return;}
  const input=suggestField();
  await closeSuggestions();
  input.value='';input.blur();
  act(item.run.command,item.run.args||{});
+}
+/** Tab nei suggerimenti web: passa tra le azioni del risultato in evidenza (Maiusc+Tab indietro). */
+function webTab(e){
+ const x=suggestShown[suggestIndex];if(!x?.web)return false;
+ e.preventDefault();
+ if(suggestIndex!==0){suggestIndex=0;webAct=0;}else{const n=webActions(x).length;webAct=(webAct+(e.shiftKey?-1:1)+n)%n;}
+ highlightSuggestion(true);return true;
 }
 $('address').addEventListener('input',()=>{
  addressEdited=true;suggestInput=$('address');
@@ -2705,9 +2814,10 @@ $('address').addEventListener('keydown',e=>{
  // Esc senza suggerimenti: torna all'indirizzo della pagina (come in Chrome).
  if(!suggestOpen){if(e.key==='Escape'){addressEdited=false;syncAddress();$('address').blur();}return;}
  const move=step=>{e.preventDefault();if(!suggestShown.length)return;suggestIndex=(suggestIndex+step+suggestShown.length)%suggestShown.length;highlightSuggestion(true);};
- if(e.key==='ArrowDown')move(1);
- else if(e.key==='ArrowUp')move(-1);
- else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex]);}
+ if(e.key==='ArrowDown'){move(1);webAct=0;}
+ else if(e.key==='ArrowUp'){move(-1);webAct=0;}
+ else if(e.key==='Tab'&&webTab(e))return;
+ else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex],e.ctrlKey?1:suggestIndex===0?webAct:0);}
  else if(e.key==='Escape'){e.preventDefault();closeSuggestions();addressEdited=false;syncAddress();$('address').blur();}
 });
 // Clic altrove: i suggerimenti si chiudono (il testo resta nella barra).
@@ -2730,9 +2840,10 @@ $('homeQuery').addEventListener('input',()=>{
 $('homeQuery').addEventListener('keydown',e=>{
  if(!suggestOpen||suggestField()!==$('homeQuery'))return; // Invio senza suggerimenti: la ricerca di sempre
  const move=step=>{e.preventDefault();if(!suggestShown.length)return;suggestIndex=(suggestIndex+step+suggestShown.length)%suggestShown.length;highlightSuggestion(true);};
- if(e.key==='ArrowDown')move(1);
- else if(e.key==='ArrowUp')move(-1);
- else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex]);}
+ if(e.key==='ArrowDown'){move(1);webAct=0;}
+ else if(e.key==='ArrowUp'){move(-1);webAct=0;}
+ else if(e.key==='Tab'&&webTab(e))return;
+ else if(e.key==='Enter'){e.preventDefault();runSuggestion(suggestShown[suggestIndex],e.ctrlKey?1:suggestIndex===0?webAct:0);}
  else if(e.key==='Escape'){e.preventDefault();closeSuggestions();}
 });
 $('homeQuery').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('homeQuery')&&suggestField()===$('homeQuery'))closeSuggestions();},120));

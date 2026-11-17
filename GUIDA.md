@@ -4,6 +4,40 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.41 — Suggerimenti nuovi nella barra degli indirizzi e nella Home
+
+Installer PC: `dist\VARCO Setup 0.41.0.exe` (con la firma VMP). Il telefono non cambia.
+
+### Cosa cambia
+- **Ogni posto fa una cosa sola.** La barra degli indirizzi e la ricerca della Home suggeriscono **solo il web**, come un browser: indirizzi, siti e ricerche. App, progetti e comandi restano nel launcher e nel command center. (Il `>` nella barra per i comandi c'è ancora.)
+- **Il risultato migliore in evidenza** (impaginazione V3 scelta negli esempi):
+  - in alto il sito con le sue **pagine principali** (es. Epic Games → Negozio, Giochi gratis, Libreria) e le azioni: Apri, Nuova scheda, Cerca sul sito…, Copia il link;
+  - `Tab` passa tra le azioni, `Invio` esegue quella scelta, `Ctrl+Invio` apre in una nuova scheda;
+  - sotto le **linguette** Tutto · Indirizzi (o Siti) · Ricerche, con il conteggio, per filtrare.
+- **Archivio di ~200 siti tra i più usati**, dentro VARCO (nessuna rete): nome, dominio, nomi alternativi, categoria, pagine principali, ricerca sul sito. Niente loghi: l'icona vera compare quando il sito l'hai già visitato, altrimenti l'iniziale sul suo colore.
+- **Ricerca tollerante:** «epic», «epc», «egs», «epic game store», «epci gmaes» trovano Epic Games; «yt» YouTube; «spotfy» Spotify.
+- **Cerca direttamente su un sito:** «youtube lofi», «yt lofi» o «lofi su youtube» → «Cerca lofi su YouTube». Vale per i siti dell'archivio con una ricerca (Amazon, Reddit, GitHub, Wikipedia, Steam…). Le scorciatoie `!` della 0.28 funzionano come prima.
+- **Priorità:** cronologia (visite e quanto di recente), preferiti, fast link, schede aperte e il workspace attivo.
+- **Impara da solo:** un sito che non è nell'archivio, dopo **5 visite**, diventa un sito suggerito con il suo nome (es. «D2 Foundry»). Niente localhost né indirizzi di rete.
+- **Ricorda le tue scelte:** se per «dis» scegli Discord qualche volta, la volta dopo è primo.
+- **Ripiego:** se non riconosce nulla, la ricerca sul web. I suggerimenti del motore di ricerca arrivano sotto, solo se attivi in Impostazioni → Command center.
+
+### Test da fare
+- [ ] **T296** — Nella barra scrivi «epic»: in alto Epic Games con Negozio, Giochi gratis, Libreria. `Tab` passa sulle azioni, `Invio` apre quella scelta. **📸**
+- [ ] **T297** — Scrivi «egs», «epc» ed «epic game store»: sempre Epic Games in alto.
+- [ ] **T298** — Nella Home scrivi «youtube lofi»: in alto «Cerca lofi su YouTube», `Invio` apre la ricerca su YouTube.
+- [ ] **T299** — Linguette: clic su «Ricerche» mostra solo le ricerche; «Tutto» le riporta tutte.
+- [ ] **T300** — Un sito non famoso visitato 5 volte: scrivendo il suo nome compare tra i siti.
+- [ ] **T301** — Scegli due volte lo stesso risultato per un testo corto (es. «dis» → Discord): la volta dopo è primo.
+- [ ] **T302** — Tema chiaro e OLED: la tendina si legge bene.
+
+**Stato:**
+- 249 test superati (11 nuovi per il motore: ricerca tollerante, intenti, priorità, siti imparati, scelte, velocità).
+- **Provato in VARCO** con un profilo di prova e tasti veri: «epic» nella barra (Epic Games in evidenza con le pagine principali, `Tab` sulle azioni, suggerimenti di Startpage sotto), «youtube lofi» nella Home (ricerca su YouTube con l'icona del sito), «gi» + `Invio` (la scelta viene ricordata).
+- **Non provati:** tema chiaro e OLED, l'installer.
+
+---
+
 ## Beta 0.40 — Launcher: più anelli, cartelle del PC, media, chiusura animata
 
 Installer PC: `dist\VARCO Setup 0.40.0.exe` (con la firma VMP). Contiene anche tutta la 0.39 (il launcher), che non era stata pubblicata. Il telefono non cambia.

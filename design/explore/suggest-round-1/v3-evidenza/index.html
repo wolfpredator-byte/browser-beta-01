@@ -1,0 +1,34 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V3 · In evidenza</title><link rel="stylesheet" href="../shared/sg.css">
+<style>
+/* V3 — il risultato migliore in evidenza (pagine principali e azioni a vista), poi le categorie come linguette che filtrano. */
+.hero{display:flex;gap:16px;padding:16px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start}
+.hero.sel{background:linear-gradient(90deg,rgba(var(--acc-rgb),.1),transparent)}
+.hero .b{flex:1;display:grid;gap:8px;min-width:0}.hero .b b{font-size:18px}.hero .b .s{font-size:12.5px;color:var(--mut);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hero .acts{display:flex;gap:4px;flex-wrap:wrap}
+.tabs2{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs2 button{padding:5px 11px;border-radius:999px;font-size:12px;color:var(--mut);white-space:nowrap}.tabs2 button.on{background:var(--acc);color:#001218;font-weight:600}.tabs2 button i{font-style:normal;opacity:.7;margin-left:5px}
+.list{padding:6px 8px;display:grid;gap:2px}
+.r{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:11px;cursor:pointer;min-width:0}
+.r.sel{background:var(--hi)}
+.r .t{flex:1;display:grid;min-width:0}.r .t b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.r .t span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r .k{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);width:76px;text-align:right;flex:none}
+.ln-fan>*{background:rgba(14,19,26,.9);border-radius:14px}
+</style></head><body><div id="app"></div>
+<script src="../../../../suggest-sites.js"></script><script src="../../../../suggest-rules.js"></script><script src="../shared/sg.js"></script>
+<script>
+const {I,GROUP_IC,esc,icon,badges,chips,actbar}=SG;
+let filter='all',all=[];
+SG.start({
+  filter:groups=>{all=groups;if(filter!=='all'&&!groups.some(g=>g.id===filter))filter='all';return filter==='all'?groups:groups.filter(g=>g.id===filter);},
+  render(r,s){
+    const flat=r.groups.flatMap(g=>g.items.map(x=>({x,g})));
+    const first=flat[0]?.x;
+    const hero=first?`<div class="hero${s.sel===0?' sel':''}" data-i="0">${icon(first,true)}<div class="b"><b>${esc(first.title)}</b><span class="s">${esc(first.sub||'')}${first.site?' · '+esc(first.site.cat):''} ${badges(first)}</span>${chips(first,5)}<div class="acts">${actbar(first)}</div></div></div>`:'';
+    const tabs=`<div class="tabs2"><button data-f="all" class="${filter==='all'?'on':''}">Tutto</button>${all.map(g=>`<button data-f="${g.id}" class="${filter===g.id?'on':''}">${esc(g.title)}<i>${g.items.length}</i></button>`).join('')}</div>`;
+    const list=flat.slice(1).map(({x,g},j)=>{const i=j+1;return `<div class="r${i===s.sel?' sel':''}" data-i="${i}">${icon(x)}<div class="t"><b>${esc(x.title)}</b><span>${esc(x.sub||'')}</span></div>${badges(x)}<span class="k">${esc(g.title)}</span></div>`;}).join('');
+    return hero+tabs+`<div class="list">${list}</div>`;
+  },
+  bind(root,s){root.querySelectorAll('[data-f]').forEach(b=>b.onclick=e=>{e.stopPropagation();filter=b.dataset.f;s.sel=0;s.act=0;document.querySelector('.sg-input').dispatchEvent(new Event('input'));});}
+});
+</script></body></html>

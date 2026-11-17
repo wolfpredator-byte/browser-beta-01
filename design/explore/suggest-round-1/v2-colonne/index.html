@@ -1,0 +1,32 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V2 · Colonne</title><link rel="stylesheet" href="../shared/sg.css">
+<style>
+/* V2 — due colonne: a sinistra il risultato migliore in grande e gli indirizzi; a destra le ricerche. */
+.cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+.col{padding:8px;min-width:0}.col+.col{border-left:1px solid var(--line);background:rgba(0,0,0,.18)}
+.gh{display:flex;align-items:center;gap:6px;padding:6px 8px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.gh .ic{width:13px;height:13px}
+.r{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:11px;cursor:pointer;min-width:0;flex-wrap:wrap}
+.r.sel{background:var(--hi);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.45)}
+.r .t{flex:1;display:grid;min-width:0}.r .t b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.r .t span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top{display:grid;gap:9px;padding:12px;margin:2px 0 6px;border-radius:14px;background:rgba(var(--ink-rgb),.05);border:1px solid rgba(var(--ink-rgb),.08);cursor:pointer}
+.top.sel{border-color:rgba(var(--acc-rgb),.55)}
+.top .h{display:flex;gap:12px;align-items:center}.top .h div{display:grid;min-width:0}.top .h b{font-size:16px}.top .h span{font-size:12px;color:var(--mut)}
+.acts{display:flex;gap:3px;flex-wrap:wrap;width:100%;padding-left:40px}
+.top .acts{padding-left:0}
+.ln-fan .cols{grid-template-columns:1fr}.ln-fan .col{background:rgba(14,19,26,.9);border-radius:14px}.ln-fan .col+.col{border-left:0;margin-top:6px}
+.dd.address .cols{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+</style></head><body><div id="app"></div>
+<script src="../../../../suggest-sites.js"></script><script src="../../../../suggest-rules.js"></script><script src="../shared/sg.js"></script>
+<script>
+const {I,GROUP_IC,esc,icon,badges,chips,actbar}=SG;
+const LEFT=new Set(['addr','sites']); // a destra le ricerche
+SG.start({render(r,s){
+  const idx=new Map();let k=0;r.groups.forEach(g=>g.items.forEach(x=>idx.set(x,k++)));
+  const first=r.groups[0]?.items[0];
+  const row=x=>{const i=idx.get(x),sel=i===s.sel;return `<div class="r${sel?' sel':''}" data-i="${i}">${icon(x)}<div class="t"><b>${esc(x.title)}</b><span>${esc(x.sub||'')}</span></div>${badges(x)}${sel&&SG.actions(x).length>1?'<span class="acts">'+actbar(x)+'</span>':''}</div>`;};
+  const block=g=>{const items=g.items.filter(x=>x!==first);return items.length?`<div class="gh">${I[GROUP_IC[g.id]]}${esc(g.title)}</div>${items.map(row).join('')}`:'';};
+  const top=first?`<div class="top${s.sel===0?' sel':''}" data-i="0"><div class="h">${icon(first,true)}<div><b>${esc(first.title)}</b><span>${esc(first.sub||'')}${first.site?' · '+esc(first.site.cat):''}</span></div></div>${chips(first,5)}${s.sel===0?'<div class="acts">'+actbar(first)+'</div>':''}</div>`:'';
+  const L=r.groups.filter(g=>LEFT.has(g.id)),Rg=r.groups.filter(g=>!LEFT.has(g.id));
+  return `<div class="cols"><div class="col">${top}${L.map(block).join('')}</div>${Rg.length?`<div class="col">${Rg.map(block).join('')}</div>`:''}</div>`;
+}});
+</script></body></html>
