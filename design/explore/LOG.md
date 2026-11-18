@@ -219,3 +219,64 @@ Board: 102 pin, nessuno nuovo.
 | v3-guida | pannello a destra con tutti i passi (spunte, progresso), faro sul pulsante; si salta a qualsiasi passo |
 
 **Scelta:** V1 · Riflettore («mi sembra perfetto»). Portato in VARCO nella Beta 0.42: `tour.js`, `tour.css`, `tour-rules.js`, `lib/tour.cjs`; durante il tour la pagina è nascosta e al suo posto c'è la sua foto.
+
+## 2026-11-17 · Pagina del progetto · Round 1 (project-round-1/)
+Brief: design/BRIEF-project-page.md. Esempio: Destiny Builder (Unity 2022.3). Riquadri: stato del server con errori, azioni, file recenti, note, attività, risorse, screenshot; «+ Riquadro» aggiunge nota, file, stato della build o un'altra galleria.
+Pin scelti fuori dai soliti: #14 (flusso di dati a nodi), #1 (Dark Admin Panel), #27 (Smart Calendar), #9 (Floating UIs di Stapelfeldt), #62 (habit tracker scuro).
+Note, attività e screenshot sono in comune tra le due viste (in VARCO: `.varco/` nel progetto).
+
+| Variante | Disposizione |
+|---|---|
+| v1-tela | tela libera tipo nodi di Blender: zoom, spostamento del fondo, fili tra le prese, riquadri ridimensionabili |
+| v2-bacheca | griglia a 12 colonne: aggancio, gli altri si spostano e risalgono, ridimensionamento a scatti |
+
+## 2026-11-18 · Pagina del progetto · Round 2 (project-round-2/v1-bento)
+Spunto dell'utente: un esempio fatto con Stitch (Google), «Loom Studio Infinite Canvas»: riquadri bento su griglia a 12 colonne dentro una tela infinita, etichette in monospazio, barra degli strumenti a sinistra, dock in basso.
+Portato nello stile di VARCO:
+- colori = token del tema (viola #7c6cff al posto dell'indaco, azzurro #6fd3ff al posto del ciano);
+- contenuto = Destiny Builder, con i riquadri della fase C;
+- copertina = ultimo screenshot + stato del server + metriche (errori, attività, build, file cambiati).
+Interazioni:
+- trascinare per riordinare (gli altri scivolano, la griglia riempie i buchi);
+- dimensioni da un menu;
+- filtri Tutto / Lavoro / Media / Collegamenti;
+- tela: Spazio o rotellina per muoversi, Ctrl+rotellina per lo zoom, «Concentrati» sul riquadro sotto il mouse;
+- nota veloce; screenshot caricati o trascinati, «Usa in copertina».
+
+## 2026-11-18 · Pagina del progetto · Round 2 (project-round-2/v2-tela)
+Risposta dell'utente alla bacheca bento: «mi piace, ma voglio i collegamenti e la libertà di mettere i riquadri dove voglio, anche lontani». I fili servono a dare ordine (una nota legata a uno screenshot, a una risorsa…).
+- Stessi riquadri bento (stile in `shared/bento.css`) su una tela libera, con aggancio ai puntini (si può togliere) e ridimensionamento dall'angolo.
+- Fili: si collega trascinando da una presa (4 lati) o con lo strumento Collega (C: clic, clic). Il filo sceglie da solo i lati più vicini e ha una freccia per il verso. Cliccandolo puoi dargli un'etichetta, cambiare colore, invertire il verso o toglierlo. Se rilasci il filo sul vuoto nasce una nota già collegata.
+- Passando sopra un riquadro, si accendono i suoi collegati e i fili si animano. «Concentrati» inquadra il riquadro scelto insieme ai suoi collegati.
+- Nodi singoli quanti ne vuoi: nota, screenshot, link, file. Le miniature della galleria e i file recenti si trascinano fuori e diventano riquadri già collegati. Le immagini trascinate sulla tela diventano screenshot.
+- Aree: riquadri tratteggiati con un nome; spostando l'area si spostano i riquadri che contiene.
+- Minimappa nel dock (clic per andarci), filtri che attenuano invece di nascondere, scorciatoie V / H / C / N / F.
+Aggiunta (stesso giorno): se rilasci il filo sul vuoto si apre il menu «Cosa vuoi creare?».
+- Si può scrivere per cercare.
+- Contenuti: nota, screenshot del progetto (si sceglie), screenshot dal PC, file (si sceglie), link.
+- Contenitori: cartella screenshot, file recenti, attività, risorse, cronologia, note, stato. Se uno è già sulla tela, lo collega invece di crearne un altro.
+
+## 2026-11-18 · Pagina del progetto · Round 3 (project-round-3/) — stile «meno IA»
+Richiesta: stesso funzionamento della tela, ma un aspetto che non sembri fatto dall'intelligenza artificiale, preso da Pinterest.
+Tolti in tutti e tre: aloni, vetro sfocato, sfumature viola-azzurro, puntini che pulsano, fili che brillano, arte astratta. Gli screenshot finti adesso sono schermate del builder.
+Board: 105 pin. Ci sono pin nuovi in stile apparecchio (telecomandi, pannelli, interruttori, termometro, timer).
+
+| Stile | Pin | Fili |
+|---|---|---|
+| A · Strumento | 2, 13, 26, 41, 10 — grafite, colori pieni per gli stati, numeri grossi, aree come nastro adesivo | cavi con la spina che pendono un po' |
+| B · Brutale | 56, 101, 100, 52 — carta chiara, inchiostro, angoli vivi, ombre piene, titoli larghi | ad angolo retto, come uno schema |
+| C · Editoriale | 65, 100, 52, 9 — carta scura calda, serif, righe sottili, sezioni § 01 | tratto d'inchiostro, etichetta in corsivo |
+**Scelta:** A · Strumento.
+
+## 2026-11-18 · Pagina del progetto · Round 4 (project-round-4/) — Strumento con i colori dei temi
+Richiesta: lo stile Strumento deve seguire i temi di VARCO (colori).
+- `shared/strumento-theme.js` → `strumentoTokens({accent,accent2,bg,mode})` calcola le variabili `--s-*` con le stesse regole di `lib/appearance-rules.cjs`. In VARCO andrà accanto a `cssVariables()`.
+- **Scuro:** la grafite prende una punta dello sfondo del tema.
+- **OLED:** nero puro.
+- **Chiaro:** pannello grigio chiaro opaco (alla Stapelfeldt), con testo scuro.
+- **Accento del tema:** pulsanti principali, avanzamento a tacche, spie, contorni di selezione, primo colore dei cavi.
+- **Secondo colore:** secondo colore dei cavi. Se è troppo simile all'accento (Lime) si sposta da solo.
+- **Leggibilità:** sulle scritte l'accento si scurisce o si schiarisce finché si legge (Lime chiaro → verde oliva). Sui pulsanti il testo è bianco, o nero sui colori chiari.
+- **Colori di stato fissi** (errore arancio, attenzione giallo, riuscito lime), così un errore resta un errore con ogni tema.
+- Il nastro delle aree prende il colore del tema, con la scritta leggibile.
+- Provati tutti i 23 temi nelle tre modalità. Negli esempi c'è un pannello «Tema di VARCO» (temi, modalità, accento e secondo colore personalizzati) che in VARCO non serve.

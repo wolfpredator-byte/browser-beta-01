@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagina progetto · Bacheca</title>
+<link rel="stylesheet" href="../shared/pp.css">
+<style>
+  #scroll{position:fixed;inset:56px 0 0 0;overflow:auto}
+  #board{position:relative;margin:18px auto 40px;width:calc(100% - 36px);max-width:1500px}
+  #board.editing{background-image:
+     linear-gradient(to right,rgba(150,140,255,.07) 1px,transparent 1px);background-size:calc((100% + 12px)/12) 100%}
+  .card{transition:left .18s var(--e,ease),top .18s ease,width .18s ease,height .18s ease}
+  .card.dragging{transition:none;opacity:.92}
+  .ghost{position:absolute;border:1.5px dashed var(--alt);border-radius:var(--r);background:rgba(111,211,255,.06);transition:all .12s ease;pointer-events:none;display:none}
+  .rs{position:absolute;right:3px;bottom:3px;width:14px;height:14px;cursor:nwse-resize;opacity:0;
+    background:linear-gradient(135deg,transparent 55%,rgba(169,155,255,.55) 55% 62%,transparent 62% 72%,rgba(169,155,255,.55) 72% 79%,transparent 79%)}
+  .card:hover .rs{opacity:1}
+  .size{position:absolute;right:20px;bottom:4px;font-size:10.5px;color:var(--alt);display:none}
+  .card.resizing .size{display:block}
+  .tip{position:fixed;right:16px;bottom:16px;color:var(--muted);font-size:11.5px;background:var(--glass);border:1px solid var(--line);border-radius:10px;padding:7px 10px;z-index:20;backdrop-filter:blur(14px)}
+  .tip b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<div id="top"></div>
+<div id="scroll"><div id="board"><div class="ghost" id="ghost"></div></div></div>
+<div class="tip"><b>Trascina</b> un riquadro dalla testata: si aggancia alla griglia e gli altri si spostano · <b>angolo in basso a destra</b> per ridimensionare</div>
+<script src="../shared/cards.js"></script>
+<script>
+const KEY='pp-bacheca-layout',DKEY='pp-data',COLS=12,ROW=28,GAP=12;
+const START={cards:[
+  {id:'status',type:'status',x:0,y:0,w:4,h:8},{id:'actions',type:'actions',x:4,y:0,w:4,h:6},{id:'tasks',type:'tasks',x:8,y:0,w:4,h:9},
+  {id:'recent',type:'recent',x:4,y:6,w:4,h:8},{id:'notes',type:'notes',x:0,y:8,w:4,h:7},{id:'shots',type:'shots',x:8,y:9,w:4,h:6},
+  {id:'resources',type:'resources',x:0,y:15,w:5,h:5}]};
+let L=PP.load(KEY)||PP.clone(START),D=PP.load(DKEY)||PP.clone(PP.DEFAULT);
+const board=document.getElementById('board'),ghost=document.getElementById('ghost');
+document.getElementById('top').innerHTML=PP.topBar('bacheca');
+const persist=()=>{PP.save(KEY,L);PP.save(DKEY,D);PP.savedFlash();};
+
+const colW=()=>(board.clientWidth-GAP*(COLS-1))/COLS;
+const px=c=>({left:c.x*(colW()+GAP),top:c.y*(ROW+GAP),width:c.w*colW()+(c.w-1)*GAP,height:c.h*ROW+(c.h-1)*GAP});
+const hit=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+
+/* Sistema la griglia: il riquadro fermo (pin) resta dov'è, chi si sovrappone scende, poi tutti risalgono finché possono. */
+function settle(list,pin){
+  const order=[...list].sort((a,b)=>a===pin?-1:b===pin?1:a.y-b.y||a.x-b.x),placed=[];
+  for(const c of order){if(c!==pin){c.y=0;while(placed.some(p=>hit(c,p)))c.y++;}placed.push(c);}
+  return list;}
+
+const els={};
+function layout(skip){for(const c of L.cards){if(c===skip)continue;const e=els[c.id],p=px(c);Object.assign(e.style,{left:p.left+'px',top:p.top+'px',width:p.width+'px',height:p.height+'px'});}
+  const bottom=Math.max(0,...L.cards.map(c=>c.y+c.h));board.style.height=(bottom*(ROW+GAP)+ROW*2)+'px';}
+function build(){board.querySelectorAll('.card').forEach(e=>e.remove());
+  for(const c of L.cards){const el=document.createElement('div');el.className='card';board.appendChild(el);els[c.id]=el;PP.fill(el,c.type,D,persist);decorate(el,c);}
+  layout();}
+function showGhost(c){const p=px(c);Object.assign(ghost.style,{display:'block',left:p.left+'px',top:p.top+'px',width:p.width+'px',height:p.height+'px'});}
+
+function decorate(el,c){
+  el.insertAdjacentHTML('beforeend','<span class="size"></span><span class="rs"></span>');
+  el.querySelector('.card-h .x').addEventListener('click',()=>{L.cards=L.cards.filter(x=>x!==c);settle(L.cards);build();persist();});
+  // Spostare
+  const h=el.querySelector('.card-h');
+  h.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;e.preventDefault();h.setPointerCapture(e.pointerId);
+    const start=px(c),sx=e.clientX,sy=e.clientY;el.classList.add('dragging');board.classList.add('editing');showGhost(c);
+    const mv=ev=>{const l=start.left+ev.clientX-sx,t=start.top+ev.clientY-sy;el.style.left=l+'px';el.style.top=t+'px';
+      const nx=Math.max(0,Math.min(COLS-c.w,Math.round(l/(colW()+GAP)))),ny=Math.max(0,Math.round(t/(ROW+GAP)));
+      if(nx!==c.x||ny!==c.y){c.x=nx;c.y=ny;settle(L.cards,c);layout(c);}showGhost(c);};
+    const up=()=>{h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);el.classList.remove('dragging');board.classList.remove('editing');
+      ghost.style.display='none';settle(L.cards);layout();persist();};
+    h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);});
+  // Ridimensionare
+  const rs=el.querySelector('.rs'),size=el.querySelector('.size');
+  rs.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rs.setPointerCapture(e.pointerId);
+    const start=px(c),sx=e.clientX,sy=e.clientY;el.classList.add('dragging','resizing');board.classList.add('editing');showGhost(c);
+    const mv=ev=>{const w=start.width+ev.clientX-sx,ht=start.height+ev.clientY-sy;el.style.width=w+'px';el.style.height=ht+'px';
+      const nw=Math.max(2,Math.min(COLS-c.x,Math.round((w+GAP)/(colW()+GAP)))),nh=Math.max(3,Math.round((ht+GAP)/(ROW+GAP)));
+      size.textContent=nw+' × '+nh;if(nw!==c.w||nh!==c.h){c.w=nw;c.h=nh;settle(L.cards,c);layout(c);}showGhost(c);};
+    const up=()=>{rs.removeEventListener('pointermove',mv);rs.removeEventListener('pointerup',up);el.classList.remove('dragging','resizing');board.classList.remove('editing');
+      ghost.style.display='none';settle(L.cards);layout();persist();};
+    rs.addEventListener('pointermove',mv);rs.addEventListener('pointerup',up);});
+}
+
+PP.wireTop(t=>{const def=PP.CARDS[t],c={id:t+'-'+Date.now().toString(36),type:t,x:0,y:0,w:Math.max(3,Math.round(def.w/110)),h:Math.max(4,Math.round(def.h/40))};
+  L.cards.unshift(c);settle(L.cards,c);build();persist();els[c.id].scrollIntoView({block:'nearest',behavior:'smooth'});},
+  ()=>{L=PP.clone(START);D=PP.clone(PP.DEFAULT);build();persist();});
+addEventListener('resize',()=>layout());
+build();
+</script>
+</body>
+</html>

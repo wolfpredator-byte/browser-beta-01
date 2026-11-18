@@ -296,6 +296,9 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const error=el('p',{className:'panel-error',role:'alert'});
    list.append(workEnvSection());
    // Beta 0.43.1: tipo di progetto (anche senza progetto.browser.json): azioni rapide, pannelli, file importanti.
+   // Beta 0.43.2: la pagina del progetto (tela con stato, attività, note, screenshot e collegamenti).
+   if(state.workspaces.find(x=>x.name===state.activeWorkspace)?.projectPath)list.append(el('div',{className:'project-page-open'},el('button',{className:'primary',textContent:'Apri la pagina del progetto',onclick:()=>act('projectPageOpen')}),
+     el('span',{className:'muted',textContent:'Tela con riquadri e collegamenti, salvata in .varco'})));
    if(p?.kind)list.append(projectKindSection(p.kind,error));
    if(!p||p.status==='none'){
      list.append(el('p',{className:'panel-hint',textContent:'Collega la cartella del progetto: il browser leggerà progetto.browser.json da lì.'}),
@@ -1934,7 +1937,7 @@ function buildStripNode(entry){
    if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
    else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
    const title=document.createElement('span');
-   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':'home-tab'),t.page==='settings'?'Impostazioni':'Home');
+   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':t.page==='project'?'project':'home-tab'),t.page==='settings'?'Impostazioni':t.page==='project'?(t.title||'Progetto'):'Home');
    else title.textContent=t.title||t.url;
    title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
    title.onclick=()=>act('activateTab',{id:t.id});
@@ -2368,7 +2371,11 @@ function render(){
  $('dashboard').hidden=!state.homeActive;
  // Beta 0.12: la scheda interna può essere la Home o le Impostazioni.
  const onSettings=state.internalPage==='settings';
- document.querySelector('.home-content').hidden=onSettings;
+ // Beta 0.43.2: pagina del progetto (tela con riquadri e collegamenti), disegnata da project-page.js.
+ const onProject=state.internalPage==='project';
+ document.querySelector('.home-content').hidden=onSettings||onProject;
+ $('projectPage').hidden=!(state.homeActive&&onProject);
+ if(state.homeActive&&onProject)window.ProjectPage?.render(state);else window.ProjectPage?.hide();
  $('settingsPage').hidden=!onSettings;
  $('settingsSheet').hidden=!onSettings;
  if(onSettings)renderSettings();else{renderedSettings=null;settingsUi.status='';pwUi.shown={};settingsView.category=null;}

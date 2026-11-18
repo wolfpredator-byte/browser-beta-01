@@ -1287,3 +1287,7 @@ body[data-mode="chiaro"] #suggest.v3 .sg-tabs button.on{color:#fff}
 .kind-files li:hover{background:rgba(var(--v-ink-rgb),.06)}
 .kf-name{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kf-meta{font-size:11px;color:var(--v-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Beta 0.43.2: pulsante della pagina del progetto nel pannello Progetto */
+.project-page-open{display:flex;flex-direction:column;gap:4px;margin:4px 0 12px}
+.project-page-open .primary{background:var(--v-accent);color:#fff;border-radius:9px;font-weight:600}
+.project-page-open .muted{margin:0}

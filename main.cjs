@@ -95,6 +95,7 @@ function start(){
   require('./lib/command-center.cjs').setup(bus); // Beta 0.38: command center (F1)
   require('./lib/launcher.cjs').setup(bus);
   require('./lib/tour.cjs').setup(bus);
+  require('./lib/project-page.cjs').setup(bus); // Beta 0.43.2: pagina del progetto
   require('./lib/project-types.cjs').setup(bus); // Beta 0.43.1: tipi di progetto // Beta 0.42: tutorial (setup, tour, suggerimenti) // Beta 0.39: launcher (Ctrl+Alt+Spazio, anche fuori da VARCO)
   require('./lib/popup.cjs').setup();
 

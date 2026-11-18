@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagina progetto · Tela</title>
+<link rel="stylesheet" href="../shared/pp.css">
+<style>
+  #view{position:fixed;inset:56px 0 0 0;overflow:hidden;cursor:default}
+  #view.panning{cursor:grabbing}
+  #grid{position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(rgba(169,155,255,.18) 1px,transparent 1.2px);background-size:24px 24px}
+  #world{position:absolute;left:0;top:0;transform-origin:0 0}
+  #wires{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+  #wires path{fill:none;stroke-width:2.2;pointer-events:stroke;cursor:pointer}
+  #wires path.glow{stroke-width:7;opacity:.18;pointer-events:none}
+  #wires path:hover{stroke-width:3.5}
+  .port{position:absolute;top:13px;width:12px;height:12px;border-radius:50%;background:#0b0a18;border:2px solid var(--alt);z-index:2;cursor:crosshair}
+  .port.in{left:-7px}.port.out{right:-7px;border-color:var(--accent-2)}
+  .port:hover{background:var(--alt)}
+  .rs{position:absolute;right:2px;bottom:2px;width:14px;height:14px;cursor:nwse-resize;
+    background:linear-gradient(135deg,transparent 55%,rgba(169,155,255,.45) 55% 62%,transparent 62% 72%,rgba(169,155,255,.45) 72% 79%,transparent 79%)}
+  .hud{position:fixed;left:16px;bottom:16px;display:flex;gap:6px;align-items:center;z-index:20}
+  .hud .pp-pill{background:var(--glass);backdrop-filter:blur(14px)}
+  .tip{position:fixed;right:16px;bottom:16px;color:var(--muted);font-size:11.5px;background:var(--glass);border:1px solid var(--line);border-radius:10px;padding:7px 10px;z-index:20;backdrop-filter:blur(14px)}
+  .tip b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<div id="top"></div>
+<div id="view"><div id="grid"></div><div id="world"><svg id="wires"></svg></div></div>
+<div class="hud"><button class="pp-btn" id="zout">−</button><span class="pp-pill" id="zl">100%</span><button class="pp-btn" id="zin">+</button><button class="pp-btn" id="fit">Adatta</button></div>
+<div class="tip"><b>Trascina</b> i riquadri dalla testata · <b>trascina il fondo</b> per muoverti · <b>rotellina</b> per lo zoom · <b>dalla presa ● a un'altra</b> per collegare · clic su un filo per toglierlo</div>
+<script src="../shared/cards.js"></script>
+<script>
+const KEY='pp-tela-layout',DKEY='pp-data';
+const START={view:{x:30,y:20,z:1},cards:[
+  {id:'status',type:'status',x:40,y:30},{id:'actions',type:'actions',x:440,y:20},
+  {id:'recent',type:'recent',x:840,y:40},{id:'notes',type:'notes',x:60,y:310},
+  {id:'tasks',type:'tasks',x:420,y:260},{id:'resources',type:'resources',x:840,y:330},
+  {id:'shots',type:'shots',x:1200,y:120}],
+  links:[['status','actions','#6fd3ff'],['actions','recent','#a99bff'],['notes','tasks','#5fe0a0'],['actions','shots','#a99bff']]};
+let L=PP.load(KEY)||PP.clone(START), D=PP.load(DKEY)||PP.clone(PP.DEFAULT);
+const view=document.getElementById('view'),world=document.getElementById('world'),wires=document.getElementById('wires');
+document.getElementById('top').innerHTML=PP.topBar('tela');
+const persist=()=>{PP.save(KEY,L);PP.save(DKEY,D);PP.savedFlash();};
+
+function apply(){world.style.transform=`translate(${L.view.x}px,${L.view.y}px) scale(${L.view.z})`;
+  document.getElementById('grid').style.backgroundPosition=`${L.view.x}px ${L.view.y}px`;
+  document.getElementById('grid').style.backgroundSize=`${24*L.view.z}px ${24*L.view.z}px`;
+  document.getElementById('zl').textContent=Math.round(L.view.z*100)+'%';}
+
+const els={};
+function build(){
+  world.querySelectorAll('.card').forEach(e=>e.remove());
+  for(const c of L.cards){const def=PP.CARDS[c.type];const el=document.createElement('div');el.className='card';
+    el.style.left=c.x+'px';el.style.top=c.y+'px';el.style.width=(c.w||def.w)+'px';el.style.height=(c.h||def.h)+'px';
+    world.appendChild(el);els[c.id]=el;PP.fill(el,c.type,D,persist);decorate(el,c);}
+  drawWires();}
+
+function decorate(el,c){
+  const pin=document.createElement('span');pin.className='port in';pin.dataset.id=c.id;
+  const pout=document.createElement('span');pout.className='port out';pout.dataset.id=c.id;
+  const rs=document.createElement('span');rs.className='rs';el.append(pin,pout,rs);
+  el.querySelector('.card-h .x').addEventListener('click',()=>{L.cards=L.cards.filter(x=>x!==c);L.links=L.links.filter(l=>l[0]!==c.id&&l[1]!==c.id);build();persist();});
+  drag(el.querySelector('.card-h'),(dx,dy)=>{c.x+=dx/L.view.z;c.y+=dy/L.view.z;el.style.left=c.x+'px';el.style.top=c.y+'px';drawWires();},el);
+  drag(rs,(dx,dy)=>{const def=PP.CARDS[c.type];c.w=Math.max(200,(c.w||def.w)+dx/L.view.z);c.h=Math.max(100,(c.h||def.h)+dy/L.view.z);el.style.width=c.w+'px';el.style.height=c.h+'px';drawWires();},el);
+  pout.addEventListener('pointerdown',e=>startLink(e,c.id));
+}
+
+function drag(handle,move,el){handle.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button,input,textarea,a'))return;
+  e.stopPropagation();e.preventDefault();let lx=e.clientX,ly=e.clientY;el&&el.classList.add('dragging');handle.setPointerCapture(e.pointerId);
+  const mv=ev=>{move(ev.clientX-lx,ev.clientY-ly);lx=ev.clientX;ly=ev.clientY;};
+  const up=()=>{handle.removeEventListener('pointermove',mv);handle.removeEventListener('pointerup',up);el&&el.classList.remove('dragging');persist();};
+  handle.addEventListener('pointermove',mv);handle.addEventListener('pointerup',up);});}
+
+const portPos=(id,side)=>{const c=L.cards.find(x=>x.id===id);if(!c)return null;const w=c.w||PP.CARDS[c.type].w;return {x:side==='out'?c.x+w+1:c.x-1,y:c.y+19};};
+const curve=(a,b)=>{const k=Math.max(60,Math.abs(b.x-a.x)*.5);return `M${a.x},${a.y} C${a.x+k},${a.y} ${b.x-k},${b.y} ${b.x},${b.y}`;};
+function drawWires(temp){
+  wires.innerHTML=L.links.map((l,i)=>{const a=portPos(l[0],'out'),b=portPos(l[1],'in');if(!a||!b)return'';const d=curve(a,b);
+    return `<path class="glow" d="${d}" stroke="${l[2]}"/><path d="${d}" stroke="${l[2]}" data-i="${i}"><title>Clic per togliere il collegamento</title></path>`;}).join('')+
+    (temp?`<path d="${curve(temp.a,temp.b)}" stroke="#a99bff" stroke-dasharray="6 5"/>`:'');
+  wires.querySelectorAll('path[data-i]').forEach(p=>p.addEventListener('click',()=>{L.links.splice(+p.dataset.i,1);drawWires();persist();}));}
+
+const toWorld=(cx,cy)=>{const r=view.getBoundingClientRect();return {x:(cx-r.left-L.view.x)/L.view.z,y:(cy-r.top-L.view.y)/L.view.z};};
+function startLink(e,from){e.stopPropagation();e.preventDefault();const a=portPos(from,'out');
+  const mv=ev=>drawWires({a,b:toWorld(ev.clientX,ev.clientY)});
+  const up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
+    const t=document.elementFromPoint(ev.clientX,ev.clientY),card=t&&t.closest('.card');
+    const to=card&&Object.keys(els).find(k=>els[k]===card);
+    if(to&&to!==from&&!L.links.some(l=>l[0]===from&&l[1]===to)){L.links.push([from,to,'#a99bff']);persist();}drawWires();};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);}
+
+// Muoversi e zoom
+view.addEventListener('pointerdown',e=>{if(e.target!==view&&e.target.id!=='grid'&&e.target!==world)return;let lx=e.clientX,ly=e.clientY;view.classList.add('panning');
+  const mv=ev=>{L.view.x+=ev.clientX-lx;L.view.y+=ev.clientY-ly;lx=ev.clientX;ly=ev.clientY;apply();};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);view.classList.remove('panning');persist();};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);});
+function zoomAt(f,cx,cy){const r=view.getBoundingClientRect();cx??=r.width/2;cy??=r.height/2;const z=Math.min(1.8,Math.max(.35,L.view.z*f));
+  L.view.x=cx-(cx-L.view.x)*z/L.view.z;L.view.y=cy-(cy-L.view.y)*z/L.view.z;L.view.z=z;apply();persist();}
+view.addEventListener('wheel',e=>{if(e.target.closest('.card-b'))return;e.preventDefault();const r=view.getBoundingClientRect();zoomAt(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);},{passive:false});
+document.getElementById('zin').onclick=()=>zoomAt(1.15);document.getElementById('zout').onclick=()=>zoomAt(1/1.15);
+function fit(){const xs=L.cards.map(c=>[c.x,c.y,c.x+(c.w||PP.CARDS[c.type].w),c.y+(c.h||PP.CARDS[c.type].h)]);if(!xs.length)return;
+  const x0=Math.min(...xs.map(a=>a[0])),y0=Math.min(...xs.map(a=>a[1])),x1=Math.max(...xs.map(a=>a[2])),y1=Math.max(...xs.map(a=>a[3]));
+  const r=view.getBoundingClientRect(),z=Math.min(1.2,(r.width-80)/(x1-x0),(r.height-110)/(y1-y0));
+  L.view={z,x:(r.width-(x1-x0)*z)/2-x0*z,y:(r.height-60-(y1-y0)*z)/2-y0*z};apply();persist();}
+document.getElementById('fit').onclick=fit;
+
+PP.wireTop(t=>{const r=view.getBoundingClientRect(),p=toWorld(r.left+r.width/2-120,r.top+r.height/2-80);
+  L.cards.push({id:t+'-'+Date.now().toString(36),type:t,x:Math.round(p.x),y:Math.round(p.y)});build();persist();},
+  ()=>{L=PP.clone(START);D=PP.clone(PP.DEFAULT);build();apply();fit();});
+build();apply();if(!PP.load(KEY))fit();
+</script>
+</body>
+</html>

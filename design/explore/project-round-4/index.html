@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="it" data-style="strumento">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagina progetto · Strumento</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Archivo:wght@500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/bento.css">
+<script src="shared/strumento-theme.js"></script>
+<style>
+/* Tela libera: stessi riquadri bento, ma ognuno dove vuoi tu, collegati da fili. */
+#world{width:1px;height:1px;padding:0}
+#areas,#tiles{position:absolute;left:0;top:0}
+#wires{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible}
+.tile{position:absolute;grid-column:auto;grid-row:auto;overflow:visible}
+.tile .hero-line{border-radius:16px 16px 0 0}
+.solo-img{border-radius:inherit;overflow:hidden}
+.tile.sel{border-color:rgba(var(--v-accent-rgb),.7);box-shadow:0 0 0 1px rgba(var(--v-accent-rgb),.5),0 12px 40px -6px rgba(0,0,0,.85)}
+.tile.lit{border-color:rgba(var(--v-alt-rgb),.6);box-shadow:0 0 0 1px rgba(var(--v-alt-rgb),.35),0 0 28px -4px rgba(var(--v-alt-rgb),.35)}
+.tile.target{border-color:var(--v-alt);box-shadow:0 0 0 2px var(--v-alt),0 0 30px rgba(var(--v-alt-rgb),.4)}
+.tile.dim,.area.dim{opacity:.22}
+.tile.moving{transition:none;box-shadow:0 26px 70px rgba(0,0,0,.75);z-index:5}
+/* Prese sui quattro lati: si trascina da qui per collegare */
+.port{position:absolute;width:14px;height:14px;border-radius:50%;background:#0d0c18;border:2px solid var(--v-alt);z-index:3;cursor:crosshair;opacity:0;transition:opacity .15s,transform .15s}
+.tile:hover .port,body.linking .port{opacity:1}
+.port:hover{transform:scale(1.35);background:var(--v-alt)}
+.port.t{top:-8px;left:calc(50% - 7px)}.port.b{bottom:-8px;left:calc(50% - 7px)}.port.l{left:-8px;top:calc(50% - 7px)}.port.r{right:-8px;top:calc(50% - 7px)}
+.rs{position:absolute;right:3px;bottom:3px;width:16px;height:16px;cursor:nwse-resize;opacity:0;z-index:2;
+  background:linear-gradient(135deg,transparent 55%,rgba(169,155,255,.6) 55% 62%,transparent 62% 72%,rgba(169,155,255,.6) 72% 79%,transparent 79%)}
+.tile:hover .rs{opacity:1}
+.links-n{display:inline-flex;align-items:center;gap:3px;color:var(--v-alt)}
+.links-n .ms{font-size:14px}
+/* Fili */
+#wires path{fill:none}
+#wires .w{stroke-width:2.2;cursor:pointer;pointer-events:stroke}
+#wires .hit{stroke:transparent;stroke-width:16;pointer-events:stroke;cursor:pointer}
+#wires .glow{stroke-width:9;opacity:.14;pointer-events:none}
+#wires g.lit .w{stroke-width:3.2}#wires g.lit .glow{opacity:.35}
+#wires g.sel .w{stroke-dasharray:none;stroke-width:3.4}
+#wires g.dim{opacity:.15}
+#wires .end{stroke:none}
+#wires .flow{stroke-width:2.2;stroke-dasharray:2 14;stroke-linecap:round;animation:flow 1.4s linear infinite;pointer-events:none;opacity:.9}
+@keyframes flow{to{stroke-dashoffset:-32}}
+.wlabel{position:absolute;transform:translate(-50%,-50%);padding:2px 9px;border-radius:99px;background:rgba(13,12,24,.92);border:1px solid var(--edge-2);font:500 10px/16px var(--mono);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;pointer-events:auto;cursor:pointer}
+#labels{position:absolute;left:0;top:0}
+.wbar{position:fixed;z-index:60;display:none;align-items:center;gap:4px;padding:5px;border-radius:12px;background:var(--chrome);backdrop-filter:blur(20px);border:1px solid var(--edge-2);box-shadow:0 16px 40px -8px rgba(0,0,0,.85)}
+.wbar.on{display:flex}
+.wbar input{width:150px;border:0;outline:none;background:rgba(255,255,255,.06);border-radius:7px;padding:5px 8px;font:12px var(--body)}
+#wsw{display:flex;gap:5px;padding:0 4px}
+.wbar .sw{width:18px;height:18px;border-radius:50%;border:2px solid transparent}
+.wbar .sw.on{border-color:#fff}
+.wbar button{height:28px;min-width:28px;border-radius:8px;display:grid;place-items:center;color:var(--muted)}
+.wbar button:hover{background:rgba(255,255,255,.07);color:#fff}
+/* Aree: riquadri trasparenti che tengono insieme altri riquadri */
+.area{position:absolute;border-radius:22px;border:1.5px dashed color-mix(in srgb,var(--ac) 55%,transparent);background:color-mix(in srgb,var(--ac) 5%,transparent)}
+.area .ah{position:absolute;left:14px;top:-15px;display:flex;align-items:center;gap:6px;padding:4px 10px 4px 8px;border-radius:99px;background:#100f1c;border:1px solid color-mix(in srgb,var(--ac) 45%,transparent);cursor:grab;user-select:none}
+.area .ah .ms{font-size:15px;color:var(--ac)}
+.area .ah input{border:0;outline:none;background:none;width:var(--lw,140px);font:600 12px var(--head);color:var(--text)}
+.area .ah button{color:var(--dim);display:grid;place-items:center;opacity:0}
+.area:hover .ah button{opacity:1}
+.area .rs{opacity:0}.area:hover .rs{opacity:1}
+/* Nodi singoli */
+.solo-img{position:absolute;inset:0;background-size:cover;background-position:center}
+.solo-img::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(11,11,18,.95),rgba(11,11,18,.1) 55%,rgba(11,11,18,.55))}
+.tile.shot1 .th{position:relative;z-index:1}
+.tile.shot1 .cap{position:absolute;left:16px;right:16px;bottom:14px;z-index:1;display:flex;align-items:center;gap:8px}
+.tile.shot1 .cap b{font:600 13px var(--head)}
+.field{width:100%;border:0;outline:none;background:none;padding:0;min-width:0}
+.link-node{display:flex;align-items:center;gap:12px}
+.link-node .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.07);flex:none}
+.link-node b input{font:600 14px var(--head)}
+.link-node small input{font:10.5px var(--mono);letter-spacing:.04em;color:var(--dim)}
+.hint{position:fixed;left:50%;top:116px;transform:translateX(-50%);z-index:40;padding:7px 14px;border-radius:99px;background:rgba(var(--v-accent-rgb),.92);color:#fff;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none}
+.hint.on{display:block}
+.mini{width:120px;height:56px;cursor:pointer}
+.mini canvas{width:100%;height:100%;display:block}
+.cmenu{position:fixed;z-index:65;width:300px;max-height:440px;display:none;flex-direction:column;border-radius:14px;background:var(--chrome);backdrop-filter:blur(22px);border:1px solid var(--edge-2);box-shadow:0 16px 40px -8px rgba(0,0,0,.85);overflow:hidden}
+.cmenu.on{display:flex}
+.cm-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--edge)}
+.cm-head input{flex:1;border:0;outline:none;background:none;font:500 13px var(--body)}
+.cm-head .ms{color:var(--v-alt)}
+.cm-back{display:grid;place-items:center;color:var(--muted)}
+.cm-body{overflow:auto;padding:4px 6px 8px}
+.cm-sec{padding:8px 8px 3px;font:500 10px/14px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.cm-body>button,.cm-list button{width:100%;display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:9px;text-align:left}
+.cm-body>button:hover,.cm-body>button.first,.cm-list button:hover{background:rgba(var(--v-accent-rgb),.16)}
+.cm-body small{margin-left:auto;color:var(--dim);font:10px var(--mono);letter-spacing:.04em}
+.cm-body .ms{color:var(--v-alt);font-size:17px}
+.cm-shots{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;padding:6px}
+.cm-shots button{aspect-ratio:16/10;border-radius:8px;border:1px solid var(--edge)}
+.cm-shots button:hover{outline:2px solid var(--v-alt)}
+.cm-empty{padding:14px;color:var(--dim)}
+#view.drop{outline:2px dashed var(--v-alt);outline-offset:-10px}
+</style>
+<link rel="stylesheet" href="shared/strumento.css">
+</head>
+<body>
+<div id="bg"><div id="dots"></div></div>
+
+<header class="top">
+  <div class="logo">DB</div>
+  <div><div class="pname">Destiny Builder<span class="mono ptype">Game dev</span></div></div>
+  <div class="sep"></div>
+  <div class="ws"><span class="ms" style="color:var(--v-alt)">folder_open</span><div><span class="mono">Workspace</span><b>Personale / Destiny Builder</b></div></div>
+  <nav class="tabs"><button aria-pressed="true">Tela</button><button>File</button><button>Sessioni</button><button>Build</button></nav>
+  <div class="grow"></div>
+  <span class="mono saved" id="saved">● salvato in .varco</span>
+  
+  <button class="btn pri" id="addTop"><span class="ms">dashboard_customize</span>Aggiungi</button>
+</header>
+
+<div class="ribbon">
+  <div class="meta mono"><span class="pulse"></span><b>C:\Projects\destiny-builder</b><span class="bar"></span>UNITY <i>2022.3.21f1</i><span class="bar"></span>NODI <i id="nn">0</i><span class="bar"></span>FILI <i id="nw">0</i><span class="bar"></span>ZOOM <i id="zr">100%</i><span class="bar"></span>.VARCO <i>sincronizzato</i></div>
+  <div class="chips" id="chips"><button aria-pressed="true" data-f="all">Tutto</button><button data-f="lavoro">Lavoro</button><button data-f="media">Media</button><button data-f="link">Collegamenti</button></div>
+</div>
+
+<aside class="rail" id="rail">
+  <button aria-pressed="true" data-tool="sel" data-tip="Seleziona e sposta (V)"><span class="ms">near_me</span></button>
+  <button data-tool="pan" data-tip="Muovi la tela (H o Spazio)"><span class="ms">pan_tool</span></button>
+  <button data-tool="link" data-tip="Collega: clic su un riquadro, poi su un altro (C)"><span class="ms">polyline</span></button>
+  <hr>
+  <button data-act="add" data-tip="Aggiungi riquadro"><span class="ms">dashboard_customize</span></button>
+  <button data-act="note" data-tip="Nota (N)"><span class="ms">sticky_note_2</span></button>
+  <button data-act="shot" data-tip="Screenshot (o trascina un'immagine sulla tela)"><span class="ms">add_photo_alternate</span></button>
+  <button data-act="area" data-tip="Area: raggruppa riquadri vicini"><span class="ms">select_all</span></button>
+  <hr>
+  <button data-act="snap" aria-pressed="true" data-tip="Aggancia ai puntini"><span class="ms">grid_4x4</span></button>
+  <button data-act="fit" data-tip="Vedi tutto (F)"><span class="ms">fit_screen</span></button>
+  <button data-act="reset" data-tip="Disposizione iniziale"><span class="ms">restart_alt</span></button>
+</aside>
+
+<div class="hint" id="hint"></div>
+<div id="view"><div id="world"><div id="areas"></div><svg id="wires"></svg><div id="tiles"></div><div id="labels"></div></div></div>
+
+<div class="dock">
+  <div class="grp"><div class="mini" id="mini" title="Clic per andare lì"><canvas width="240" height="112"></canvas></div></div>
+  <div class="vr"></div>
+  <div class="grp">
+    <button title="Apri anteprima"><span class="ms">play_arrow</span>Anteprima</button>
+    <button title="Apri in Unity"><span class="ms">deployed_code</span>Unity</button>
+    <button title="Build"><span class="ms">construction</span>Build</button>
+    <button title="Log ed errori"><span class="ms">receipt_long</span>Log</button>
+  </div>
+  <div class="vr"></div>
+  <div class="grp">
+    <button id="zout" title="Rimpicciolisci"><span class="ms">remove</span></button>
+    <span class="mono" id="zl" style="color:var(--text);width:38px;text-align:center">100%</span>
+    <button id="zin" title="Ingrandisci"><span class="ms">add</span></button>
+    <button class="pri" id="addDock" title="Aggiungi"><span class="ms">add_box</span></button>
+    <button id="focus" title="Concentrati sul riquadro scelto e sui suoi collegati"><span class="ms">center_focus_strong</span>Concentrati</button>
+  </div>
+</div>
+
+<div class="menu" id="menu"></div>
+<div class="menu" id="sizeMenu"></div>
+<div class="cmenu" id="cmenu"></div>
+<div class="wbar" id="wbar"><input id="wlab" placeholder="Etichetta del filo…"><span id="wsw"></span><button id="wrev" title="Inverti verso"><span class="ms">swap_horiz</span></button><button id="wdel" title="Togli il filo"><span class="ms">delete</span></button></div>
+<div class="lightbox" id="lb"><div></div></div>
+<div class="tp" id="tp"><div class="tp-h" id="tph"><span class="ms" style="font-size:16px">palette</span><b>Tema di VARCO</b><span class="mono">anteprima</span></div>
+  <div class="tp-b"><div class="tp-name" id="tpn"></div><div class="tp-grid" id="tpg"></div>
+  <div class="tp-seg" id="tpm"><button data-m="scuro">Scuro</button><button data-m="chiaro">Chiaro</button><button data-m="oled">OLED</button></div>
+  <div class="tp-row"><label>Accento</label><input type="color" id="tpa"><label style="width:auto">2°</label><input type="color" id="tpb"><button id="tpr">ripristina</button></div></div></div>
+<input type="file" id="file" accept="image/*" multiple hidden>
+
+<script>
+const KEY='pp-tela-v4',SNAP=24;
+const art=(a,b,c,d)=>`radial-gradient(circle at 72% 38%,${a} 0 7%,transparent 7.5%),conic-gradient(from 200deg at 72% 38%,transparent 0 40deg,${b} 60deg,transparent 110deg,${b} 200deg,transparent 260deg),radial-gradient(ellipse at 30% 110%,${c},transparent 60%),linear-gradient(160deg,#1c1838,${d})`;
+/* Finti screenshot: una schermata del builder (barra laterale, griglia di oggetti con la striscia di rarità), non arte astratta. */
+function mock(v){const P=[['#1b1d22','#2a2e36','#d9b44a','#8a6cd8'],['#20191a','#33282a','#e0a33a','#c94f3d'],['#151c1c','#24302f','#7fc28a','#4fa3b5'],['#1a1a22','#282838','#b6a4ff','#d9b44a']][v%4];
+  let cells='';for(let r=0;r<3;r++)for(let c=0;c<5;c++){const x=230+c*104,y=70+r*92,rare=(r*5+c+v)%4===0?P[2]:P[3];
+    cells+=`<rect x='${x}' y='${y}' width='92' height='80' rx='4' fill='${P[1]}'/><rect x='${x}' y='${y}' width='92' height='5' rx='2' fill='${rare}'/><rect x='${x+10}' y='${y+16}' width='34' height='34' rx='3' fill='${rare}' opacity='.55'/><rect x='${x+10}' y='${y+58}' width='60' height='6' rx='3' fill='#ffffff' opacity='.25'/>`;}
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 760 380'><rect width='760' height='380' fill='${P[0]}'/><rect width='760' height='40' fill='${P[1]}'/><circle cx='22' cy='20' r='7' fill='${P[2]}'/><rect x='40' y='15' width='120' height='10' rx='5' fill='#fff' opacity='.35'/><rect x='560' y='12' width='180' height='16' rx='8' fill='#000' opacity='.3'/><rect x='0' y='40' width='200' height='340' fill='#000' opacity='.18'/>${[0,1,2,3,4,5].map(i=>`<rect x='20' y='${64+i*34}' width='${110+(i*37%50)}' height='10' rx='5' fill='#fff' opacity='${i===v%6?.7:.2}'/>`).join('')}${cells}</svg>`;
+  return `url('data:image/svg+xml,${encodeURIComponent(svg).replace(/'/g,'%27')}')`;}
+const ART=[mock(0),mock(1),mock(2),mock(3)];
+const COLORS=['#6fd3ff','#a99bff','#34d399','#fbbf24','#fb7185'];
+
+/* Disposizione iniziale: sparsa apposta, con due aree e fili che danno l'ordine. */
+const START={
+  n:20,
+  tiles:{
+    hero:{x:96,y:144,w:768,h:576},tasks:{x:960,y:144,w:336,h:504},stream:{x:1416,y:384,w:336,h:312},
+    'file-1':{x:1416,y:144,w:312,h:144,file:['data_object','C# Script','ArmorSlot.cs','Assets/Scripts · riga 48']},
+    notes:{x:96,y:792,w:432,h:288},
+    'note-1':{x:1896,y:168,w:312,h:216,text:'Esotiche: manca la colonna «slot».\nL\'icona dell\'elmo è sgranata in 2x.'},
+    'shot-1':{x:2280,y:144,w:456,h:312,shot:{a:1,n:'exotic_card.png',w:'oggi 11:02'}},
+    'link-1':{x:1896,y:456,w:312,h:120,link:['storefront','Asset Store','assetstore.unity.com/icons-pack']},
+    'link-2':{x:2280,y:528,w:312,h:120,link:['travel_explore','light.gg','light.gg/db/items/exotics']},
+    shots:{x:624,y:792,w:624,h:408},
+    files:{x:1416,y:792,w:432,h:360},
+    res:{x:2280,y:816,w:336,h:384}
+  },
+  areas:{'area-1':{x:48,y:96,w:1296,h:1152,t:'Sviluppo',c:'#7c6cff'},'area-2':{x:1848,y:96,w:936,h:600,t:'Esotiche · riferimenti',c:'#fbbf24'}},
+  links:[
+    {a:'hero',b:'stream',t:'eventi',c:'#6fd3ff'},
+    {a:'tasks',b:'file-1',t:'bug',c:'#fb7185'},
+    {a:'hero',b:'file-1',t:'ultimo errore',c:'#fb7185'},
+    {a:'note-1',b:'shot-1',t:'manca slot',c:'#fbbf24'},
+    {a:'shot-1',b:'link-1',t:'icone 2x',c:'#a99bff'},
+    {a:'note-1',b:'link-2',t:'',c:'#a99bff'},
+    {a:'tasks',b:'note-1',t:'icone esotiche',c:'#fbbf24'},
+    {a:'shots',b:'shot-1',t:'',c:'#6fd3ff'}
+  ],
+  tasks:[{t:'Filtro per classe (Titano / Cacciatore / Stregone)',tag:'UI',s:'done'},{t:'Import dei loadout da DIM',tag:'Script',s:'done'},
+    {t:'Correggere NullReference in ArmorSlot.cs',tag:'Bug',s:'review'},{t:'Icone delle esotiche in 2x',tag:'Arte',s:'doing'},{t:'Build per Steam Deck',tag:'Build',s:'todo'}],
+  notes:'Il calcolo delle statistiche dei mod va rifatto quando cambia la stagione.\n\n01. Provare il filtro per classe su Steam Deck.\n02. Icone in 2x prima della build pubblica.',
+  shots:[{a:0,n:'builder_main.png',w:'oggi 14:20'},{a:1,n:'exotic_card.png',w:'oggi 11:02'},{a:2,n:'loadout_view.png',w:'ieri'},{a:3,n:'menu_rework.png',w:'ieri'}],
+  sel:0
+};
+const load=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.tiles?s:null}catch{return null}};
+let S=load()||structuredClone(START);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{};const el=document.getElementById('saved');el.classList.add('on');clearTimeout(save.t);save.t=setTimeout(()=>el.classList.remove('on'),1100);};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shotBg=s=>s&&s.src?`url(${s.src})`:ART[(s&&s.a||0)%ART.length];
+const typeOf=id=>id.split('-')[0];
+const TAGC={UI:'var(--v-alt)',Script:'var(--v-violet)',Bug:'var(--err)',Arte:'var(--warn)',Build:'var(--ok)'};
+const ST={done:['check_circle','var(--ok)'],review:['rate_review','var(--v-violet)'],doing:['pending','var(--v-alt)'],todo:['schedule','var(--dim)']};
+const STL={review:'In revisione',doing:'In corso',todo:'Da fare'};
+const linksOf=id=>S.links.filter(l=>l.a===id||l.b===id);
+
+function head(id,right,title){const t=T[typeOf(id)],n=linksOf(id).length;
+  return `<div class="th"><div style="min-width:0"><span class="mono">${t.k}</span>${title??(t.h?`<h3>${t.h}</h3>`:'')}</div><div class="tools">${n?`<span class="mono links-n" title="Collegamenti"><span class="ms">link</span>${n}</span>`:''}${right||''}${tools()}</div></div>`;}
+const tools=()=>`<button class="grip" title="Trascina per spostare"><span class="ms">drag_indicator</span></button><button data-size title="Dimensione"><span class="ms">aspect_ratio</span></button><button data-remove title="Togli"><span class="ms">close</span></button>`;
+
+/* Riquadri: gli stessi della bacheca bento + nodi singoli (nota, screenshot, link, file) che puoi creare quanti ne vuoi. */
+const T={
+ hero:{k:'Stato del progetto',g:'lavoro',one:1,sizes:[[768,576],[624,520],[960,600]],body:id=>{const done=S.tasks.filter(t=>t.s==='done').length,n=Math.max(1,S.tasks.length);
+   return `<div class="hero-line"></div>`+head(id,`<span class="tag err"><span class="dot"></span>Pronto · 2 errori</span>`,'')+`
+   <div class="stage"><div class="art" style="background:${shotBg(S.shots[S.sel]||S.shots[0])}"></div>
+     <div class="shot-tag"><span class="chip-glass" style="color:var(--v-alt)">${esc((S.shots[S.sel]||{n:'—'}).n)}</span><span class="chip-glass">copertina</span></div>
+     <div class="over"><div style="flex:1;min-width:0"><span class="mono" style="color:var(--v-alt)">http://localhost:5173 · rete 192.168.1.20</span><h2>Destiny Builder</h2><p>Unity 2022.3 · PID 18244</p></div>
+       <button class="btn"><span class="ms">receipt_long</span>Log</button><button class="btn pri"><span class="ms">play_arrow</span>Apri anteprima</button></div></div>
+   <div class="err-strip"><span class="ms">error</span><div style="flex:1;min-width:0"><span class="mono" style="color:var(--err)">2 errori · ultimo 14:32</span><br><code>ArmorSlot.cs(48,17): NullReferenceException</code></div></div>
+   <div class="metrics">
+     <div class="metric"><div class="row mono"><span>Errori</span><span style="color:var(--err)">+1</span></div><div class="val">2</div></div>
+     <div class="metric"><div class="row mono"><span>Attività</span><span style="color:var(--v-alt)">${Math.round(done/n*100)}%</span></div><div class="val">${done} / ${S.tasks.length}</div></div>
+     <div class="metric"><div class="row mono"><span>Build</span><span style="color:var(--ok)">OK</span></div><div class="val">412<small>MB</small></div></div>
+     <div class="metric"><div class="row mono"><span>File</span><span style="color:var(--v-violet)">oggi</span></div><div class="val">7</div></div></div>`}},
+ tasks:{k:'Attività',h:'Prima della build',g:'lavoro',one:1,sizes:[[336,504],[432,504],[336,624]],body:id=>{const done=S.tasks.filter(t=>t.s==='done').length,p=Math.round(done/Math.max(1,S.tasks.length)*100);
+   return head(id,`<span class="kbd" style="color:var(--v-alt)">${p}%</span>`)+`<div class="tb"><div class="prog"><i style="width:${p}%"></i></div><div class="tasks">${S.tasks.map((x,i)=>`
+     <label class="task${x.s==='done'?' done':''}" data-i="${i}"><input type="checkbox"${x.s==='done'?' checked':''}>
+       <div class="t"><span>${esc(x.t)}</span><div class="meta2"><span class="kbd" style="color:${TAGC[x.tag]||'var(--muted)'}">${esc(x.tag)}</span>${x.s!=='done'?`<span class="mono" style="color:${ST[x.s][1]}">${STL[x.s]}</span>`:''}</div></div>
+       <span class="ms st" style="color:${ST[x.s][1]}">${ST[x.s][0]}</span><button class="del" title="Elimina"><span class="ms" style="font-size:16px">close</span></button></label>`).join('')}</div>
+     <form class="add"><span class="ms" style="color:var(--dim);margin-left:4px">add_task</span><input placeholder="Nuova attività…"><select>${Object.keys(TAGC).map(t=>`<option>${t}</option>`).join('')}</select><button class="btn" style="padding:3px 10px">+</button></form></div>`}},
+ shots:{k:'Screenshot',h:'Galleria',g:'media',one:1,sizes:[[624,408],[456,408],[816,480]],body:id=>{const s=S.shots[S.sel]||S.shots[0];
+   return head(id,`<span class="kbd">${S.shots.length}</span>`)+`<div class="tb">${s?`<div class="feature" data-feat><div class="art" style="background:${shotBg(s)}"></div>
+     <div class="tl"><span class="chip-glass" style="color:var(--v-alt)">${esc(s.n)}</span><span class="chip-glass">${esc(s.w)}</span></div>
+     <div class="bl"><span class="mono">.varco/screenshot/</span><span class="grow"></span><button class="btn" style="padding:4px 9px" data-pull title="Mettilo sulla tela come riquadro a sé"><span class="ms">open_in_new</span>Sulla tela</button></div></div>`:''}
+     <div class="thumbs">${S.shots.map((x,i)=>`<div class="thumb${i===S.sel?' on':''}" data-i="${i}" style="background:${shotBg(x)} center/cover"></div>`).join('')}<button class="thumb up" data-up title="Carica"><span class="ms">add_photo_alternate</span></button></div></div>`}},
+ files:{k:'File recenti',h:'Dove eri rimasto',g:'lavoro',one:1,sizes:[[432,360],[624,360]],body:id=>head(id)+`<div class="tb"><div class="files">${[
+   ['data_object','C# Script','ArmorSlot.cs','Assets/Scripts · 2 min','var(--v-alt)'],['data_object','C# Script','LoadoutImport.cs','Assets/Scripts · 25 min','var(--v-alt)'],
+   ['view_in_ar','Scena','Builder.unity','Assets/Scenes · 1 h','var(--v-violet)'],['deployed_code','Prefab','ExoticCard.prefab','Assets/Prefabs · ieri','var(--warn)'],
+   ['description','Markdown','stagioni.md','Docs · ieri','var(--muted)'],['image','PNG','exotic_icons@2x.png','Art · ieri','var(--ok)']]
+   .map(([i,k,n,p,c])=>`<div class="f" data-file="${i}|${k}|${n}|${p}" title="Trascina fuori per metterlo sulla tela"><div class="k"><span class="ms" style="color:${c}">${i}</span><span class="mono">${k}</span></div><h4>${n}</h4><p>${p}</p></div>`).join('')}</div></div>`},
+ stream:{k:'Cronologia',h:'Cosa è successo',g:'lavoro',one:1,sizes:[[336,312],[432,360]],body:id=>head(id,'<span class="tag ok"><span class="dot"></span>Live</span>')+`<div class="tb"><div class="stream">${[
+   ['error','var(--err)','Server','2 min','Errore in <code>ArmorSlot.cs:48</code>'],['commit','var(--v-violet)','Git','22 min','<code>9b8f2c</code> filtro per classe'],
+   ['construction','var(--ok)','Build','ieri','Windows x64 · 412 MB']]
+   .map(([i,c,n,w,p])=>`<div class="ev"><div class="av" style="color:${c}"><span class="ms">${i}</span></div><div class="w"><div class="h"><b>${n}</b><span class="mono" style="color:var(--dim)">${w}</span></div><p>${p}</p></div></div>`).join('')}</div></div>`},
+ notes:{k:'Note del progetto',g:'lavoro',one:1,sizes:[[432,288],[624,360]],body:id=>head(id,'<span class="mono" style="color:var(--dim)">note.md</span>')+`<div class="tb"><div class="note"><textarea spellcheck="false" data-k="notes">${esc(S.notes)}</textarea></div></div>`},
+ res:{k:'Risorse',h:'Collegamenti fissi',g:'link',one:1,sizes:[[336,384],[432,384]],body:id=>head(id)+`<div class="tb"><div class="res">${[
+   ['terminal','GitHub','wolf/destiny-builder · main ↑2','var(--ok)'],['menu_book','Unity Docs','Manuale 2022.3','var(--ok)'],
+   ['view_kanban','Trello','Destiny Builder · 3 schede','var(--ok)'],['storefront','Asset Store','4 pacchetti','var(--warn)']]
+   .map(([i,n,s,c])=>`<a class="re" href="#"><span class="ic"><span class="ms">${i}</span></span><span class="w"><b>${n}</b><small>${s}</small></span><span class="dot" style="color:${c}"></span></a>`).join('')}</div></div>`},
+ note:{k:'Nota',g:'lavoro',sizes:[[312,216],[264,168],[432,288]],body:id=>head(id,'','')+`<div class="tb"><div class="note"><textarea spellcheck="false" placeholder="Scrivi qui…" data-own="text">${esc(S.tiles[id].text)}</textarea></div></div>`},
+ shot:{k:'Screenshot',g:'media',sizes:[[456,312],[336,232],[624,408]],body:id=>{const s=S.tiles[id].shot||{};return `<div class="solo-img" style="background:${shotBg(s)} center/cover"></div>`+head(id,'','')+
+   `<div class="cap"><span class="dot" style="color:var(--v-alt)"></span><b>${esc(s.n)}</b><span class="mono" style="color:var(--dim)">${esc(s.w)}</span><span class="grow"></span><button class="btn" style="padding:3px 9px" data-zoom><span class="ms">zoom_in</span></button></div>`}},
+ link:{k:'Link',g:'link',sizes:[[312,120],[264,120],[408,120]],body:id=>{const l=S.tiles[id].link;return head(id,'','')+`<div class="tb"><div class="link-node"><span class="ic"><span class="ms" style="color:var(--v-alt)">${l[0]}</span></span>
+   <div style="flex:1;min-width:0"><b><input class="field" data-own="link1" value="${esc(l[1])}"></b><small><input class="field" data-own="link2" value="${esc(l[2])}"></small></div><button class="btn" style="padding:4px 8px" title="Apri in un pannello"><span class="ms">open_in_new</span></button></div></div>`}},
+ file:{k:'File',g:'lavoro',sizes:[[312,144],[408,144]],body:id=>{const f=S.tiles[id].file;return head(id,'','')+`<div class="tb"><div class="link-node"><span class="ic"><span class="ms" style="color:var(--v-alt)">${f[0]}</span></span>
+   <div style="flex:1;min-width:0"><b style="font:600 14px var(--head)">${esc(f[2])}</b><small style="display:block;font:10.5px var(--mono);color:var(--dim)">${esc(f[1])} · ${esc(f[3])}</small></div></div>
+   <div class="st-acts" style="display:flex;gap:6px;margin-top:10px"><button class="btn" style="padding:3px 9px">Apri</button><button class="btn" style="padding:3px 9px">Cartella</button></div></div>`}}
+};
+
+/* ---------- Tela ---------- */
+const viewEl=document.getElementById('view'),world=document.getElementById('world'),tilesEl=document.getElementById('tiles'),areasEl=document.getElementById('areas'),wires=document.getElementById('wires'),labels=document.getElementById('labels');
+let view={x:0,y:0,z:1},tool='sel',snap=true,selTile=null,selWire=null,filter='all';
+const snapv=v=>snap?Math.round(v/SNAP)*SNAP:Math.round(v);
+function applyView(){world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.z})`;
+  const d=document.getElementById('dots');d.style.backgroundPosition=`${view.x}px ${view.y}px`;d.style.backgroundSize=`${24*view.z}px ${24*view.z}px`;
+  const p=Math.round(view.z*100)+'%';document.getElementById('zl').textContent=p;document.getElementById('zr').textContent=p;drawMini();placeWbar();}
+const toWorld=(cx,cy)=>{const r=viewEl.getBoundingClientRect();return {x:(cx-r.left-view.x)/view.z,y:(cy-r.top-view.y)/view.z};};
+
+function render(){
+  tilesEl.innerHTML='';areasEl.innerHTML='';
+  for(const [id,a] of Object.entries(S.areas)){const el=document.createElement('div');el.className='area';el.dataset.id=id;el.style.setProperty('--ac',a.c);
+    el.innerHTML=`<div class="ah"><span class="ms">select_all</span><input value="${esc(a.t)}" style="--lw:${Math.max(60,a.t.length*7.4+10)}px"><button title="Togli l'area (i riquadri restano)"><span class="ms" style="font-size:15px;color:var(--dim)">close</span></button></div><span class="rs"></span>`;
+    areasEl.appendChild(el);place(el,a);wireArea(el,id);}
+  for(const id of Object.keys(S.tiles)){const el=document.createElement('section');el.className='tile '+typeOf(id);el.dataset.id=id;el.dataset.g=T[typeOf(id)].g;
+    tilesEl.appendChild(el);place(el,S.tiles[id]);fill(el,id);}
+  drawWires();applyFilter();counts();if(typeof tapeColors==='function')tapeColors();
+}
+function place(el,p){Object.assign(el.style,{left:p.x+'px',top:p.y+'px',width:p.w+'px',height:p.h+'px'});}
+function fill(el,id){el.innerHTML=T[typeOf(id)].body(id)+'<span class="port t" data-s="t"></span><span class="port r" data-s="r"></span><span class="port b" data-s="b"></span><span class="port l" data-s="l"></span><span class="rs"></span>';wireTile(el,id);}
+const refill=id=>{const el=tilesEl.querySelector(`[data-id="${id}"]`);if(el)fill(el,id);};
+function counts(){document.getElementById('nn').textContent=Object.keys(S.tiles).length;document.getElementById('nw').textContent=S.links.length;}
+
+/* ---------- Fili ---------- */
+const box=id=>S.tiles[id];
+function anchors(a,b){const ca={x:a.x+a.w/2,y:a.y+a.h/2},cb={x:b.x+b.w/2,y:b.y+b.h/2},dx=cb.x-ca.x,dy=cb.y-ca.y;
+  const gx=dx>0?b.x-(a.x+a.w):a.x-(b.x+b.w),gy=dy>0?b.y-(a.y+a.h):a.y-(b.y+b.h);   // spazio libero fra i due
+  if(gx>=gy) return dx>0?[{x:a.x+a.w,y:ca.y,n:[1,0]},{x:b.x,y:cb.y,n:[-1,0]}]:[{x:a.x,y:ca.y,n:[-1,0]},{x:b.x+b.w,y:cb.y,n:[1,0]}];
+  return dy>0?[{x:ca.x,y:a.y+a.h,n:[0,1]},{x:cb.x,y:b.y,n:[0,-1]}]:[{x:ca.x,y:a.y,n:[0,-1]},{x:cb.x,y:b.y+b.h,n:[0,1]}];}
+const styleNow=()=>document.documentElement.dataset.style||'strumento';
+/* Colori dei fili per stile (stesso ordine della tavolozza) */
+const WPAL={strumento:['#c8f135','#9a8cff','#5fd0c0','#ffcc33','#ff5b2e'],brutale:['#111111','#5a48ff','#14945a','#c98a00','#e3341b'],editoriale:['#efe7da','#b9adff','#9fc28a','#e3b45c','#ec5b3d']};
+const tok=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const col=c=>{const i=COLORS.indexOf(c);return i<0?c:[tok('--s-sig'),tok('--s-alt'),tok('--s-ok'),tok('--s-warn'),tok('--s-err')][i];};
+/* Strumento: cavo morbido che pende un po' verso il basso. Brutale: schema ad angoli retti. Editoriale: tratto d'inchiostro quasi dritto. */
+function geo(p,q){const st=styleNow(),dist=Math.hypot(q.x-p.x,q.y-p.y);
+  if(st==='brutale'){const o=28,a={x:p.x+p.n[0]*o,y:p.y+p.n[1]*o},b={x:q.x+q.n[0]*o,y:q.y+q.n[1]*o};let pts;
+    if(p.n[0]!==0&&q.n[0]!==0){const mx=(a.x+b.x)/2;pts=[p,a,{x:mx,y:a.y},{x:mx,y:b.y},b,q];}
+    else if(p.n[1]!==0&&q.n[1]!==0){const my=(a.y+b.y)/2;pts=[p,a,{x:a.x,y:my},{x:b.x,y:my},b,q];}
+    else pts=p.n[0]!==0?[p,a,{x:b.x,y:a.y},b,q]:[p,a,{x:a.x,y:b.y},b,q];
+    const segs=pts.slice(1).map((v,i)=>[pts[i],v]),len=segs.reduce((t,[u,v])=>t+Math.abs(v.x-u.x)+Math.abs(v.y-u.y),0);let acc=0,mid=pts[0];
+    for(const [u,v] of segs){const l=Math.abs(v.x-u.x)+Math.abs(v.y-u.y);if(acc+l>=len/2){const t=(len/2-acc)/(l||1);mid={x:u.x+(v.x-u.x)*t,y:u.y+(v.y-u.y)*t};break;}acc+=l;}
+    return {d:'M'+pts.map(v=>v.x+','+v.y).join(' L'),mid};}
+  const k=st==='editoriale'?Math.min(40,dist*.15):Math.max(50,dist*.4),sag=st==='strumento'?Math.min(110,dist*.22):0;
+  const P=[p,{x:p.x+p.n[0]*k,y:p.y+p.n[1]*k+sag},{x:q.x+q.n[0]*k,y:q.y+q.n[1]*k+sag},q],t=.5,u=.5;
+  return {d:`M${p.x},${p.y} C${P[1].x},${P[1].y} ${P[2].x},${P[2].y} ${q.x},${q.y}`,mid:{x:u*u*u*P[0].x+3*u*u*t*P[1].x+3*u*t*t*P[2].x+t*t*t*P[3].x,y:u*u*u*P[0].y+3*u*u*t*P[1].y+3*u*t*t*P[2].y+t*t*t*P[3].y}};}
+function curve(p,q){return geo(p,q).d;}
+/* Estremità: spina del cavo (Strumento), freccia piena (Brutale), freccia sottile (Editoriale) */
+function plug(p,c){const x=p.x+p.n[0]*7,y=p.y+p.n[1]*7,w=p.n[0]?14:10,h=p.n[0]?10:14;return `<rect class="end" x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="2" fill="${tok('--s-ground')}" stroke="${c}" stroke-width="2"/>`;}
+function arrow(q,c){const st=styleNow(),[nx,ny]=q.n;if(st==='strumento')return plug(q,c);
+  const x=q.x+nx*2,y=q.y+ny*2,s=st==='brutale'?7:5;
+  if(st==='editoriale')return `<path class="end" fill="none" stroke="${c}" stroke-width="1.3" d="M${x+nx*s*1.8-ny*s},${y+ny*s*1.8+nx*s} L${x},${y} L${x+nx*s*1.8+ny*s},${y+ny*s*1.8-nx*s}"/>`;
+  return `<path class="end" fill="${c}" d="M${x},${y} L${x+nx*s*1.6-ny*s},${y+ny*s*1.6+nx*s} L${x+nx*s*1.6+ny*s},${y+ny*s*1.6-nx*s} Z"/>`;}
+function startCap(p,c){const st=styleNow();if(st==='strumento')return plug(p,c);
+  if(st==='brutale')return `<rect class="end" x="${p.x-4}" y="${p.y-4}" width="8" height="8" fill="${c}"/>`;return `<circle class="end" cx="${p.x}" cy="${p.y}" r="2.5" fill="${c}"/>`;}
+let hoverId=null,temp=null;
+function drawWires(){
+  let svg='',lab='';
+  S.links.forEach((l,i)=>{const A=box(l.a),B=box(l.b);if(!A||!B)return;const [p,q]=anchors(A,B),d=curve(p,q);
+    const lit=hoverId&&(l.a===hoverId||l.b===hoverId),dim=(filter!=='all'&&!(match(l.a)&&match(l.b)))||(hoverId&&!lit&&false);
+    const c=col(l.c);svg+=`<g data-i="${i}" class="${lit?'lit':''}${selWire===i?' sel':''}${dim?' dim':''}"><path class="w0" d="${d}"/><path class="w" d="${d}" stroke="${c}"/><path class="hit" d="${d}"/>${arrow(q,c)}${startCap(p,c)}</g>`;
+    if(l.t){const m=geo(p,q).mid;lab+=`<span class="wlabel" data-i="${i}" style="left:${m.x}px;top:${m.y}px;color:${col(l.c)};border-color:${col(l.c)}55">${esc(l.t)}</span>`;}});
+  if(temp)svg+=`<path d="${curve(temp.p,temp.q)}" class="tempw" fill="none"/>`;
+  wires.innerHTML=svg;labels.innerHTML=lab;
+  wires.querySelectorAll('g[data-i]').forEach(g=>{g.addEventListener('click',e=>{e.stopPropagation();pickWire(+g.dataset.i);});});
+  labels.querySelectorAll('.wlabel').forEach(s=>s.addEventListener('click',e=>{e.stopPropagation();pickWire(+s.dataset.i);}));
+  counts();drawMini();
+}
+function bez(p,q,t){const k=Math.max(50,Math.hypot(q.x-p.x,q.y-p.y)*.4),P=[p,{x:p.x+p.n[0]*k,y:p.y+p.n[1]*k},{x:q.x+q.n[0]*k,y:q.y+q.n[1]*k},q],u=1-t;
+  return {x:u*u*u*P[0].x+3*u*u*t*P[1].x+3*u*t*t*P[2].x+t*t*t*P[3].x,y:u*u*u*P[0].y+3*u*u*t*P[1].y+3*u*t*t*P[2].y+t*t*t*P[3].y};}
+function addLink(a,b){if(!a||!b||a===b)return;if(S.links.some(l=>l.a===a&&l.b===b||l.a===b&&l.b===a))return flash(a);
+  S.links.push({a,b,t:'',c:COLORS[S.links.length%COLORS.length]});drawWires();refill(a);refill(b);save();pickWire(S.links.length-1);}
+
+/* Barra del filo: etichetta, colore, verso, elimina */
+const wbar=document.getElementById('wbar');
+document.getElementById('wsw').innerHTML=COLORS.map(c=>`<button class="sw" data-c="${c}" style="background:${c};min-width:18px;height:18px"></button>`).join('');
+function pickWire(i){selWire=i;selectTile(null);const l=S.links[i];document.getElementById('wlab').value=l.t||'';
+  wbar.querySelectorAll('.sw').forEach(s=>{s.classList.toggle('on',s.dataset.c===l.c);s.style.background=col(s.dataset.c);});wbar.classList.add('on');drawWires();placeWbar();}
+function placeWbar(){if(selWire==null||!S.links[selWire])return wbar.classList.remove('on');const l=S.links[selWire],[p,q]=anchors(box(l.a),box(l.b)),m=geo(p,q).mid,r=viewEl.getBoundingClientRect();
+  wbar.style.left=Math.min(innerWidth-330,r.left+view.x+m.x*view.z-150)+'px';wbar.style.top=(r.top+view.y+m.y*view.z+18)+'px';}
+function dropWire(){selWire=null;wbar.classList.remove('on');drawWires();}
+document.getElementById('wlab').addEventListener('input',e=>{S.links[selWire].t=e.target.value;drawWires();save();});
+document.getElementById('wlab').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Escape')dropWire();});
+wbar.querySelectorAll('.sw').forEach(s=>s.onclick=()=>{S.links[selWire].c=s.dataset.c;pickWire(selWire);save();});
+document.getElementById('wrev').onclick=()=>{const l=S.links[selWire];[l.a,l.b]=[l.b,l.a];drawWires();save();};
+document.getElementById('wdel').onclick=()=>{const l=S.links.splice(selWire,1)[0];dropWire();refill(l.a);refill(l.b);save();};
+
+/* ---------- Riquadri: spostare, ridimensionare, collegare ---------- */
+function selectTile(id){selTile=id;tilesEl.querySelectorAll('.tile').forEach(t=>t.classList.toggle('sel',t.dataset.id===id));}
+function lightUp(id){hoverId=id;const set=new Set(id?linksOf(id).flatMap(l=>[l.a,l.b]):[]);
+  tilesEl.querySelectorAll('.tile').forEach(t=>t.classList.toggle('lit',!!id&&t.dataset.id!==id&&set.has(t.dataset.id)));drawWires();}
+function wireTile(el,id){
+  el.onpointerenter=()=>lightUp(id);el.onpointerleave=()=>lightUp(null);
+  el.addEventListener('pointerdown',e=>{if(tool==='link'){e.stopPropagation();e.preventDefault();linkClick(id);return;}
+    if(e.target.closest('.port,.rs,button,input,textarea,select,a,label,.thumb,.f,[data-feat]'))return;
+    if(tool==='pan'||space)return;selectTile(id);dropWire();if(e.target.closest('.th')||el.classList.contains('shot')||el.classList.contains('link')||el.classList.contains('file'))moveTile(e,id,el);});
+  el.querySelector('[data-remove]').onclick=()=>{delete S.tiles[id];S.links=S.links.filter(l=>l.a!==id&&l.b!==id);render();save();};
+  el.querySelector('[data-size]').onclick=e=>sizeMenu(e,id);
+  el.querySelectorAll('.port').forEach(p=>p.addEventListener('pointerdown',e=>dragLink(e,id,p.dataset.s)));
+  el.querySelector('.rs').addEventListener('pointerdown',e=>resize(e,S.tiles[id],el,()=>drawWires()));
+  el.querySelectorAll('[data-own]').forEach(f=>f.addEventListener('input',()=>{const t=S.tiles[id];if(f.dataset.own==='text')t.text=f.value;if(f.dataset.own==='link1')t.link[1]=f.value;if(f.dataset.own==='link2')t.link[2]=f.value;save();}));
+  const ta=el.querySelector('[data-k=notes]');if(ta)ta.addEventListener('input',()=>{S.notes=ta.value;save();});
+  const zb=el.querySelector('[data-zoom]');if(zb)zb.onclick=()=>lightbox(S.tiles[id].shot);
+  if(id==='tasks'){
+    el.querySelectorAll('.task').forEach(li=>{const i=+li.dataset.i;
+      li.querySelector('input').addEventListener('change',e=>{S.tasks[i].s=e.target.checked?'done':'todo';refill('tasks');refill('hero');save();});
+      li.querySelector('.del').addEventListener('click',e=>{e.preventDefault();S.tasks.splice(i,1);refill('tasks');refill('hero');save();});});
+    el.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const v=e.target.querySelector('input').value.trim();if(!v)return;
+      S.tasks.push({t:v,tag:e.target.querySelector('select').value,s:'todo'});refill('tasks');refill('hero');save();tilesEl.querySelector('[data-id=tasks] .add input').focus();});}
+  if(id==='shots'){
+    el.querySelectorAll('.thumb[data-i]').forEach(t=>{t.onclick=()=>{S.sel=+t.dataset.i;refill('shots');refill('hero');save();};
+      t.addEventListener('pointerdown',e=>pullOut(e,()=>({shot:structuredClone(S.shots[+t.dataset.i]),type:'shot'}),t));});
+    el.querySelector('[data-up]').onclick=()=>pickFiles(null);
+    const f=el.querySelector('[data-feat]');if(f){f.onclick=e=>{if(!e.target.closest('button'))lightbox(S.shots[S.sel]);};
+      f.querySelector('[data-pull]').onclick=()=>{const t=S.tiles.shots,nid=newTile('shot',{shot:structuredClone(S.shots[S.sel])},t.x+t.w+72,t.y);addLink('shots',nid);};}}
+  if(id==='files')el.querySelectorAll('.f').forEach(f=>f.addEventListener('pointerdown',e=>pullOut(e,()=>({file:f.dataset.file.split('|'),type:'file'}),f)));
+}
+function moveTile(e,id,el){e.preventDefault();const t=S.tiles[id],s=toWorld(e.clientX,e.clientY),ox=s.x-t.x,oy=s.y-t.y;el.classList.add('moving');
+  const mv=ev=>{const p=toWorld(ev.clientX,ev.clientY);t.x=snapv(p.x-ox);t.y=snapv(p.y-oy);place(el,t);drawWires();placeWbar();};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);el.classList.remove('moving');save();};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);}
+function resize(e,t,el,after){e.preventDefault();e.stopPropagation();const s=toWorld(e.clientX,e.clientY),w0=t.w,h0=t.h;
+  const mv=ev=>{const p=toWorld(ev.clientX,ev.clientY);t.w=Math.max(216,snapv(w0+p.x-s.x));t.h=Math.max(96,snapv(h0+p.y-s.y));place(el,t);after&&after();};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);save();};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);}
+function tileAt(cx,cy,not){const n=document.elementsFromPoint(cx,cy).find(x=>x.classList&&x.classList.contains('tile')&&x.dataset.id!==not);return n&&n.dataset.id;}
+function dragLink(e,from,side){e.preventDefault();e.stopPropagation();document.body.classList.add('linking');const A=box(from);
+  const start={t:{x:A.x+A.w/2,y:A.y,n:[0,-1]},b:{x:A.x+A.w/2,y:A.y+A.h,n:[0,1]},l:{x:A.x,y:A.y+A.h/2,n:[-1,0]},r:{x:A.x+A.w,y:A.y+A.h/2,n:[1,0]}}[side];
+  let over=null;
+  const mv=ev=>{const p=toWorld(ev.clientX,ev.clientY),dx=p.x-start.x,dy=p.y-start.y;temp={p:start,q:{x:p.x,y:p.y,n:Math.abs(dx)>Math.abs(dy)?[-Math.sign(dx),0]:[0,-Math.sign(dy)]}};
+    const o=tileAt(ev.clientX,ev.clientY,from);if(o!==over){over&&tilesEl.querySelector(`[data-id="${over}"]`)?.classList.remove('target');over=o;over&&tilesEl.querySelector(`[data-id="${over}"]`).classList.add('target');}drawWires();};
+  const up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);document.body.classList.remove('linking');
+    over&&tilesEl.querySelector(`[data-id="${over}"]`)?.classList.remove('target');
+    if(over){temp=null;addLink(from,over);return;}
+    /* rilasciato sul vuoto: il filo resta tratteggiato e si apre il menu «Cosa vuoi creare?» */
+    const p=toWorld(ev.clientX,ev.clientY);if(Math.hypot(p.x-start.x,p.y-start.y)<60){temp=null;drawWires();return;}
+    createMenu(ev.clientX,ev.clientY,p,from);};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);}
+/* Menu «Cosa vuoi creare?»: appare dove rilasci il filo; si può scrivere per cercare (Invio = il primo). */
+const RECENT=[['data_object','C# Script','ArmorSlot.cs','Assets/Scripts · 2 min'],['data_object','C# Script','LoadoutImport.cs','Assets/Scripts · 25 min'],
+  ['view_in_ar','Scena','Builder.unity','Assets/Scenes · 1 h'],['deployed_code','Prefab','ExoticCard.prefab','Assets/Prefabs · ieri'],['description','Markdown','stagioni.md','Docs · ieri']];
+const CREATE=[
+  ['Contenuti','note','sticky_note_2','Nota','testo libero'],['Contenuti','shot-pick','image','Screenshot del progetto','scegli ›'],['Contenuti','shot-pc','add_photo_alternate','Screenshot dal PC','sfoglia'],
+  ['Contenuti','file-pick','draft','File','scegli ›'],['Contenuti','link','link','Link','sito o pagina'],
+  ['Contenitori','shots','photo_library','Cartella screenshot','galleria'],['Contenitori','files','folder_open','File recenti','elenco'],['Contenitori','tasks','checklist','Attività','lista'],
+  ['Contenitori','res','bookmarks','Risorse','collegamenti fissi'],['Contenitori','stream','timeline','Cronologia','eventi'],['Contenitori','notes','edit_note','Note del progetto','note.md'],['Contenitori','hero','monitor_heart','Stato del progetto','server']];
+function createMenu(cx,cy,p,from){const m=document.getElementById('cmenu'),A=box(from),dx=p.x-(A.x+A.w/2),dy=p.y-(A.y+A.h/2);
+  const at=(w,h)=>Math.abs(dx)>Math.abs(dy)?{x:dx>0?p.x:p.x-w,y:p.y-Math.min(h/2,60)}:{x:p.x-w/2,y:dy>0?p.y:p.y-h};
+  const close=()=>{m.classList.remove('on');temp=null;drawWires();document.removeEventListener('pointerdown',outside,true);removeEventListener('keydown',key,true);};
+  const outside=e=>{if(!e.target.closest('#cmenu'))close();};
+  const make=(type,data)=>{close();const [w,h]=T[type].sizes[0],q=at(w,h),nid=newTile(type,data,q.x,q.y);addLink(from,nid);
+    if(type==='note')setTimeout(()=>tilesEl.querySelector(`[data-id="${nid}"] textarea`)?.focus(),30);};
+  const pick=k=>{
+    if(k==='note')return make('note',{text:''});
+    if(k==='link')return make('link',{link:['link','Nuovo link','indirizzo…']});
+    if(k==='shot-pc'){close();const [w,h]=T.shot.sizes[0],q=at(w,h);pendingLink=from;return pickFiles({x:q.x+200,y:q.y+140});}
+    if(k==='shot-pick')return sub('Screenshot del progetto',`<div class="cm-shots">${S.shots.map((s,i)=>`<button data-i="${i}" style="background:${shotBg(s)} center/cover" title="${esc(s.n)}"></button>`).join('')}</div>`,
+      b=>make('shot',{shot:structuredClone(S.shots[+b.dataset.i])}));
+    if(k==='file-pick')return sub('File',`<div class="cm-list">${RECENT.map((f,i)=>`<button data-i="${i}"><span class="ms">${f[0]}</span>${esc(f[2])}<small>${esc(f[3])}</small></button>`).join('')}</div>`,
+      b=>make('file',{file:RECENT[+b.dataset.i]}));
+    if(S.tiles[k]){close();addLink(from,k);flash(k);return;}   // contenitore già sulla tela: lo collego
+    const [w,h]=T[k].sizes[0],q=at(w,h);close();S.tiles[k]={x:snapv(q.x),y:snapv(q.y),w,h};render();addLink(from,k);flash(k);save();};
+  function list(f=''){const items=CREATE.filter(c=>!f||c[3].toLowerCase().includes(f.toLowerCase()));let g='';
+    m.querySelector('.cm-body').innerHTML=items.map(([sec,k,i,n,s])=>{const has=T[k]?.one&&S.tiles[k],h=sec!==g?`<div class="cm-sec">${(g=sec)}</div>`:'';
+      return h+`<button data-k="${k}"><span class="ms">${i}</span>${n}<small>${has?'collega quello che c\'è':s}</small></button>`}).join('')||'<div class="cm-empty">Niente con questo nome</div>';
+    m.querySelectorAll('.cm-body [data-k]').forEach((b,i)=>{b.onclick=()=>pick(b.dataset.k);if(i===0)b.classList.add('first');});}
+  function sub(title,html,onPick){m.querySelector('.cm-head').innerHTML=`<button class="cm-back"><span class="ms">arrow_back</span></button><b>${title}</b>`;
+    m.querySelector('.cm-body').innerHTML=html;m.querySelector('.cm-back').onclick=()=>{head();list();};
+    m.querySelectorAll('.cm-body [data-i]').forEach(b=>b.onclick=()=>onPick(b));}
+  function head(){m.querySelector('.cm-head').innerHTML=`<span class="ms">add_circle</span><input placeholder="Cosa vuoi creare?">`;const inp=m.querySelector('input');
+    inp.oninput=()=>list(inp.value);setTimeout(()=>inp.focus(),0);}
+  const key=e=>{if(e.key==='Escape'){e.stopPropagation();close();}if(e.key==='Enter'){const f=m.querySelector('.cm-body .first');if(f){e.preventDefault();f.click();}}};
+  m.innerHTML='<div class="cm-head"></div><div class="cm-body"></div>';head();list();m.classList.add('on');
+  const r=m.getBoundingClientRect();m.style.left=Math.min(cx+8,innerWidth-r.width-12)+'px';m.style.top=Math.max(70,Math.min(cy-20,innerHeight-r.height-12))+'px';
+  setTimeout(()=>{document.addEventListener('pointerdown',outside,true);addEventListener('keydown',key,true);},0);}
+let pendingLink=null;
+let linkFrom=null;const hint=document.getElementById('hint');
+function linkClick(id){if(!linkFrom){linkFrom=id;selectTile(id);hint.textContent='Ora clicca il riquadro da collegare · Esc per annullare';hint.classList.add('on');return;}
+  addLink(linkFrom,id);linkFrom=null;selectTile(null);hint.textContent='Clicca il primo riquadro da collegare';}
+/* Trascinare fuori una miniatura o un file: diventa un riquadro sulla tela, collegato alla sua origine */
+function pullOut(e,make,src){if(e.button!==0)return;const sx=e.clientX,sy=e.clientY,from=src.closest('.tile').dataset.id;let gh=null;
+  const mv=ev=>{if(!gh&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<12)return;if(!gh){gh=src.cloneNode(true);Object.assign(gh.style,{position:'fixed',zIndex:80,pointerEvents:'none',width:src.offsetWidth+'px',opacity:.9,transform:'rotate(2deg)'});document.body.appendChild(gh);}
+    gh.style.left=ev.clientX-20+'px';gh.style.top=ev.clientY-20+'px';};
+  const up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);if(!gh)return;gh.remove();
+    if(tileAt(ev.clientX,ev.clientY)===from)return;const p=toWorld(ev.clientX,ev.clientY),m=make(),nid=newTile(m.type,m,p.x-60,p.y-30);addLink(from,nid);};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);}
+
+function newTile(type,data,x,y){const id=type+'-'+(++S.n),[w,h]=T[type].sizes[0];S.tiles[id]=Object.assign({x:snapv(x),y:snapv(y),w,h},data);render();save();flash(id);selectTile(id);return id;}
+function flash(id){const el=tilesEl.querySelector(`[data-id="${id}"]`);el&&el.animate([{boxShadow:'0 0 0 3px var(--v-alt)'},{boxShadow:'0 0 0 0 transparent'}],{duration:900});}
+function lightbox(s){const lb=document.getElementById('lb');lb.firstElementChild.style.background=shotBg(s)+' center/cover';lb.classList.add('on');}
+document.getElementById('lb').onclick=e=>e.currentTarget.classList.remove('on');
+
+/* ---------- Aree ---------- */
+function wireArea(el,id){const a=S.areas[id],h=el.querySelector('.ah'),inp=h.querySelector('input');
+  inp.addEventListener('input',()=>{a.t=inp.value;inp.style.setProperty('--lw',Math.max(60,a.t.length*7.4+10)+'px');save();});
+  h.querySelector('button').onclick=()=>{delete S.areas[id];render();save();};
+  h.addEventListener('pointerdown',e=>{if(e.target.closest('input,button')||tool!=='sel')return;e.preventDefault();
+    const inside=Object.entries(S.tiles).filter(([,t])=>t.x+t.w/2>a.x&&t.x+t.w/2<a.x+a.w&&t.y+t.h/2>a.y&&t.y+t.h/2<a.y+a.h).map(([k])=>k);
+    const s=toWorld(e.clientX,e.clientY),o={x:a.x,y:a.y},start=inside.map(k=>[k,S.tiles[k].x,S.tiles[k].y]);
+    const mv=ev=>{const p=toWorld(ev.clientX,ev.clientY),dx=snapv(o.x+p.x-s.x)-o.x,dy=snapv(o.y+p.y-s.y)-o.y;a.x=o.x+dx;a.y=o.y+dy;place(el,a);
+      for(const [k,x,y] of start){S.tiles[k].x=x+dx;S.tiles[k].y=y+dy;place(tilesEl.querySelector(`[data-id="${k}"]`),S.tiles[k]);}drawWires();};
+    const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);save();};
+    addEventListener('pointermove',mv);addEventListener('pointerup',up);});
+  el.querySelector('.rs').addEventListener('pointerdown',e=>resize(e,a,el));}
+
+/* ---------- Menu ---------- */
+function sizeMenu(e,id){e.stopPropagation();const m=document.getElementById('sizeMenu'),t=T[typeOf(id)],cur=S.tiles[id];
+  m.innerHTML=t.sizes.map(s=>`<button data-s="${s}"><span class="ms">${s[0]===cur.w&&s[1]===cur.h?'radio_button_checked':'radio_button_unchecked'}</span>${s[0]} × ${s[1]}</button>`).join('');
+  const r=e.currentTarget.getBoundingClientRect();m.style.left=Math.min(r.left,innerWidth-250)+'px';m.style.top=r.bottom+6+'px';m.classList.add('on');
+  m.querySelectorAll('button').forEach(b=>b.onclick=()=>{const [w,h]=b.dataset.s.split(',').map(Number);Object.assign(S.tiles[id],{w,h});place(tilesEl.querySelector(`[data-id="${id}"]`),S.tiles[id]);drawWires();save();m.classList.remove('on');});}
+const ADD=[['note','sticky_note_2','Nota','tante'],['shot','add_photo_alternate','Screenshot','dal PC'],['link','link','Link','tanti'],['area','select_all','Area','raggruppa'],
+  ['hero','monitor_heart','Stato del progetto','uno'],['tasks','checklist','Attività','uno'],['shots','photo_library','Galleria','uno'],['files','description','File recenti','uno'],['stream','timeline','Cronologia','uno'],['notes','edit_note','Note del progetto','uno'],['res','bookmarks','Risorse','uno']];
+function center(){const r=viewEl.getBoundingClientRect();return toWorld(r.left+r.width/2,r.top+r.height/2);}
+function addMenu(anchor){const m=document.getElementById('menu');
+  m.innerHTML=ADD.map(([id,i,n,s])=>{const has=T[id]?.one&&S.tiles[id];return `<button data-id="${id}"${has?' disabled style="opacity:.4;cursor:default"':''}><span class="ms">${i}</span>${n}<small>${has?'c\'è già':s}</small></button>`}).join('');
+  m.classList.add('on');const r=anchor.getBoundingClientRect(),h=m.getBoundingClientRect().height;m.style.left=Math.min(r.left,innerWidth-260)+'px';m.style.top=(r.bottom+h+10>innerHeight?r.top-h-8:r.bottom+6)+'px';
+  m.querySelectorAll('button:not([disabled])').forEach(b=>b.onclick=()=>{m.classList.remove('on');const k=b.dataset.id,c=center();
+    if(k==='shot')return pickFiles(c);if(k==='area'){const id='area-'+(++S.n);S.areas[id]={x:snapv(c.x-300),y:snapv(c.y-200),w:600,h:400,t:'Nuova area',c:COLORS[S.n%COLORS.length]};render();save();return;}
+    if(T[k].one){const [w,h]=T[k].sizes[0];S.tiles[k]={x:snapv(c.x-w/2),y:snapv(c.y-h/2),w,h};render();save();flash(k);return;}
+    newTile(k,k==='note'?{text:''}:{link:['link','Nuovo link','indirizzo…']},c.x-150,c.y-60);});}
+document.addEventListener('click',e=>{if(!e.target.closest('.menu,[data-size],#addTop,#addDock,[data-act=add]'))document.querySelectorAll('.menu').forEach(m=>m.classList.remove('on'));});
+document.getElementById('addTop').onclick=e=>{e.stopPropagation();addMenu(e.currentTarget);};
+document.getElementById('addDock').onclick=e=>{e.stopPropagation();addMenu(e.currentTarget);};
+
+/* Screenshot dal PC: dal pulsante o trascinando le immagini sulla tela */
+let dropAt=null;const fileIn=document.getElementById('file');
+function pickFiles(at){dropAt=at;fileIn.click();}
+fileIn.onchange=()=>{addImages(fileIn.files,dropAt);fileIn.value='';};
+function addImages(files,at){const link=pendingLink;pendingLink=null;[...files].filter(f=>f.type.startsWith('image/')).forEach((f,i)=>{const r=new FileReader();r.onload=()=>{const s={src:r.result,n:f.name,w:'adesso'};
+  S.shots.unshift(s);S.sel=0;if(at){const nid=newTile('shot',{shot:s},at.x-200+i*48,at.y-140+i*48);if(link)addLink(link,nid);}else{refill('shots');refill('hero');save();}};r.readAsDataURL(f);});}
+viewEl.addEventListener('dragover',e=>{e.preventDefault();viewEl.classList.add('drop');});
+viewEl.addEventListener('dragleave',e=>{if(e.target===viewEl)viewEl.classList.remove('drop');});
+viewEl.addEventListener('drop',e=>{e.preventDefault();viewEl.classList.remove('drop');addImages(e.dataTransfer.files,toWorld(e.clientX,e.clientY));});
+
+/* ---------- Filtri, strumenti, tastiera ---------- */
+const match=id=>filter==='all'||T[typeOf(id)].g===filter;
+function applyFilter(){tilesEl.querySelectorAll('.tile').forEach(t=>t.classList.toggle('dim',!match(t.dataset.id)));areasEl.querySelectorAll('.area').forEach(a=>a.classList.toggle('dim',filter!=='all'));drawWires();}
+document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#chips button').forEach(x=>x.setAttribute('aria-pressed',x===b));filter=b.dataset.f;applyFilter();});
+function setTool(t){tool=t;linkFrom=null;document.querySelectorAll('#rail [data-tool]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.tool===t));viewEl.classList.toggle('pan',t==='pan');
+  document.body.classList.toggle('linking',t==='link');hint.textContent='Clicca il primo riquadro da collegare';hint.classList.toggle('on',t==='link');}
+document.querySelectorAll('#rail [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+document.querySelector('[data-act=add]').onclick=e=>{e.stopPropagation();addMenu(e.currentTarget);};
+document.querySelector('[data-act=note]').onclick=()=>{const c=center();const id=newTile('note',{text:''},c.x-156,c.y-108);setTimeout(()=>tilesEl.querySelector(`[data-id="${id}"] textarea`)?.focus(),30);};
+document.querySelector('[data-act=shot]').onclick=()=>{pendingLink=null;pickFiles(center());};
+document.querySelector('[data-act=area]').onclick=()=>{const c=center(),id='area-'+(++S.n);S.areas[id]={x:snapv(c.x-300),y:snapv(c.y-200),w:600,h:400,t:'Nuova area',c:COLORS[S.n%COLORS.length]};render();save();};
+document.querySelector('[data-act=snap]').onclick=e=>{snap=!snap;e.currentTarget.setAttribute('aria-pressed',snap);};
+document.querySelector('[data-act=fit]').onclick=()=>fit(true);
+document.querySelector('[data-act=reset]').onclick=()=>{S=structuredClone(START);selWire=null;wbar.classList.remove('on');render();save();fit(true);};
+let space=false;
+addEventListener('keydown',e=>{if(e.target.closest('input,textarea'))return;
+  if(e.code==='Space'){space=true;viewEl.classList.add('pan');e.preventDefault();}
+  if(e.key==='Escape'){setTool('sel');dropWire();selectTile(null);}
+  if(e.key==='v')setTool('sel');if(e.key==='h')setTool('pan');if(e.key==='c')setTool('link');if(e.key==='f')fit(true);
+  if(e.key==='n')document.querySelector('[data-act=note]').click();
+  if((e.key==='Delete'||e.key==='Backspace')&&selWire!=null)document.getElementById('wdel').click();});
+addEventListener('keyup',e=>{if(e.code==='Space'){space=false;if(tool!=='pan')viewEl.classList.remove('pan');}});
+
+/* ---------- Muoversi e zoom ---------- */
+function zoomAt(f,cx,cy,anim){const r=viewEl.getBoundingClientRect();cx??=r.width/2;cy??=r.height/2;const z=Math.min(1.6,Math.max(.25,view.z*f));
+  view.x=cx-(cx-view.x)*z/view.z;view.y=cy-(cy-view.y)*z/view.z;view.z=z;applyView();}
+viewEl.addEventListener('wheel',e=>{if(e.target.closest('.tb')&&!e.ctrlKey)return;e.preventDefault();const r=viewEl.getBoundingClientRect();
+  if(e.ctrlKey)zoomAt(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);else{view.x-=e.shiftKey?e.deltaY:e.deltaX;view.y-=e.shiftKey?0:e.deltaY;applyView();}},{passive:false});
+viewEl.addEventListener('pointerdown',e=>{const bg=e.target===viewEl||e.target===world||e.target===wires||e.target.id==='tiles'||e.target.id==='areas'||e.target.classList.contains('area');
+  if(bg){dropWire();selectTile(null);}
+  if(!(bg||tool==='pan'||space||e.button===1))return;if(tool==='link'&&!bg)return;e.preventDefault();let lx=e.clientX,ly=e.clientY;viewEl.classList.add('grabbing');
+  const mv=ev=>{view.x+=ev.clientX-lx;view.y+=ev.clientY-ly;lx=ev.clientX;ly=ev.clientY;applyView();};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);viewEl.classList.remove('grabbing');};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);},(tool==='pan'));
+document.getElementById('zin').onclick=()=>zoomAt(1.15);document.getElementById('zout').onclick=()=>zoomAt(1/1.15);
+function bounds(ids){const all=[...ids.map(k=>S.tiles[k]),...(ids.length===Object.keys(S.tiles).length?Object.values(S.areas):[])];
+  return {x0:Math.min(...all.map(t=>t.x)),y0:Math.min(...all.map(t=>t.y))-20,x1:Math.max(...all.map(t=>t.x+t.w)),y1:Math.max(...all.map(t=>t.y+t.h))};}
+function goTo(b,anim){const r=viewEl.getBoundingClientRect(),pad={l:100,r:40,t:70,b:110};
+  const z=Math.min(1.2,(r.width-pad.l-pad.r)/(b.x1-b.x0),(r.height-pad.t-pad.b)/(b.y1-b.y0));
+  if(anim){world.style.transition='transform .5s cubic-bezier(.2,.8,.2,1)';setTimeout(()=>world.style.transition='',520);}
+  view={z,x:pad.l+((r.width-pad.l-pad.r)-(b.x1-b.x0)*z)/2-b.x0*z,y:pad.t+((r.height-pad.t-pad.b)-(b.y1-b.y0)*z)/2-b.y0*z};applyView();}
+const fit=anim=>{const ids=Object.keys(S.tiles);if(ids.length)goTo(bounds(ids),anim);};
+/* Concentrati: il riquadro scelto (o sotto il mouse) e quelli collegati */
+let lastHover=null;tilesEl.addEventListener('pointerover',e=>{const t=e.target.closest('.tile');if(t)lastHover=t.dataset.id;});
+document.getElementById('focus').onclick=()=>{const id=selTile||lastHover;if(!id)return fit(true);const ids=[id,...linksOf(id).flatMap(l=>[l.a,l.b])];goTo(bounds([...new Set(ids)]),true);selectTile(id);lightUp(id);};
+
+/* Minimappa nel dock */
+const mini=document.querySelector('#mini canvas');
+function drawMini(){const g=mini.getContext('2d'),W=mini.width,H=mini.height;g.clearRect(0,0,W,H);const ids=Object.keys(S.tiles);if(!ids.length)return;
+  const b=bounds(ids),pad=60,sx=(b.x1-b.x0+pad*2),sy=(b.y1-b.y0+pad*2),k=Math.min(W/sx,H/sy),ox=(W-sx*k)/2,oy=(H-sy*k)/2,m=(x,y)=>[ox+(x-b.x0+pad)*k,oy+(y-b.y0+pad)*k];
+  g.fillStyle=tok('--s-row');g.fillRect(0,0,W,H);
+  for(const a of Object.values(S.areas)){const [x,y]=m(a.x,a.y);g.strokeStyle=a.c+'88';g.setLineDash([3,3]);g.strokeRect(x,y,a.w*k,a.h*k);}g.setLineDash([]);
+  g.strokeStyle=tok('--s-dim');g.lineWidth=1;for(const l of S.links){const A=S.tiles[l.a],B=S.tiles[l.b];if(!A||!B)continue;const [x1,y1]=m(A.x+A.w/2,A.y+A.h/2),[x2,y2]=m(B.x+B.w/2,B.y+B.h/2);g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();}
+  for(const [id,t] of Object.entries(S.tiles)){const [x,y]=m(t.x,t.y);g.fillStyle=id===selTile?tok('--s-sig'):tok('--s-edge-2');g.fillRect(x,y,Math.max(2,t.w*k),Math.max(2,t.h*k));}
+  const r=viewEl.getBoundingClientRect(),[vx,vy]=m(-view.x/view.z,-view.y/view.z);g.strokeStyle=tok('--s-sig');g.lineWidth=2;g.strokeRect(vx,vy,r.width/view.z*k,r.height/view.z*k);
+  drawMini.map={b,pad,k,ox,oy};}
+mini.parentElement.onclick=e=>{const M=drawMini.map;if(!M)return;const r=mini.getBoundingClientRect(),sx=mini.width/r.width,px=(e.clientX-r.left)*sx,py=(e.clientY-r.top)*sx;
+  const wx=(px-M.ox)/M.k+M.b.x0-M.pad,wy=(py-M.oy)/M.k+M.b.y0-M.pad,v=viewEl.getBoundingClientRect();
+  world.style.transition='transform .35s ease';setTimeout(()=>world.style.transition='',380);view.x=v.width/2-wx*view.z;view.y=v.height/2-wy*view.z;applyView();};
+
+/* Tema: in VARCO arriva da data.appearance; qui lo sceglie il pannello dell'anteprima */
+const TKEY='pp-theme-v4';let TH={id:'varco',mode:'scuro',accent:'',accent2:''};try{Object.assign(TH,JSON.parse(localStorage.getItem(TKEY))||{})}catch{}
+const acol=c=>c==='#7c6cff'?tok('--s-sig'):col(c);
+function tapeColors(){areasEl.querySelectorAll('.area').forEach(el=>{const a=S.areas[el.dataset.id];if(!a)return;const c=acol(a.c);el.style.setProperty('--ac',c);el.style.setProperty('--on-ac',Strumento.onColor(c));});}
+function applyTheme(){const base=Strumento.themeOf(TH.id,TH),vars=Strumento.strumentoTokens({...base,mode:TH.mode});
+  for(const [k,v] of Object.entries(vars))document.documentElement.style.setProperty(k,v);
+  document.getElementById('tpn').textContent=Strumento.THEMES[TH.id].label+' · '+({scuro:'scuro',chiaro:'chiaro',oled:'OLED'})[TH.mode];
+  document.querySelectorAll('#tpg button').forEach(b=>b.classList.toggle('on',b.dataset.t===TH.id));
+  document.querySelectorAll('#tpm button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===TH.mode));
+  document.getElementById('tpa').value=base.accent;document.getElementById('tpb').value=vars['--s-alt'];
+  try{localStorage.setItem(TKEY,JSON.stringify(TH))}catch{};tapeColors();drawWires();drawMini();if(selWire!=null)pickWire(selWire);}
+document.getElementById('tpg').innerHTML=Object.entries(Strumento.THEMES).map(([id,t])=>`<button data-t="${id}" title="${t.label}" style="background:${t.bg}"><i style="background:${t.accent}"></i></button>`).join('');
+document.querySelectorAll('#tpg button').forEach(b=>b.onclick=()=>{TH={...TH,id:b.dataset.t,accent:'',accent2:''};applyTheme();});
+document.querySelectorAll('#tpm button').forEach(b=>b.onclick=()=>{TH.mode=b.dataset.m;applyTheme();});
+document.getElementById('tpa').oninput=e=>{TH.accent=e.target.value;applyTheme();};
+document.getElementById('tpb').oninput=e=>{TH.accent2=e.target.value;applyTheme();};
+document.getElementById('tpr').onclick=()=>{TH.accent='';TH.accent2='';applyTheme();};
+document.getElementById('tph').onclick=()=>document.getElementById('tp').classList.toggle('min');
+function setStyle(st){document.documentElement.dataset.style=st;try{localStorage.setItem('pp-style',st)}catch{};
+  document.querySelectorAll('#stylesw button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===st));drawWires();if(selWire!=null)pickWire(selWire);}
+render();applyTheme();fit(false);addEventListener('resize',drawMini);
+</script>
+</body>
+</html>

@@ -4,6 +4,74 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.43.2 — Pagina del progetto (0.43, fase C)
+
+Installer PC: `dist\VARCO Setup 0.43.2.exe` (con la firma VMP). Segue la sessione di gioco (0.43.3).
+
+### Cosa cambia
+- **Ogni progetto ha la sua pagina**, una scheda come la Home e le Impostazioni:
+  - si apre dal pannello Progetto → **«Apri la pagina del progetto»**;
+  - oppure dal command center (F1) → «Apri la pagina del progetto».
+- **Tela libera:**
+  - i riquadri si mettono dove vuoi, anche lontani: li sposti dalla testata e li ridimensioni dall'angolo;
+  - si agganciano ai puntini (l'aggancio si toglie dalla barra a sinistra);
+  - rotellina per muoverti, Ctrl+rotellina per lo zoom, Spazio o la manina per trascinare la tela.
+- **Collegamenti (fili):**
+  - passando sopra un riquadro compaiono 4 prese, una per lato: trascini da una presa a un altro riquadro;
+  - oppure usi lo strumento Collega (C): clic su un riquadro, poi sull'altro;
+  - cliccando un filo gli dai un'etichetta, cambi colore, inverti il verso o lo togli.
+- **Rilasci il filo sul vuoto → menu «Cosa vuoi creare?»** (si può scrivere per cercare):
+  - contenuti: nota, screenshot del progetto, screenshot dal PC, file, link;
+  - contenitori: cartella screenshot, file recenti, attività, risorse, cronologia, note, stato. Se uno è già sulla tela, il menu lo collega invece di crearne un altro.
+- **Riquadri con i dati veri del progetto:**
+  - **Stato:** server (fase, indirizzo, rete, porte), ultimo errore, copertina (uno screenshot), errori, attività fatte, comandi attivi, file cambiati oggi.
+  - **Attività:** spunta, elimina, aggiungi con un'etichetta (Bug, UI, Codice, Arte, Build, Altro).
+  - **Screenshot:** galleria. Carichi le immagini col + o trascinandole, e con «Copertina» ne scegli una per lo stato.
+  - **File recenti:** un clic apre il file.
+  - **Cronologia:** server, file modificati, screenshot, attività fatte.
+  - **Note** e **Risorse:** risorse del workspace, pannelli consigliati, repository.
+  - **Nodi singoli quanti ne vuoi:** nota, screenshot, link, file. Le miniature della galleria e i file recenti si trascinano fuori e diventano riquadri già collegati.
+- **Aree:** rettangoli con il nome su un nastro adesivo. Spostando l'area si spostano anche i riquadri che contiene.
+- **Per ritrovare l'ordine:**
+  - passando sopra un riquadro si accendono quelli collegati;
+  - «Concentrati» inquadra il riquadro scelto con i suoi collegati;
+  - minimappa nel dock (un clic ti porta lì);
+  - filtri Tutto / Lavoro / Media / Collegamenti;
+  - scorciatoie V, H, C, N, F.
+- **Dock:** anteprima e azioni rapide del tipo di progetto (es. Avvia Unity, Build, Log).
+- **Si salva tutto nella cartella del progetto**, quindi viaggia con git:
+  - `.varco/pagina.json` contiene riquadri, fili, aree e attività;
+  - `.varco/note.md` contiene le note;
+  - `.varco/screenshot/` contiene le immagini.
+  - Se il file cambia da fuori (es. git pull), la pagina si ricarica.
+- **Stile «Strumento»** (preso dalla board Pinterest):
+  - grafite opaca, colori pieni per gli stati, numeri grossi, fili come cavi con la spina;
+  - **segue il tema di VARCO:** accento, secondo colore, sfondo, modalità scura / chiara / OLED;
+  - errore, attenzione e «riuscito» restano sempre arancio, giallo e lime.
+
+### Test da fare
+- [ ] **T325** — Pannello Progetto → «Apri la pagina del progetto»: si apre la scheda con il nome della cartella e la tela con i riquadri. **📸**
+- [ ] **T326** — Sposta un riquadro, ridimensionane un altro, chiudi e riapri VARCO: tutto è dove l'avevi lasciato.
+- [ ] **T327** — Trascina da una presa a un altro riquadro: compare il cavo. Cliccalo e scrivi un'etichetta.
+- [ ] **T328** — Trascina da una presa sul vuoto: si apre «Cosa vuoi creare?». Scegli «Screenshot dal PC»: l'immagine finisce in .varco/screenshot ed è già collegata.
+- [ ] **T329** — Aggiungi un'attività e spuntala: nello stato «Attività» sale la percentuale, in Cronologia compare «Fatta: …».
+- [ ] **T330** — Crea un'area attorno a due riquadri e spostala: i riquadri vengono con lei.
+- [ ] **T331** — Cambia tema nelle Impostazioni (es. Lime, poi modalità chiara): la pagina cambia colori subito. **📸**
+- [ ] **T332** — Avvia il server del progetto: lo stato passa a «Pronto» con l'indirizzo, e «Apri anteprima» apre la pagina.
+- [ ] **T333** — Scrivi un indirizzo nella barra mentre sei sulla pagina del progetto: si apre una scheda nuova e la pagina resta.
+
+**Stato:**
+- 274 test superati (4 nuovi: controllo della pagina salvata, disposizione iniziale, nomi e percorsi sicuri, colori di Strumento in tutti i 23 temi e nelle 3 modalità).
+- **Provato in VARCO** con un profilo di prova:
+  - apertura della pagina;
+  - attività, nota e screenshot salvati in .varco;
+  - filo rilasciato sul vuoto → menu → screenshot collegato e salvato;
+  - cambio di tema (Ember scuro → Lime chiaro).
+- **Non provati:** l'installer e le immagini trascinate da Esplora file (provato il caricamento dalla cornice).
+- I caratteri sono quelli di VARCO (Impostazioni → carattere) e Cascadia Mono per le etichette, già presenti in Windows: niente da scaricare.
+
+---
+
 ## Beta 0.43.1 — Tipi di progetto (0.43, fase B)
 
 Installer PC: `dist\VARCO Setup 0.43.1.exe` (con la firma VMP). Seguono la pagina del progetto (0.43.2) e la sessione di gioco (0.43.3).
