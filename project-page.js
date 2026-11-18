@@ -848,6 +848,7 @@ function presetMenu(anchor){
   pop(anchor,[...items,{t:'Modifica i preset…',manage:1}],it=>{if(it.manage)return presetEditor(IX.session?.preset||IX.lastPreset);act('gameSessionPreset',{id:+D.gk,preset:it.k});toast(`Preset «${it.t}»: si aprono i suoi siti`);});
 }
 const PICONS=['group','emoji_events','videocam','person','swords','sports_esports','explore','school','nightlight'];
+const WIDGET_LIST=[['partita','Partita'],['timer','Timer'],['obiettivi','Obiettivi'],['note','Note tattiche'],['catture','Ultime catture'],['link','Link rapidi']];
 const PI={group:'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 6-5s6 2 6 5M14 15c3 0 8 1 8 5',emoji_events:'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4a3 3 0 0 0 4 4M16 6h4a3 3 0 0 1-4 4M12 13v4M8 21h8M10 17h4',
   videocam:'M3 7h12v10H3zM15 10l6-3v10l-6-3',person:'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6',swords:'M4 4l10 10M4 4h4M4 4v4M20 4L10 14M20 4h-4M20 4v4M8 16l-4 4M16 16l4 4',
   sports_esports:IP.gamepad,explore:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 8l-2 6-6 2 2-6z',school:'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5',nightlight:'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z'};
@@ -857,6 +858,7 @@ function presetDesc(p){const tl=Object.values(P.tiles).filter(t=>t.timer);const 
 function presetEditor(sel){
   let cur=IX.presets[sel]?sel:Object.keys(IX.presets)[0];
   const draw=()=>{const p=IX.presets[cur];if(!p)return;const timers=Object.values(P.tiles).filter(t=>t.timer);
+    p.comp=p.comp||{widgets:['partita','obiettivi','link'],mode:'strip',side:'right',size:22,op:85,top:true,through:false};const c=p.comp;
     modal(`<span class="pp-mono pp-kick">Preset · ${esc(D.pp.name)}</span><h2>Cosa apre ogni preset</h2>
     <div class="pp-ptabs">${Object.entries(IX.presets).map(([k,v])=>`<button data-k="${k}" class="${k===cur?'on':''}">${svg('p-'+v.i,15)}${esc(v.n)}</button>`).join('')}<button data-pnew title="Nuovo preset">${svg('plus',15)}</button></div>
     <div class="pp-form"><label class="pp-row"><span class="pp-mono">Nome</span><input data-f="n" value="${esc(p.n)}" maxlength="24"></label>
@@ -866,13 +868,28 @@ function presetEditor(sel){
       <label class="pp-row"><span class="pp-mono">Timer</span><select data-f="timer"><option value="">Nessuno</option>${timers.map((t,i)=>`<option value="${i}"${p.timer===i?' selected':''}>${esc(t.timer.label)}</option>`).join('')}</select></label>
       <label class="pp-row"><span class="pp-mono">Note</span><span class="pp-check"><input type="checkbox" data-f="notes"${p.notes?' checked':''}> mostra le note tattiche</span></label>
       <label class="pp-row"><span class="pp-mono">Clip</span><span class="pp-check"><input type="checkbox" data-f="clips"${p.clips?' checked':''}> proponi le clip della partita in automatico</span></label>
-      <div class="pp-prev pp-mono">${esc(presetDesc(p))}</div></div>`,
+      <div class="pp-prev pp-mono">${esc(presetDesc(p))}</div>
+      <span class="pp-mono pp-kick" style="margin-top:8px">Companion compatto</span>
+      <div class="pp-row top"><span class="pp-mono">Widget</span><div class="pp-sites">${WIDGET_LIST.map(([k,n])=>`<label><input type="checkbox" data-cw="${k}"${c.widgets.includes(k)?' checked':''}>${n}</label>`).join('')}</div></div>
+      <div class="pp-row"><span class="pp-mono">Misura</span><div class="pp-seg"><button data-cm="strip" class="${c.mode==='strip'?'on':''}">Striscia</button><button data-cm="wide" class="${c.mode==='wide'?'on':''}">Estesa (con le pagine)</button></div></div>
+      <div class="pp-row"><span class="pp-mono">Lato</span><div class="pp-seg"><button data-cs="left" class="${c.side==='left'?'on':''}">Sinistra</button><button data-cs="right" class="${c.side==='right'?'on':''}">Destra</button></div></div>
+      <label class="pp-row"><span class="pp-mono">Larghezza</span><input type="range" min="16" max="60" value="${c.size}" data-cr="size"><span class="pp-mono" style="width:40px">${c.size}%</span></label>
+      <label class="pp-row"><span class="pp-mono">Trasparenza</span><input type="range" min="30" max="100" value="${c.op}" data-cr="op"><span class="pp-mono" style="width:40px">${c.op}%</span></label>
+      <label class="pp-row"><span class="pp-mono">Sopra il gioco</span><span class="pp-check"><input type="checkbox" data-cc="top"${c.top?' checked':''}> sempre in primo piano</span></label>
+      <label class="pp-row"><span class="pp-mono">Clic</span><span class="pp-check"><input type="checkbox" data-cc="through"${c.through?' checked':''}> attraversabile: i clic vanno al gioco finché non premi Ctrl+Shift+G</span></label>
+      <p class="pp-hint2">Le pagine del companion sono i siti in «Apri». Il monitor è quello scelto per il gioco (pannello Giochi).</p></div>`,
       [...(Object.keys(IX.presets).length>1?[['Elimina',false,()=>{delete IX.presets[cur];if(IX.lastPreset===cur)IX.lastPreset=Object.keys(IX.presets)[0];cur=Object.keys(IX.presets)[0];saveIndex();setTimeout(draw,0);}]]:[]),['Fatto',true,()=>{refreshDynamic();}]]);
     const m=E.modal;
     m.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cur=b.dataset.k;draw();});
     m.querySelector('[data-pnew]').onclick=()=>{const k='p'+Date.now().toString(36).slice(-6);IX.presets[k]={n:'Nuovo preset',i:'sports_esports',open:[],companion:false,timer:null,notes:true,clips:false};cur=k;saveIndex();draw();E.modal.querySelector('[data-f=n]').select();};
     m.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>{p.i=b.dataset.ic;saveIndex();draw();});
     m.querySelectorAll('[data-site]').forEach(c=>c.onchange=()=>{const n=c.dataset.site;p.open=c.checked?[...p.open,n]:p.open.filter(x=>x!==n);saveIndex();m.querySelector('.pp-prev').textContent=presetDesc(p);});
+    // Beta 0.43.4: companion compatto del preset
+    m.querySelectorAll('[data-cw]').forEach(i=>i.onchange=()=>{const w=i.dataset.cw;c.widgets=i.checked?[...c.widgets,w]:c.widgets.filter(x=>x!==w);saveIndex();});
+    m.querySelectorAll('[data-cm]').forEach(b=>b.onclick=()=>{c.mode=b.dataset.cm;saveIndex();draw();});
+    m.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>{c.side=b.dataset.cs;saveIndex();draw();});
+    m.querySelectorAll('[data-cr]').forEach(r=>r.oninput=()=>{c[r.dataset.cr]=+r.value;r.nextElementSibling.textContent=r.value+'%';saveIndex();});
+    m.querySelectorAll('[data-cc]').forEach(i=>i.onchange=()=>{c[i.dataset.cc]=i.checked;saveIndex();});
     m.querySelectorAll('[data-f]').forEach(f=>f.oninput=f.onchange=()=>{const k=f.dataset.f;p[k]=f.type==='checkbox'?f.checked:k==='timer'?(f.value===''?null:+f.value):f.value;saveIndex();m.querySelector('.pp-prev').textContent=presetDesc(p);});};
   draw();
 }

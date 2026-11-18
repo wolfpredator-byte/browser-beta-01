@@ -195,6 +195,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    const size=el('select');for(const [v,l] of [[100,'100%'],[75,'75%'],[67,'2/3'],[60,'60%'],[50,'Metà'],[40,'40%'],[33,'1/3'],[25,'25%']])size.append(el('option',{value:String(v),textContent:l,selected:(place.size||100)===v}));
    if(place.side==='custom')side.prepend(el('option',{value:'custom',textContent:'Dove l’hai fissato tu («Apri sempre qui»)',selected:true}));
    let alwaysOnTop=game.alwaysOnTop,closeOnExit=game.closeOnExit;
+   // Beta 0.43.4: companion compatto (widget e pagine del preset) o finestra completa del workspace.
+   const kind=el('select',{},el('option',{value:'compatto',textContent:'Compatto: widget e pagine del preset'}),el('option',{value:'finestra',textContent:'Finestra di VARCO (workspace del gioco)'}));kind.value=game.companionKind==='finestra'?'finestra':'compatto';
    const error=el('p',{className:'panel-error',role:'alert'});
    const submit=el('button',{type:'submit',textContent:'Salva'});
    const buttons=el('div',{className:'inline-buttons'},submit);
@@ -208,7 +210,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    }
    const form=el('form',{className:'panel-form'},
      field('Nome',name),field('Eseguibile',exe),exeTools,processes,field('Workspace da aprire',workspace),
-     field('Siti da aprire',sites),field('Monitor',display),field('Lato dello schermo',side),field('Dimensione',size),
+     field('Siti da aprire',sites),field('Companion',kind),field('Monitor',display),field('Lato dello schermo',side),field('Dimensione',size),
      checkRow('Sempre in primo piano mentre giochi',alwaysOnTop,v=>{alwaysOnTop=v;}),
      checkRow('Chiudi la finestra quando esci dal gioco',closeOnExit,v=>{closeOnExit=v;}),
      error,buttons);
@@ -216,7 +218,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    form.oninput=()=>{error.textContent='';};
    form.onsubmit=async event=>{
      event.preventDefault();error.textContent='';submit.disabled=true;
-     const args={name:name.value,exe:exe.value,workspace:workspace.value,sites:sites.value,alwaysOnTop,closeOnExit};
+     const args={name:name.value,exe:exe.value,workspace:workspace.value,sites:sites.value,alwaysOnTop,closeOnExit,companionKind:kind.value};
      if(id)args.id=id;
      if(display.value)args.display=Number(display.value);
      if(side.value!=='custom'){args.side=side.value;args.size=Number(size.value);}else{args.side='full';args.size=100;}

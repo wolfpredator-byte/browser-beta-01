@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Companion · esempio</title>
+<script src="../project-round-4/shared/strumento-theme.js"></script>
+<style>
+/* Companion 0.43.4 — finestra compatta accanto al gioco, stile Strumento con i colori del tema di VARCO (--s-*). */
+:root{--pm:'Cascadia Mono','Cascadia Code',Consolas,monospace;font:13px/19px 'Segoe UI Variable','Segoe UI',sans-serif;color:var(--s-text)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+.mono{font:500 10px/14px var(--pm);letter-spacing:.06em;text-transform:uppercase}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* Il «gioco» dietro (finto) */
+#game{position:fixed;inset:0;background:linear-gradient(180deg,#1d2a44 0%,#e8a35a 62%,#0f1420 100%)}
+#game svg{position:absolute;inset:0;width:100%;height:100%}
+#game .hud{position:absolute;right:40px;bottom:30px;font:700 46px Consolas,monospace;color:#fff;opacity:.85;text-shadow:0 2px 8px #0008}
+#game .cross{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px;border:2px solid #fff8;border-radius:50%}
+#game .lbl{position:absolute;left:24px;top:20px;padding:4px 10px;border-radius:6px;background:#0008;color:#fff;font:500 12px var(--pm)}
+
+/* Companion */
+#comp{position:fixed;top:16px;bottom:16px;right:16px;width:var(--w,340px);z-index:10;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;
+  background:var(--s-chrome);border:1px solid var(--s-edge-2);box-shadow:0 2px 0 var(--s-press),0 20px 60px rgba(0,0,0,.5);
+  opacity:var(--op,1);transition:opacity .25s,width .3s cubic-bezier(.2,.8,.2,1),transform .3s cubic-bezier(.2,.8,.2,1),left .3s,right .3s}
+#comp.left{right:auto;left:16px}
+#comp:hover,#comp.focus{opacity:1}
+#comp.hidden{transform:translateX(calc(100% + 30px))}#comp.left.hidden{transform:translateX(calc(-100% - 30px))}
+#comp.through{pointer-events:none}
+.c-head{display:flex;align-items:center;gap:9px;padding:9px 10px 9px 12px;border-bottom:1px solid var(--s-edge);background:var(--s-tile)}
+.c-logo{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:var(--s-sig);color:var(--s-on-sig);font:700 12px sans-serif;flex:none}
+.c-title{min-width:0;flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px}.c-title b{display:block;max-width:100%;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-preset{display:flex;align-items:center;gap:4px;padding:1px 7px;border-radius:6px;background:var(--s-row);border:1px solid var(--s-edge-2);font-weight:500;font-size:12px}
+.c-preset:hover{background:var(--s-row-hover)}
+.c-tb{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--s-muted)}
+.c-tb:hover{background:var(--s-row);color:var(--s-text)}.c-tb.on{color:var(--s-sig-ink);background:var(--s-row)}
+.c-body{flex:1;min-height:0;display:flex}
+.c-widgets{width:100%;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+#comp.wide .c-widgets{width:300px;flex:none;border-right:1px solid var(--s-edge)}
+.c-pages{display:none;flex:1;min-width:0;flex-direction:column}
+#comp.wide .c-pages{display:flex}
+.c-tabs{display:flex;gap:3px;padding:6px;border-bottom:1px solid var(--s-edge);background:var(--s-tile)}
+.c-tab{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;color:var(--s-muted);font-weight:500;font-size:12px}
+.c-tab.on{background:var(--s-row-hover);color:var(--s-text)}.c-tab:hover{color:var(--s-text)}
+.c-page{flex:1;min-height:0;overflow:auto;background:var(--s-ground)}
+.c-foot{display:flex;align-items:center;gap:4px;padding:6px 8px;border-top:1px solid var(--s-edge);background:var(--s-tile)}
+.c-foot .mono{color:var(--s-dim);margin-right:auto}
+.c-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;background:var(--s-row);font-size:12px;font-weight:500}
+.c-chip:hover{background:var(--s-row-hover)}.c-chip svg{color:var(--s-sig-ink)}
+
+/* Widget */
+.w{border-radius:10px;background:var(--s-tile);border:1px solid var(--s-edge);padding:9px 10px}
+.w-h{display:flex;align-items:center;gap:7px;margin-bottom:6px;color:var(--s-muted)}
+.w-h::before{content:"";width:6px;height:6px;border-radius:1px;background:var(--s-dim)}
+.w-h .r{margin-left:auto;color:var(--s-dim)}
+.w-big{font-weight:700;font-size:34px;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.bar{position:relative;height:12px;margin-top:8px;border-radius:3px;background:repeating-linear-gradient(90deg,var(--s-row-hover) 0 1px,transparent 1px 12.5%),var(--s-well);border:1px solid var(--s-edge);overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--s-sig)}
+.tm{border-radius:9px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;background:var(--s-well);border:1px solid var(--s-edge)}
+.tm.ok{background:var(--s-ok);color:var(--s-on-state);border-color:transparent}.tm.warn{background:var(--s-warn);color:var(--s-on-state);border-color:transparent}.tm.err{background:var(--s-err);color:var(--s-on-state);border-color:transparent}
+.tm .v{font-weight:700;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.tm button{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.18)}
+.tm + .tm{margin-top:6px}
+.task{display:flex;align-items:center;gap:8px;padding:5px 2px}
+.task input{accent-color:var(--s-sig);width:15px;height:15px}
+.task.done span{text-decoration:line-through;color:var(--s-dim)}
+.tag{margin-left:auto;padding:0 6px;border-radius:4px;font:600 9.5px/15px var(--pm);text-transform:uppercase;letter-spacing:.05em}
+.note{border-radius:7px;background:var(--s-note);padding:7px 9px 7px 12px;position:relative;white-space:pre-wrap;font-size:12.5px;line-height:18px}
+.note::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:7px 0 0 7px;background:var(--s-warn)}
+.caps{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.caps div{aspect-ratio:16/10;border-radius:5px;background:linear-gradient(160deg,#2a3a5c,#e8a35a 70%,#0f1420);border:1px solid var(--s-edge)}
+.caps div:nth-child(2){background:linear-gradient(160deg,#2a1f3d,#c06bd8 70%,#0b0a12)}.caps div:nth-child(3){background:repeating-linear-gradient(135deg,var(--s-well) 0 8px,var(--s-row) 8px 9px);position:relative}
+.caps div:nth-child(3)::after{content:"\25B6";position:absolute;right:4px;bottom:1px;font-size:9px}
+.links{display:flex;flex-wrap:wrap;gap:5px}
+.links button{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;background:var(--s-row);font-size:12px;font-weight:500}
+.links button:hover{background:var(--s-row-hover)}.links svg{color:var(--s-sig-ink)}
+#comp:not(.wide) .w.page-only{display:none}
+
+/* Pagine finte */
+.pg{padding:14px;color:var(--s-text)}
+.pg h3{margin:0 0 10px;font-size:15px}
+.inv{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.inv div{aspect-ratio:1;border-radius:6px;background:var(--s-row);border-top:3px solid var(--s-warn)}
+.inv div:nth-child(3n){border-top-color:var(--s-alt)}.inv div:nth-child(4n){border-top-color:var(--s-sig)}
+.wiki p{color:var(--s-muted);margin:0 0 10px}.wiki .ln{height:8px;border-radius:4px;background:var(--s-row);margin:7px 0}
+.map{position:relative;height:100%;min-height:380px;background:radial-gradient(circle at 30% 40%,#3b4f3a 0 18%,transparent 19%),radial-gradient(circle at 70% 60%,#4b3f2a 0 22%,transparent 23%),#1f2a24}
+.map i{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--s-warn);box-shadow:0 0 0 3px #0006}
+.chat .m{display:flex;gap:8px;margin-bottom:10px}.chat .m b{display:block;font-size:12.5px}.chat .m span{color:var(--s-muted)}.chat .av{width:26px;height:26px;border-radius:50%;background:var(--s-row-hover);flex:none}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stats div{padding:10px;border-radius:8px;background:var(--s-row)}.stats b{display:block;font-size:24px;font-weight:700}
+
+/* Scelta del preset all'avvio, dentro il companion */
+.pick{position:absolute;inset:0;z-index:5;background:var(--s-chrome);padding:14px;display:none;flex-direction:column;gap:10px}
+.pick.on{display:flex}
+.pick h2{margin:0;font-size:19px}
+.pick .grid{display:grid;grid-template-columns:1fr;gap:7px}
+#comp.wide .pick .grid{grid-template-columns:1fr 1fr}
+.pick .p{position:relative;display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:var(--s-row);border:1px solid var(--s-edge);text-align:left;box-shadow:0 2px 0 var(--s-press);overflow:hidden}
+.pick .p:hover{background:var(--s-row-hover)}.pick .p.last{border-color:var(--s-sig)}
+.pick .p b{display:block;font-weight:650}.pick .p small{color:var(--s-muted);font-size:11.5px}
+.pick .k{margin-left:auto;width:22px;height:22px;border-radius:5px;display:grid;place-items:center;background:var(--s-well);border:1px solid var(--s-edge);font:600 11px var(--pm);color:var(--s-dim)}
+.pick .cnt{position:absolute;left:0;bottom:0;height:3px;background:var(--s-sig)}
+.pick .foot{margin-top:auto;display:flex;justify-content:space-between;color:var(--s-dim)}
+
+/* Pannello dell'esempio (fuori dal companion) */
+#ctl{position:fixed;left:16px;bottom:16px;z-index:20;width:330px;padding:12px;border-radius:12px;background:#111c;backdrop-filter:blur(8px);color:#eee;border:1px solid #fff2}
+#ctl h4{margin:0 0 8px;font:600 12px var(--pm);text-transform:uppercase;letter-spacing:.06em;color:#bbb}
+#ctl .row{display:flex;align-items:center;gap:8px;margin:7px 0}
+#ctl label.t{width:92px;flex:none;color:#aaa;font-size:12px}
+#ctl select,#ctl input[type=range]{flex:1}
+#ctl select{padding:4px 6px;border-radius:6px;background:#222;border:1px solid #444}
+#ctl .seg{display:flex;flex:1;border:1px solid #444;border-radius:7px;overflow:hidden}
+#ctl .seg button{flex:1;padding:4px 0;font-size:12px;color:#aaa}#ctl .seg button.on{background:#333;color:#fff}
+#ctl .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#ctl .btns button{padding:5px 9px;border-radius:7px;background:#2a2a2a;border:1px solid #444;font-size:12px}
+#ctl .btns button:hover{background:#333}
+#ctl .hint{color:#999;font-size:11.5px;margin-top:6px}
+#ctl.min .body{display:none}
+#ctl .h{display:flex;justify-content:space-between;cursor:pointer}
+
+/* Impostazioni del companion per preset */
+.scrim{position:fixed;inset:0;z-index:30;background:#0008;display:none}.scrim.on{display:block}
+.set{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:31;width:min(640px,92vw);max-height:90vh;overflow:auto;padding:16px 18px;border-radius:12px;background:var(--s-chrome);border:1px solid var(--s-edge-2);display:none;box-shadow:0 30px 80px #000a}
+.set.on{display:block}
+.set h2{margin:2px 0 6px;font-size:19px}.set .kick{color:var(--s-sig-ink)}
+.set .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
+.set .tabs button{padding:6px 10px;border-radius:8px;background:var(--s-row);border:1px solid var(--s-edge);font-weight:500}.set .tabs button.on{border-color:var(--s-sig)}
+.set .r{display:flex;align-items:center;gap:10px;margin:8px 0}.set .r>.mono{width:96px;flex:none;color:var(--s-dim)}
+.set .r.top{align-items:flex-start}
+.set .seg{display:flex;flex:1;border:1px solid var(--s-edge-2);border-radius:8px;overflow:hidden}.set .seg button{flex:1;padding:5px 0;font-size:12px;color:var(--s-muted)}.set .seg button.on{background:var(--s-row-hover);color:var(--s-text)}
+.set .wl{flex:1;display:flex;flex-direction:column;gap:4px}
+.set .wi{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;background:var(--s-row)}
+.set .wi input{accent-color:var(--s-sig)}.set .wi .mv{margin-left:auto;display:flex;gap:2px}.set .wi .mv button{width:22px;height:22px;border-radius:5px;color:var(--s-dim)}.set .wi .mv button:hover{background:var(--s-row-hover);color:var(--s-text)}
+.set .pages{flex:1;display:flex;flex-wrap:wrap;gap:6px}.set .pages label{display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;background:var(--s-row)}
+.set .pages input,.set .chk input{accent-color:var(--s-sig)}
+.set input[type=range]{flex:1;accent-color:var(--s-sig)}
+.set .chk{display:flex;align-items:center;gap:8px;color:var(--s-muted)}
+.set .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.btn{padding:6px 12px;border-radius:8px;background:var(--s-row);border:1px solid var(--s-edge-2);box-shadow:0 2px 0 var(--s-press);font-weight:500}
+.btn.pri{background:var(--s-sig);color:var(--s-on-sig);border-color:transparent}
+.toast{position:fixed;left:50%;top:20px;transform:translate(-50%,-10px);z-index:40;padding:7px 13px;border-radius:9px;background:var(--s-text);color:var(--s-ground);font-weight:500;opacity:0;transition:.2s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div id="game"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"><circle cx="1040" cy="300" r="70" fill="#e8a35a"/><path d="M0 640 L190 450 L360 560 L560 360 L780 530 L960 410 L1180 560 L1370 430 L1600 530 L1600 900 L0 900Z" fill="#2b2333"/><path d="M0 720 L250 600 L500 700 L800 580 L1080 700 L1330 620 L1600 680 L1600 900 L0 900Z" fill="#0f1420"/></svg>
+  <span class="lbl">Il gioco (schermo intero senza bordi)</span><div class="cross"></div><div class="hud">23 / 120</div></div>
+
+<section id="comp"></section>
+
+<div id="ctl"><div class="h" id="ctlH"><h4>Esempio · prova il companion</h4><span>▾</span></div><div class="body">
+  <div class="row"><label class="t">Preset</label><select id="cPreset"></select></div>
+  <div class="row"><label class="t">Misura</label><div class="seg" id="cMode"><button data-v="strip">Striscia</button><button data-v="wide">Estesa</button></div></div>
+  <div class="row"><label class="t">Lato</label><div class="seg" id="cSide"><button data-v="left">Sinistra</button><button data-v="right">Destra</button></div></div>
+  <div class="row"><label class="t">Trasparenza</label><input type="range" id="cOp" min="30" max="100"><span id="cOpV" style="width:38px;text-align:right"></span></div>
+  <div class="row"><label class="t">Tema VARCO</label><select id="cTheme"></select></div>
+  <div class="btns"><button id="bStart">Simula avvio del gioco</button><button id="bHide">Mostra / nascondi (Ctrl+Shift+G)</button><button id="bThrough">Attraversabile</button><button id="bSet">Impostazioni per preset</button></div>
+  <p class="hint">Togli il mouse dal companion: diventa trasparente. Con «Attraversabile» i clic passano al gioco finché non premi Ctrl+Shift+G.</p>
+</div></div>
+
+<div class="scrim" id="scrim"></div><section class="set" id="set"></section><div class="toast" id="toast"></div>
+
+<script>
+/* ── Tema: gli stessi colori di VARCO (strumentoTokens) ── */
+function theme(id){const v=Strumento.strumentoTokens({...Strumento.themeOf(id),mode:'scuro'});for(const [k,x] of Object.entries(v))document.documentElement.style.setProperty(k,x);}
+const IP={clock:'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',timer:'M12 8v5l3 2M9 3h6M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16z',task:'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2',note:'M5 4h10l4 4v12H5zM15 4v4h4M8 12h8M8 16h5',
+  image:'M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5',link:'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',wide:'M4 5h16v14H4zM10 5v14',strip:'M15 5h5v14h-5zM4 5h8v14H4z',
+  pin:'M9 4h6l-1 6 4 3H6l4-3zM12 13v8',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',cog:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-1-3-2 .5-1.5-1.5.5-2-3-1-1 2h-2l-1-2-3 1 .5 2L5 9.5 3 9l-1 3 2 1v2l-2 1 1 3 2-.5 1.5 1.5-.5 2 3 1 1-2h2l1 2 3-1-.5-2 1.5-1.5 2 .5 1-3-2-1z',
+  play:'M7 4l13 8-13 8z',pause:'M8 5v14M16 5v14',replay:'M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5',down:'M6 9l6 6 6-6',up:'M6 15l6-6 6 6',hand:'M8 13V5a1.5 1.5 0 0 1 3 0v6V4a1.5 1.5 0 0 1 3 0v7V6a1.5 1.5 0 0 1 3 0v8c0 4-2.5 7-6.5 7S5 18 4 15l-1-3a1.5 1.5 0 0 1 2.7-1.2L8 13'};
+const svg=(n,s=16)=>`<svg class="i" viewBox="0 0 24 24" width="${s}" height="${s}"><path d="${IP[n]}"/></svg>`;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ── Dati dalla board del gioco (in VARCO: gli stessi della pagina del gioco, aggiornati nei due sensi) ── */
+const W={partita:'Partita',timer:'Timer',obiettivi:'Obiettivi',note:'Note tattiche',catture:'Ultime catture',link:'Link rapidi'};
+const PAGES={DIM:'inv',Wiki:'wiki',Mappa:'map',Discord:'chat',Statistiche:'stats',Chat:'chat'};
+let tasks=[{t:'Sconfiggere il boss di Liurnia',tag:'Boss',done:true},{t:'Arrivare al livello 70',tag:'Crescita',done:false},{t:'Trovare le Lacrime larvali',tag:'Esplorazione',done:false}];
+const notes='Boss: schivare a sinistra sulla seconda combo.\nPortare resistenza al sanguinamento.';
+let timers=[{l:'Fase del boss',secs:45,left:45,run:false},{l:'Pausa',secs:600,left:600,run:false}];
+const start=Date.now()-(72*60+4)*1000;
+const DEF={
+  amici:{n:'Con amici',k:'1',widgets:['partita','obiettivi','link','catture'],pages:['Discord','Mappa'],mode:'strip',side:'right',size:22,op:85,top:true,through:false},
+  compet:{n:'Competitivo',k:'2',widgets:['partita','timer','obiettivi'],pages:['Statistiche'],mode:'strip',side:'right',size:20,op:65,top:true,through:true},
+  stream:{n:'Streaming',k:'3',widgets:['timer','partita','catture','link'],pages:['Chat'],mode:'wide',side:'right',size:36,op:90,top:true,through:false},
+  solo:{n:'Da solo',k:'4',widgets:['note','obiettivi','link'],pages:['Wiki','Mappa','DIM'],mode:'wide',side:'right',size:40,op:100,top:false,through:false}};
+let CFG;try{CFG=JSON.parse(localStorage.getItem('comp-cfg-1'))||structuredClone(DEF);}catch{CFG=structuredClone(DEF);}
+let cur='amici',page=null,hidden=false,through=false;
+const save=()=>{try{localStorage.setItem('comp-cfg-1',JSON.stringify(CFG))}catch{}};
+const C=()=>CFG[cur];
+const hm=ms=>{const m=Math.floor(ms/60000);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');};
+const mmss=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const left=t=>t.run?t.left-(Date.now()-t.at)/1000:t.left;
+const TAGC={Boss:'--s-err',Crescita:'--s-ok',Esplorazione:'--s-alt'};
+
+function widget(k){
+  if(k==='partita'){const d=Date.now()-start;return `<div class="w"><div class="w-h mono">Partita<span class="r">${esc(C().n)}</span></div><div class="w-big" data-live>${hm(d)}</div><div class="bar"><i style="width:${Math.min(100,d/(4*3600e3)*100)}%"></i></div></div>`;}
+  if(k==='timer')return `<div class="w"><div class="w-h mono">Timer</div>${timers.map((t,i)=>{const l=left(t),st=l<=0?'err':l<=10?'warn':t.run?'ok':'';return `<div class="tm ${st}" data-t="${i}"><span><span class="mono" style="opacity:.75">${esc(t.l)}</span><br><span class="v">${mmss(l)}</span></span><button data-tt="${i}">${svg(t.run?'pause':'play',15)}</button></div>`;}).join('')}</div>`;
+  if(k==='obiettivi'){const done=tasks.filter(t=>t.done).length;return `<div class="w"><div class="w-h mono">Obiettivi<span class="r">${done}/${tasks.length}</span></div>${tasks.map((t,i)=>{const c=getComputedStyle(document.documentElement).getPropertyValue(TAGC[t.tag]||'--s-dim').trim();
+    return `<label class="task${t.done?' done':''}"><input type="checkbox" data-task="${i}"${t.done?' checked':''}><span>${esc(t.t)}</span><span class="tag" style="background:${c};color:${Strumento.onColor(c)}">${esc(t.tag)}</span></label>`;}).join('')}</div>`;}
+  if(k==='note')return `<div class="w"><div class="w-h mono">Note tattiche</div><div class="note">${esc(notes)}</div></div>`;
+  if(k==='catture')return `<div class="w"><div class="w-h mono">Ultime catture<span class="r">3</span></div><div class="caps"><div></div><div></div><div></div></div></div>`;
+  if(k==='link')return `<div class="w"><div class="w-h mono">Link rapidi</div><div class="links">${Object.keys(PAGES).slice(0,5).map(p=>`<button data-open="${p}">${svg('link',13)}${p}</button>`).join('')}</div></div>`;
+  return '';
+}
+function pageHtml(p){const k=PAGES[p];
+  if(k==='inv')return `<div class="pg"><h3>Inventario</h3><div class="inv">${'<div></div>'.repeat(25)}</div></div>`;
+  if(k==='wiki')return `<div class="pg wiki"><h3>Liurnia dei Laghi</h3><p>Regione a nord-ovest, piena di laghi e rovine. Il boss principale si trova all'accademia.</p>${'<div class="ln"></div>'.repeat(14)}</div>`;
+  if(k==='map')return `<div class="map">${[[30,40],[55,30],[70,62],[40,70],[22,55]].map(([x,y])=>`<i style="left:${x}%;top:${y}%"></i>`).join('')}</div>`;
+  if(k==='stats')return `<div class="pg"><h3>Statistiche</h3><div class="stats"><div><span class="mono">Vittorie</span><b>58%</b></div><div><span class="mono">K/D</span><b>1,24</b></div><div><span class="mono">Partite</span><b>132</b></div><div><span class="mono">Ore</span><b>96</b></div></div></div>`;
+  return `<div class="pg chat"><h3>${p==='Chat'?'Chat della live':'#partita'}</h3>${[['Luca','Pronti?'],['Sara','Io sì, porto la cura'],['Tu','Vado avanti io'],['Luca','Occhio alla seconda fase']].map(([n,m])=>`<div class="m"><div class="av"></div><div><b>${n}</b><span>${m}</span></div></div>`).join('')}</div>`;}
+
+function render(){
+  const c=C(),comp=document.getElementById('comp');
+  comp.classList.toggle('wide',c.mode==='wide');comp.classList.toggle('left',c.side==='left');comp.classList.toggle('hidden',hidden);comp.classList.toggle('through',through);
+  comp.style.setProperty('--w',(c.mode==='wide'?Math.max(560,innerWidth*c.size/100):Math.max(300,innerWidth*c.size/100))+'px');comp.style.setProperty('--op',c.op/100);
+  if(!c.pages.includes(page))page=c.pages[0]||null;
+  comp.innerHTML=`<div class="c-head"><div class="c-logo">ER</div><div class="c-title"><b>Elden Ring</b><button class="c-preset" id="hp" title="Cambia preset">${esc(c.n)} ${svg('down',12)}</button></div>
+    <button class="c-tb${c.mode==='wide'?' on':''}" id="hm" title="${c.mode==='wide'?'Striscia':'Estesa'}">${svg(c.mode==='wide'?'strip':'wide')}</button>
+    <button class="c-tb${c.top?' on':''}" id="ht" title="Sempre in primo piano">${svg('pin')}</button>
+    <button class="c-tb" id="hs" title="Impostazioni del companion">${svg('cog')}</button></div>
+  <div class="c-body"><div class="c-widgets">${c.widgets.map(widget).join('')}</div>
+    <div class="c-pages"><div class="c-tabs">${c.pages.map(p=>`<button class="c-tab${p===page?' on':''}" data-pg="${p}">${svg('link',13)}${p}</button>`).join('')}</div><div class="c-page">${page?pageHtml(page):''}</div></div></div>
+  <div class="c-foot"><span class="mono">${c.mode==='wide'?'estesa':'striscia'} · ${c.op}%${through?' · attraversabile':''}</span>${c.mode==='strip'?c.pages.map(p=>`<button class="c-chip" data-pgw="${p}" title="Apri ${p}">${svg('link',13)}${p}</button>`).join(''):''}</div>
+  <div class="pick" id="pick"></div>`;
+  comp.querySelector('#hp').onclick=()=>showPick(false);
+  comp.querySelector('#hm').onclick=()=>{c.mode=c.mode==='wide'?'strip':'wide';save();render();sync();};
+  comp.querySelector('#ht').onclick=()=>{c.top=!c.top;save();render();toast(c.top?'Sempre in primo piano':'Non più in primo piano');};
+  comp.querySelector('#hs').onclick=()=>settings(cur);
+  comp.querySelectorAll('[data-pg]').forEach(b=>b.onclick=()=>{page=b.dataset.pg;render();});
+  comp.querySelectorAll('[data-pgw],[data-open]').forEach(b=>b.onclick=()=>{page=b.dataset.pgw||b.dataset.open;if(!c.pages.includes(page))c.pages.push(page);c.mode='wide';save();render();sync();});
+  comp.querySelectorAll('[data-task]').forEach(i=>i.onchange=()=>{tasks[+i.dataset.task].done=i.checked;render();toast('Aggiornato anche nella pagina del gioco');});
+  comp.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{const t=timers[+b.dataset.tt];if(t.run){t.left=left(t);t.run=false;}else{if(t.left<=0)t.left=t.secs;t.run=true;t.at=Date.now();}render();});
+}
+setInterval(()=>{const l=document.querySelector('[data-live]');if(l)l.textContent=hm(Date.now()-start);
+  document.querySelectorAll('[data-t]').forEach(el=>{const t=timers[+el.dataset.t],x=left(t);el.querySelector('.v').textContent=mmss(x);el.className='tm '+(x<=0?'err':x<=10?'warn':t.run?'ok':'');});},500);
+
+/* ── Avvio: «Che partita è?» dentro il companion, tasti 1–4, dopo 10 s l'ultimo ── */
+let pickT=null;
+function showPick(auto){const p=document.getElementById('pick'),last=cur,T0=Date.now();hidden=false;through=false;render();
+  const box=document.getElementById('pick');
+  box.innerHTML=`<span class="mono" style="color:var(--s-sig-ink)">${auto?'Elden Ring è partito':'Cambia preset'}</span><h2>Che partita è?</h2><div class="grid">${Object.entries(CFG).map(([k,v])=>`<button class="p${k===last?' last':''}" data-p="${k}"><span><b>${esc(v.n)}</b><small>${v.widgets.map(w=>W[w]).join(' · ')}${v.pages.length?' · '+v.pages.join(', '):''}</small></span><span class="k">${v.k}</span>${k===last&&auto?'<i class="cnt"></i>':''}</button>`).join('')}</div>
+    <div class="foot"><span class="mono" id="pickL">${auto?'tra 10 s: '+esc(CFG[last].n):''}</span><button class="mono" data-p="${last}">${auto?'Tieni questo':'Annulla'}</button></div>`;
+  box.classList.add('on');
+  const choose=k=>{clearInterval(pickT);removeEventListener('keydown',key,true);cur=k;through=!!CFG[k].through;render();sync();toast(`Companion «${CFG[k].n}»: ${CFG[k].mode==='wide'?'esteso':'a striscia'}, ${CFG[k].op}%`);};
+  box.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>choose(b.dataset.p));
+  const key=e=>{const f=Object.entries(CFG).find(([,v])=>v.k===e.key);if(f){e.preventDefault();choose(f[0]);}};addEventListener('keydown',key,true);
+  clearInterval(pickT);if(auto)pickT=setInterval(()=>{const f=Math.min(1,(Date.now()-T0)/10000),c=box.querySelector('.cnt');if(c)c.style.width=f*100+'%';
+    const l=document.getElementById('pickL');if(l)l.textContent='tra '+Math.ceil((10000-(Date.now()-T0))/1000)+' s: '+CFG[last].n;if(f>=1)choose(last);},100);
+}
+
+/* ── Impostazioni del companion, per preset ── */
+function settings(sel){let k=sel;const box=document.getElementById('set'),scrim=document.getElementById('scrim');
+  const draw=()=>{const c=CFG[k];
+    box.innerHTML=`<span class="mono kick">Companion · Elden Ring</span><h2>Com'è il companion in ogni preset</h2>
+    <div class="tabs">${Object.entries(CFG).map(([id,v])=>`<button data-k="${id}" class="${id===k?'on':''}">${esc(v.n)}</button>`).join('')}</div>
+    <div class="r top"><span class="mono">Widget</span><div class="wl">${Object.keys(W).sort((a,b)=>(c.widgets.indexOf(a)+1||99)-(c.widgets.indexOf(b)+1||99)).map(w=>`<div class="wi"><input type="checkbox" data-w="${w}"${c.widgets.includes(w)?' checked':''}>${W[w]}
+      <span class="mv">${c.widgets.includes(w)?`<button data-up="${w}" title="Su">${svg('up',13)}</button><button data-dn="${w}" title="Giù">${svg('down',13)}</button>`:''}</span></div>`).join('')}</div></div>
+    <div class="r top"><span class="mono">Pagine</span><div class="pages">${Object.keys(PAGES).map(p=>`<label><input type="checkbox" data-pg="${p}"${c.pages.includes(p)?' checked':''}>${p}</label>`).join('')}</div></div>
+    <div class="r"><span class="mono">Misura</span><div class="seg"><button data-m="strip" class="${c.mode==='strip'?'on':''}">Striscia</button><button data-m="wide" class="${c.mode==='wide'?'on':''}">Estesa</button></div></div>
+    <div class="r"><span class="mono">Lato</span><div class="seg"><button data-s="left" class="${c.side==='left'?'on':''}">Sinistra</button><button data-s="right" class="${c.side==='right'?'on':''}">Destra</button></div></div>
+    <div class="r"><span class="mono">Larghezza</span><input type="range" min="16" max="50" value="${c.size}" data-f="size"><span class="mono" style="width:40px">${c.size}%</span></div>
+    <div class="r"><span class="mono">Trasparenza</span><input type="range" min="30" max="100" value="${c.op}" data-f="op"><span class="mono" style="width:40px">${c.op}%</span></div>
+    <div class="r"><span class="mono">Sopra il gioco</span><label class="chk"><input type="checkbox" data-c="top"${c.top?' checked':''}> sempre in primo piano</label></div>
+    <div class="r"><span class="mono">Clic</span><label class="chk"><input type="checkbox" data-c="through"${c.through?' checked':''}> attraversabile (i clic vanno al gioco finché non premi Ctrl+Shift+G)</label></div>
+    <p class="mono" style="color:var(--s-dim);text-transform:none;letter-spacing:0">Monitor: quello scelto nel gioco (Impostazioni → Giochi). Opacità piena quando ci passi sopra col mouse.</p>
+    <div class="acts"><button class="btn" data-reset>Ripristina</button><button class="btn pri" data-close>Fatto</button></div>`;
+    box.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{k=b.dataset.k;draw();});
+    box.querySelectorAll('[data-w]').forEach(i=>i.onchange=()=>{const w=i.dataset.w;c.widgets=i.checked?[...c.widgets,w]:c.widgets.filter(x=>x!==w);upd();});
+    box.querySelectorAll('[data-up],[data-dn]').forEach(b=>b.onclick=()=>{const w=b.dataset.up||b.dataset.dn,i=c.widgets.indexOf(w),j=i+(b.dataset.up?-1:1);if(j<0||j>=c.widgets.length)return;[c.widgets[i],c.widgets[j]]=[c.widgets[j],c.widgets[i]];upd();});
+    box.querySelectorAll('[data-pg]').forEach(i=>i.onchange=()=>{const p=i.dataset.pg;c.pages=i.checked?[...c.pages,p]:c.pages.filter(x=>x!==p);upd();});
+    box.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{c.mode=b.dataset.m;upd();});
+    box.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{c.side=b.dataset.s;upd();});
+    box.querySelectorAll('[data-f]').forEach(r=>r.oninput=()=>{c[r.dataset.f]=+r.value;r.nextElementSibling.textContent=r.value+'%';save();if(k===cur){render();sync();}});
+    box.querySelectorAll('[data-c]').forEach(i=>i.onchange=()=>{c[i.dataset.c]=i.checked;upd();});
+    box.querySelector('[data-reset]').onclick=()=>{CFG[k]=structuredClone(DEF[k]);upd();};
+    box.querySelector('[data-close]').onclick=()=>{box.classList.remove('on');scrim.classList.remove('on');};};
+  const upd=()=>{save();draw();if(k===cur){render();sync();}};
+  draw();box.classList.add('on');scrim.classList.add('on');scrim.onclick=()=>{box.classList.remove('on');scrim.classList.remove('on');};
+}
+
+/* ── Pannello dell'esempio ── */
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600);}
+function sync(){const c=C();document.getElementById('cPreset').value=cur;
+  document.querySelectorAll('#cMode button').forEach(b=>b.classList.toggle('on',b.dataset.v===c.mode));document.querySelectorAll('#cSide button').forEach(b=>b.classList.toggle('on',b.dataset.v===c.side));
+  document.getElementById('cOp').value=c.op;document.getElementById('cOpV').textContent=c.op+'%';document.getElementById('bThrough').textContent=through?'Attraversabile: sì':'Attraversabile: no';}
+document.getElementById('cPreset').innerHTML=Object.entries(CFG).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join('');
+document.getElementById('cPreset').onchange=e=>{cur=e.target.value;through=C().through;render();sync();};
+document.querySelectorAll('#cMode button').forEach(b=>b.onclick=()=>{C().mode=b.dataset.v;save();render();sync();});
+document.querySelectorAll('#cSide button').forEach(b=>b.onclick=()=>{C().side=b.dataset.v;save();render();sync();});
+document.getElementById('cOp').oninput=e=>{C().op=+e.target.value;save();render();sync();};
+document.getElementById('cTheme').innerHTML=Object.entries(Strumento.THEMES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+document.getElementById('cTheme').onchange=e=>{theme(e.target.value);render();};
+document.getElementById('bStart').onclick=()=>showPick(true);
+const toggleHide=()=>{if(through){through=false;render();sync();toast('Companion utilizzabile');return;}hidden=!hidden;render();toast(hidden?'Companion nascosto · Ctrl+Shift+G per riaprirlo':'Companion visibile');};
+document.getElementById('bHide').onclick=toggleHide;
+document.getElementById('bThrough').onclick=()=>{through=!through;render();sync();toast(through?'Attraversabile: i clic vanno al gioco · Ctrl+Shift+G per usarlo':'Il companion riceve i clic');};
+document.getElementById('bSet').onclick=()=>settings(cur);
+document.getElementById('ctlH').onclick=()=>document.getElementById('ctl').classList.toggle('min');
+addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='g'){e.preventDefault();toggleHide();}});
+addEventListener('resize',render);
+theme('varco');render();sync();
+</script>
+</body>
+</html>

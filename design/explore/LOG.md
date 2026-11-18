@@ -321,3 +321,13 @@ Richiesta: più personalizzazione (dalle etichette degli obiettivi ai link rapid
   - rinomina, duplica, archivia o ripristina, elimina (con conferma);
   - «Nuova board» parte da: la disposizione della board attuale (contenuti vuoti), una board pulita o una copia completa;
   - all'avvio del gioco, nella scelta del preset, si sceglie anche la board su cui giocare.
+
+## 2026-11-18 · Companion · Round 1 (companion-round-1/) — 0.43.4
+Prima: il companion era una finestra completa di VARCO (workspace del gioco) con monitor, lato, dimensione, sempre in primo piano.
+Esempio: finestra compatta sopra un gioco finto (Elden Ring), stile Strumento con i colori del tema.
+- **Due misure:** striscia (widget) ed estesa (widget + pagine web a schede).
+- **Widget dalla board del gioco**, aggiornati nei due sensi: partita, timer, obiettivi, note tattiche, ultime catture, link rapidi.
+- **Trasparenza** regolabile, piena al passaggio del mouse; **attraversabile** (i clic vanno al gioco); **Ctrl+Shift+G** per mostrarlo, nasconderlo o riprenderlo.
+- **Un companion per preset:** widget e ordine, pagine, misura, lato, larghezza, trasparenza, primo piano, attraversabile.
+- **«Che partita è?» dentro il companion:** tasti 1–4, dopo 10 s l'ultimo preset.
+**Scelta:** l'esempio va bene così, «per ora teniamolo semplice». Idea per il futuro: il companion come ponte per JARVIS e per app proprie (es. Destiny Builder). Portato in VARCO nella Beta 0.43.4.

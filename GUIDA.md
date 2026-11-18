@@ -4,6 +4,48 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.43.4 — Companion compatto (0.43, fase D)
+
+Installer PC: `dist\VARCO Setup 0.43.4.exe` (con la firma VMP). Chiude la 0.43 «workbench».
+
+### Cosa cambia
+- **Il companion diventa una finestra compatta accanto al gioco**: niente barre del browser, stile Strumento con i colori del tema.
+  - Testata: nome del gioco, preset in uso (cliccandolo lo cambi), striscia ↔ estesa, sempre in primo piano, pagina del gioco, chiudi.
+  - **Striscia:** solo i widget. In fondo ci sono i pulsanti delle pagine del preset.
+  - **Estesa:** widget a sinistra, una pagina web alla volta a destra (i siti «Apri» del preset), con schede. Le pagine usano gli account del workspace del gioco.
+- **Widget presi dalla board del gioco**, aggiornati nei due sensi: partita (tempo e barra), timer (avvio e pausa), obiettivi (spunte), note tattiche, ultime catture, link rapidi.
+- **Sopra il gioco:**
+  - trasparenza regolabile, piena quando ci passi sopra col mouse;
+  - **attraversabile:** i clic vanno al gioco;
+  - **Ctrl+Shift+G** lo mostra o nasconde, e se è attraversabile lo rende di nuovo usabile.
+  - Funziona con i giochi in finestra o a schermo intero senza bordi.
+- **«Che partita è?» dentro il companion** quando il gioco parte: tasti 1–4, e dopo 10 s resta l'ultimo preset. Il companion si sistema da solo: widget, misura, lato, larghezza, trasparenza.
+- **Un companion per ogni preset:** pagina del gioco → Preset → «Modifica i preset…» → sezione «Companion compatto» (widget, misura, lato, larghezza, trasparenza, primo piano, attraversabile).
+  - Di partenza: Con amici (striscia), Competitivo (striscia trasparente e attraversabile), Streaming (estesa), Da solo (estesa).
+- **Nel modulo del gioco (pannello Giochi), «Companion»:** compatto (predefinito) oppure la finestra di VARCO di prima. «Prova» apre quello scelto.
+- **Sempre in primo piano funziona davvero:** su Windows il livello di prima veniva ignorato; il companion compatto usa quello che resta sopra i giochi.
+
+### Test da fare
+- [ ] **T343** — Pannello Giochi → «Prova»: si apre il companion compatto sul monitor del gioco, dal lato e con la larghezza del preset. **📸**
+- [ ] **T344** — Avvia il gioco: nel companion compare «Che partita è?»; premi 4 (Da solo): diventa esteso con la prima pagina del preset.
+- [ ] **T345** — Togli il mouse dal companion: diventa trasparente; ripassaci sopra: torna pieno.
+- [ ] **T346** — Preset «Competitivo» (attraversabile): clicca sul companion e il clic va al gioco; Ctrl+Shift+G e lo puoi usare.
+- [ ] **T347** — Ctrl+Shift+G mentre giochi (senza bordi): il companion si nasconde e ricompare.
+- [ ] **T348** — Spunta un obiettivo nel companion: nella pagina del gioco risulta spuntato (e viceversa).
+- [ ] **T349** — Pagina del gioco → Preset → «Modifica i preset…» → togli un widget e passa a «Estesa»: il companion cambia subito.
+- [ ] **T350** — Nel modulo del gioco scegli «Finestra di VARCO»: «Prova» riapre la finestra completa di prima.
+
+**Stato:**
+- 280 test superati (1 nuovo: companion per preset; aggiornati quelli della partita e del gioco).
+- **Provato in VARCO** con un gioco finto:
+  - «Prova» apre il companion compatto (lato destro, 22%, trasparenza 85%);
+  - partita iniziata → «Che partita è?»; tasto 4 → estesa con la pagina di Mapgenie caricata;
+  - preset Competitivo → trasparenza 65% e attraversabile;
+  - la scorciatoia è registrata.
+- **Non provati:** sopra un gioco vero e la scorciatoia premuta davvero mentre si gioca, l'installer.
+
+---
+
 ## Beta 0.43.3 — Pagina del gioco, partite e board (0.43, fase D)
 
 Installer PC: `dist\VARCO Setup 0.43.3.exe` (con la firma VMP). Segue il companion configurabile (0.43.4).

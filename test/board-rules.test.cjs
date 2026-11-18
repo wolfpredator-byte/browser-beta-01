@@ -22,7 +22,7 @@ test('elenco delle board: almeno una, quella aperta esiste, etichette e link con
 
 test('partita in corso e partita da salvare',()=>{
   const i=R.normalizeIndex({boards:{b1:{name:'A'}},session:{start:100,preset:'nessuno',board:'b9'},pending:{start:1,end:61000,board:'b1',caps:[{path:'C:\\x\\a.png',name:'a.png',mtime:5},{}]}},'game');
-  assert.deepEqual(i.session,{start:100,preset:'amici',board:'b1',manual:false});
+  assert.deepEqual(i.session,{start:100,preset:'amici',board:'b1',manual:false,picked:false});
   assert.equal(i.pending.caps.length,1);
   assert.equal(R.normalizeIndex({session:{start:'x'}},'game').session,null);
 });
@@ -59,4 +59,10 @@ test('catture nuove, link suggeriti e nome della cartella del gioco',()=>{
   assert.ok(q.some(l=>l.n==='Wiki'&&l.sug&&l.u.includes('Elden%20Ring')));
   assert.equal(R.safeFolderName('Halo: Reach / MCC.'),'Halo Reach MCC');
   assert.equal(R.safeFolderName(''),'Gioco');
+});
+
+test('companion compatto per preset (Beta 0.43.4)',()=>{
+  const i=R.normalizeIndex({presets:{amici:{n:'Con amici',comp:{widgets:['timer','boh','timer','note'],mode:'wide',side:'x',size:99,op:5,top:false}}}},'game');
+  assert.deepEqual(i.presets.amici.comp,{widgets:['timer','note'],mode:'wide',side:'right',size:60,op:30,top:false,through:false});
+  assert.deepEqual(R.normalizeComp(undefined,'compet'),{widgets:['partita','timer','obiettivi'],mode:'strip',side:'right',size:20,op:65,top:true,through:true});
 });

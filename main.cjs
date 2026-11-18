@@ -97,6 +97,7 @@ function start(){
   require('./lib/tour.cjs').setup(bus);
   require('./lib/project-page.cjs').setup(bus); // Beta 0.43.2: pagina del progetto (0.43.3: board)
   require('./lib/game-session.cjs').setup(bus); // Beta 0.43.3: pagina del gioco e partite
+  require('./lib/companion-panel.cjs').setup(); // Beta 0.43.4: companion compatto
   require('./lib/project-types.cjs').setup(bus); // Beta 0.43.1: tipi di progetto // Beta 0.42: tutorial (setup, tour, suggerimenti) // Beta 0.39: launcher (Ctrl+Alt+Spazio, anche fuori da VARCO)
   require('./lib/popup.cjs').setup();
 
@@ -131,8 +132,9 @@ function start(){
     games:()=>state.data.games,
     findRunning,
     // Beta 0.43.3: la partita inizia e finisce con il gioco (storico, preset, catture).
-    onStart:game=>{companion.openCompanion(game);setTimeout(()=>require('./lib/game-session.cjs').start(game),1500);},
-    onStop:game=>{companion.closeCompanion(game);require('./lib/game-session.cjs').stop(game);}
+    // Beta 0.43.4: il companion compatto (predefinito) oppure la finestra completa di VARCO (scelta nel gioco).
+    onStart:game=>{if(game.companionKind==='finestra')companion.openCompanion(game);else require('./lib/companion-panel.cjs').open(game);setTimeout(()=>require('./lib/game-session.cjs').start(game),1500);},
+    onStop:game=>{companion.closeCompanion(game);require('./lib/companion-panel.cjs').close(game);require('./lib/game-session.cjs').stop(game);}
   });
   state.gameWatcher.setEnabled(state.data.settings.gameWatcher);
   state.gameWatcher.start();
