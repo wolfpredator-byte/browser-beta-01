@@ -4,6 +4,64 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.43.3 — Pagina del gioco, partite e board (0.43, fase D)
+
+Installer PC: `dist\VARCO Setup 0.43.3.exe` (con la firma VMP). Segue il companion configurabile (0.43.4).
+
+### Cosa cambia
+- **Pagina del gioco** (pannello Giochi → «Pagina», oppure F1 → «Pagina di …»):
+  - la stessa tela della pagina del progetto, per qualsiasi gioco;
+  - **scheda del gioco:** in esecuzione o no, board e preset della partita, monitor del companion, barra della partita a tacche, tempo della partita, totale della board, partite e obiettivi;
+  - **obiettivi**, **timer** (conto alla rovescia oppure «fino a» un giorno e un'ora, per esempio il reset settimanale), **note tattiche**;
+  - **catture** (screenshot e clip), **configurazione** (righe libere voce → valore: personaggio, classe, agente, seme…);
+  - **storico partite** e **link rapidi**.
+- **Partite:**
+  - quando il gioco parte (rilevamento dei giochi) inizia la partita sulla board aperta, con l'ultimo preset;
+  - un avviso, nel companion se c'è, lascia cambiare preset: si aprono i suoi siti;
+  - senza rilevamento si usa «Inizia partita» / «Chiudi partita» dalla scheda.
+- **Fine partita:**
+  - nella pagina del gioco compare il riepilogo: durata, preset, catture fatte nel frattempo (Xbox Game Bar, Steam, NVIDIA) da scegliere, «Com'è andata?», obiettivi fatti;
+  - «Aggiungi allo storico» copia le catture scelte in `catture/` e scrive anche `sessioni/<data>.md`, leggibile fuori da VARCO;
+  - si può anche «Non salvare» o rimandare con «Dopo».
+- **La board non si perde quando chiudi il gioco.** Lo storico si apre in un pannello a lato: totali, elenco delle partite e dettaglio di ognuna.
+- **Preset uguali per tutti i giochi e modificabili:**
+  - di partenza: Con amici, Competitivo, Streaming, Da solo;
+  - per ognuno: nome, icona, siti da aprire, companion, timer, note, clip;
+  - si possono aggiungere o togliere.
+- **Più board (anche per i progetti):**
+  - pulsante «Board» nella testata: una board per ogni run, stagione o mondo (o fase di lavoro nei progetti);
+  - rinomina, duplica, archivia, elimina;
+  - «Nuova board» parte dalla stessa disposizione (contenuti vuoti), da una board pulita o da una copia completa.
+- **Più personalizzabile (giochi e progetti):**
+  - **etichette** di attività e obiettivi: colorate, si cambiano con un clic, si gestiscono (nome, colore, nuove, elimina) e valgono per tutte le board;
+  - **link rapidi:** aggiungi, modifica, togli; si aprono in pannello, scheda o companion; possono andare nel dock.
+- **Dove si salva:**
+  - progetto: `.varco/boards.json` e `.varco/boards/`. La pagina della 0.43.2 diventa da sola la board «Principale», note comprese;
+  - gioco: la cartella del workspace del gioco (`.varco/`), altrimenti `Documenti\VARCO\Giochi\<nome del gioco>`.
+
+### Test da fare
+- [ ] **T334** — Pannello Giochi → «Pagina» su un gioco: si apre la scheda con il nome del gioco e la tela. **📸**
+- [ ] **T335** — Avvia il gioco con il rilevamento acceso: nella scheda compare «In gioco», e nel companion l'avviso con i preset; scegline uno e si aprono i suoi siti.
+- [ ] **T336** — Fai uno screenshot con Xbox Game Bar (Win+Alt+Stamp), poi chiudi il gioco: nella pagina compare «Partita finita» con la cattura; «Aggiungi allo storico» → la partita è nello storico e c'è `sessioni/<data>.md`.
+- [ ] **T337** — Riapri la pagina del gioco dopo averlo chiuso: obiettivi, note, timer e disposizione sono come li avevi lasciati.
+- [ ] **T338** — «Board» → «Nuova board» con la stessa disposizione: riquadri uguali, obiettivi e storico vuoti; torna alla prima dall'elenco.
+- [ ] **T339** — Clic su un'etichetta di un obiettivo → cambia; «Gestisci le etichette» → rinomina e cambia colore. **📸**
+- [ ] **T340** — Link rapidi: aggiungi un link come «Pannello» e mettilo nel dock; cliccalo: si apre come pannello web.
+- [ ] **T341** — Preset → «Modifica i preset…»: cambia i siti di «Con amici» e crea un preset nuovo.
+- [ ] **T342** — Pagina del progetto di un progetto della 0.43.2: c'è la board «Principale» con le attività e le note di prima.
+
+**Stato:**
+- 279 test superati (5 nuovi sulle board: elenco, partita in corso e da salvare, nuove board, storico e riepilogo, catture e link suggeriti; aggiornato quello delle etichette).
+- **Provato in VARCO** con un profilo di prova:
+  - migrazione della pagina 0.43.2 nella board «Principale» (etichette di partenza, link dai pannelli consigliati);
+  - nuova board con la stessa disposizione e ritorno alla prima;
+  - pagina di un gioco finto;
+  - partita iniziata a mano, poi chiusa: riepilogo, storico, `sessioni/2026-11-18.md`;
+  - editor delle etichette e collezione delle board.
+- **Non provati:** il rilevamento con un gioco vero, le catture di Game Bar / Steam / NVIDIA (nessuna nella prova), l'avviso nel companion, l'installer.
+
+---
+
 ## Beta 0.43.2 — Pagina del progetto (0.43, fase C)
 
 Installer PC: `dist\VARCO Setup 0.43.2.exe` (con la firma VMP). Segue la sessione di gioco (0.43.3).

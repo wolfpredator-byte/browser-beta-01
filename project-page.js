@@ -1,4 +1,6 @@
 /* Beta 0.43.2 — Pagina del progetto (scheda interna app://project), disegnata dalla cornice.
+ * Beta 0.43.3 — anche la pagina del gioco (app://game/<id>): stessa tela, riquadri del gioco, partite e storico;
+ *   per entrambe più board (run, stagioni, fasi), etichette e link rapidi modificabili.
  * Una tela libera: riquadri messi dove vuoi, collegati da fili (cavi con la spina), raggruppati in aree.
  * Dati veri del progetto: stato del server, file recenti, risorse; attività, note e screenshot in <progetto>/.varco.
  * La disposizione vive qui mentre la modifichi e si salva in .varco/pagina.json (lib/project-page.cjs).
@@ -8,11 +10,14 @@
 const act=(name,args={})=>window.browserAPI.action(name,args);
 const SNAP=24;
 const SINGLE=['hero','tasks','shots','files','stream','notes','res'];
-const SIZES={hero:[768,576],tasks:[336,504],shots:[624,408],files:[432,360],stream:[336,312],notes:[432,288],res:[336,384],note:[312,216],shot:[456,312],link:[312,120],file:[312,144]};
+const SIZES={hero:[768,576],tasks:[336,504],shots:[624,408],files:[432,360],stream:[336,312],notes:[432,288],res:[336,384],note:[312,216],shot:[456,312],link:[312,120],file:[312,144],timer:[336,192]};
 const SIZE_CHOICES={hero:[[768,576],[624,520],[960,600]],tasks:[[336,504],[432,504],[336,624]],shots:[[624,408],[456,408],[816,480]],files:[[432,360],[624,360]],
-  stream:[[336,312],[432,360]],notes:[[432,288],[624,360]],res:[[336,384],[432,384]],note:[[312,216],[264,168],[432,288]],shot:[[456,312],[336,232],[624,408]],link:[[312,120],[408,120]],file:[[312,144],[408,144]]};
-const GROUP={hero:'lavoro',tasks:'lavoro',files:'lavoro',stream:'lavoro',notes:'lavoro',note:'lavoro',file:'lavoro',shots:'media',shot:'media',res:'link',link:'link'};
-const LABEL={hero:'Stato del progetto',tasks:'Attività',shots:'Screenshot',files:'File recenti',stream:'Cronologia',notes:'Note del progetto',res:'Risorse',note:'Nota',shot:'Screenshot',link:'Link',file:'File'};
+  stream:[[336,312],[432,360]],notes:[[432,288],[624,360]],res:[[336,384],[432,384]],note:[[312,216],[264,168],[432,288]],shot:[[456,312],[336,232],[624,408]],link:[[312,120],[408,120]],file:[[312,144],[408,144]],timer:[[336,192],[288,168],[432,216]]};
+const GROUP={hero:'lavoro',tasks:'lavoro',files:'lavoro',stream:'lavoro',notes:'lavoro',note:'lavoro',file:'lavoro',shots:'media',shot:'media',res:'link',link:'link',timer:'lavoro'};
+const LABELS={project:{hero:'Stato del progetto',tasks:'Attività',shots:'Screenshot',files:'File recenti',stream:'Cronologia',notes:'Note del progetto',res:'Link rapidi',note:'Nota',shot:'Screenshot',link:'Link',file:'File',timer:'Timer'},
+  game:{hero:'Scheda del gioco',tasks:'Obiettivi',shots:'Catture',files:'Configurazione',stream:'Storico partite',notes:'Note tattiche',res:'Link rapidi',note:'Nota',shot:'Cattura',link:'Link',file:'File',timer:'Timer'}};
+const LABEL=new Proxy({},{get:(o,k)=>LABELS[D.mode||'project'][k]});
+const TITLES={project:{tasks:'Da fare',shots:'Galleria',files:'Dove eri rimasto',stream:'Cosa è successo',res:'Sempre a portata'},game:{tasks:'In questa board',shots:'Screenshot e clip',files:'Build e impostazioni',stream:'Le partite',res:'Sempre a portata'}};
 const TAGS=['Bug','UI','Codice','Arte','Build','Altro'];
 const TAGC={Bug:'--s-err',UI:'--s-alt',Codice:'--s-sig-ink',Arte:'--s-warn',Build:'--s-ok',Altro:'--s-dim'};
 
@@ -58,7 +63,8 @@ function build(){
   <div class="pp-view" data-r="view"><div class="pp-dots" data-r="dots"></div><div class="pp-world" data-r="world"><div class="pp-areas" data-r="areas"></div><svg class="pp-wires" data-r="wires"></svg><div class="pp-tiles" data-r="tiles"></div><div class="pp-labels" data-r="labels"></div></div></div>
   <header class="pp-top"><div class="pp-logo" data-r="logo"></div><div class="pp-name"><span data-r="name"></span><span class="pp-mono pp-type" data-r="type"></span></div><div class="pp-sep"></div>
     <div class="pp-path" data-r="path" title="Apri la cartella del progetto">${svg('folder',15)}<span data-r="pathText"></span></div>
-    <div class="pp-grow"></div><span class="pp-mono pp-saved" data-r="saved">● salvato in .varco</span>
+    <button class="pp-bchip" data-r="bchip" title="Board: run, stagioni, fasi del lavoro">${svg('grid',15)}<span><span class="pp-mono">Board</span><b data-r="bname"></b></span></button>
+    <div class="pp-grow"></div><span class="pp-mono pp-saved" data-r="saved">● salvato</span>
     <button class="pp-btn" data-r="panelBtn" title="Pannello Progetto: comandi, log, ambiente di lavoro">${svg('panel',15)}Pannello</button>
     <button class="pp-btn pri" data-r="addTop">${svg('plus',15)}Aggiungi</button></header>
   <div class="pp-ribbon"><div class="pp-meta pp-mono" data-r="meta"></div>
@@ -82,7 +88,8 @@ function build(){
   <div class="pp-menu" data-r="menu"></div><div class="pp-menu" data-r="sizeMenu"></div><div class="pp-cmenu" data-r="cmenu"></div>
   <div class="pp-wbar" data-r="wbar"><input data-r="wlab" placeholder="Etichetta del filo…"><span data-r="wsw" style="display:flex;gap:5px;padding:0 4px"></span><button class="b" data-r="wrev" title="Inverti verso">${svg('swap')}</button><button class="b" data-r="wdel" title="Togli il filo">${svg('trash')}</button></div>
   <div class="pp-lb" data-r="lb"><img alt=""></div>
-  <div class="pp-missing" data-r="missing" hidden><div><h2>Cartella del progetto non trovata</h2><p>Collega una cartella al workspace dal pannello Progetto.</p></div></div>
+  <div class="pp-scrim" data-r="scrim"></div><section class="pp-modal" data-r="modal"></section><aside class="pp-sheet" data-r="sheet"></aside><div class="pp-toast" data-r="toast"></div>
+  <div class="pp-missing" data-r="missing" hidden><div><h2 data-r="missTitle">Cartella non trovata</h2><p data-r="missText">Collega una cartella al workspace dal pannello Progetto.</p></div></div>
   <input type="file" data-r="file" accept="image/*" multiple hidden>`;
   E={};root.querySelectorAll('[data-r]').forEach(el=>E[el.dataset.r]=el);
   wireChrome();built=true;
@@ -91,47 +98,52 @@ function build(){
 /* ── Dati dal processo principale ── */
 function render(state){
   if(!built)build();
-  const pp=state.projectPage;if(!pp)return;
+  const pp=state.boardPage;if(!pp)return;
   E.missing.hidden=!pp.missing;E.view.hidden=!!pp.missing;
-  if(pp.missing)return;
-  D={pp,project:state.project||{},kind:state.project?.kind||null,commands:state.project?.commands||[],shots:pp.shots||[],
+  if(pp.missing){E.missTitle.textContent=pp.kind==='game'?'Gioco non trovato':'Cartella del progetto non trovata';E.missText.textContent=pp.kind==='game'?'Il gioco è stato tolto dalle Impostazioni.':'Collega una cartella al workspace dal pannello Progetto.';return;}
+  D={pp,mode:pp.kind,gk:pp.key,game:pp.game||null,index:pp.index,project:state.project||{},kind:pp.kind==='project'?state.project?.kind||null:null,commands:pp.kind==='project'?state.project?.commands||[]:[],shots:pp.shots||[],
     resources:(state.workspaces||[]).find(x=>x.name===state.activeWorkspace)?.resources||[],workspace:state.activeWorkspace};
-  const key=state.activeWorkspace+'|'+pp.folder;
-  if(key!==curKey){curKey=key;load(pp,true);}
+  const key=pp.kind+'|'+pp.key+'|'+pp.folder+'|'+pp.index.current;
+  if(key!==curKey){const first=!curKey||curKey.split('|').slice(0,3).join('|')!==key.split('|').slice(0,3).join('|');curKey=key;load(pp,true,first);}
   else if(pp.rev!==lastRev&&pp.rev!==savedRev&&!dirty&&!busy()){load(pp,false);}   // cambiata da fuori (git pull, un'altra finestra)
+  else if(!dirty)IX=mergeIndex(pp.index);
   lastRev=pp.rev;
-  chrome();refreshDynamic();
-  if(document.activeElement?.dataset?.k!=='notes'&&pp.notes!==notesSent){notesSent=null;const ta=E.tiles.querySelector('[data-k=notes]');if(ta&&ta.value!==pp.notes&&!notesTimer)ta.value=pp.notes;}
+  chrome();refreshDynamic();boardExtras();
 }
 let moving=false;const busy=()=>moving||!!temp;
+let IX=null;   // elenco delle board, etichette, link rapidi, preset (in comune tra le board)
+const mergeIndex=ix=>JSON.parse(JSON.stringify(ix));
 
-function load(pp,first){
-  P=JSON.parse(JSON.stringify(pp.page));
-  P.links=P.links||[];P.areas=P.areas||{};P.tasks=P.tasks||[];P.tiles=P.tiles||{};
-  selTile=null;selWire=null;E.wbar.classList.remove('on');
+function load(pp,first,newPage){
+  P=JSON.parse(JSON.stringify(pp.board));IX=mergeIndex(pp.index);
+  P.links=P.links||[];P.areas=P.areas||{};P.tasks=P.tasks||[];P.tiles=P.tiles||{};P.build=P.build||[];P.sessions=P.sessions||[];P.notes=P.notes||'';
+  selTile=null;selWire=null;E.wbar.classList.remove('on');if(newPage!==false){E.sheet.classList.remove('on');}
   for(const k in sigs)delete sigs[k];
-  renderAll();
+  menuLabels();renderAll();
   if(first||!P.view){if(P.view){view={...P.view};applyView();}else requestAnimationFrame(firstView);}
 }
 
-/* Salvataggio: mezzo secondo dopo l'ultima modifica */
-function save(){
-  dirty=true;clearTimeout(saveTimer);
+/* Salvataggio: mezzo secondo dopo l'ultima modifica (la board aperta e, se cambiato, l'elenco) */
+let indexDirty=false;
+function save(withIndex){
+  dirty=true;if(withIndex)indexDirty=true;clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     saveTimer=null;P.view={x:Math.round(view.x),y:Math.round(view.y),z:+view.z.toFixed(3)};
-    const r=await act('projectPageSave',{json:JSON.stringify(P)}).catch(()=>null);
+    const args={kind:D.mode,key:String(D.gk),board:JSON.stringify(P)};
+    if(indexDirty){args.index=JSON.stringify({tags:IX.tags,quick:IX.quick,presets:IX.presets,lastPreset:IX.lastPreset,boards:IX.boards});indexDirty=false;}
+    const r=await act('boardSave',args).catch(()=>null);
     if(r?.ok){savedRev=r.rev;flashSaved();}
     if(!saveTimer)dirty=false;
   },500);
 }
-function saveNotes(text){
-  notesSent=text;clearTimeout(notesTimer);
-  notesTimer=setTimeout(async()=>{notesTimer=null;const r=await act('projectPageNotes',{text}).catch(()=>null);if(r?.ok){savedRev=r.rev;flashSaved();}},600);
-}
-function flashSaved(){E.saved.classList.add('on');clearTimeout(flashSaved.t);flashSaved.t=setTimeout(()=>E.saved.classList.remove('on'),1100);}
+const saveIndex=()=>save(true);
+function saveNotes(text){P.notes=text;save();}
+function flashSaved(){E.saved.textContent='● salvato in '+(D.mode==='game'?D.pp.root:'.varco');E.saved.classList.add('on');clearTimeout(flashSaved.t);flashSaved.t=setTimeout(()=>E.saved.classList.remove('on'),1100);}
 
 /* ── Testata, nastro, dock ── */
 function chrome(){
+  E.bname.textContent=IX?.boards?.[IX.current]?.name||'';
+  if(D.mode==='game')return chromeGame();
   const pp=D.pp,k=D.kind,name=pp.name||D.workspace;
   E.logo.textContent=name.replace(/[^A-Za-z0-9À-ÿ ]/g,' ').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'P';
   E.name.textContent=name;E.type.textContent=k?.label||'Progetto';
@@ -144,15 +156,16 @@ function chrome(){
   const quick=[];
   if(D.commands.length)quick.push(['projectOpenPreview',{},'play','Anteprima']);
   for(const a of (k?.actions||[]).slice(0,4))quick.push(['projectTypeAction',{id:a.id},({engine:'cube',build:'build',logs:'log','open-folder':'folder',repo:'link'})[a.id]||'open',a.label]);
+  for(const l of (IX?.quick||[]).filter(l=>l.dock).slice(0,3))quick.push(['@link',l,'link',l.n]);
   const qSig=JSON.stringify(quick);
   if(qSig!==sigs.quick){sigs.quick=qSig;E.quick.innerHTML=quick.map(([c,a,i,l],n)=>`<button data-q="${n}" title="${esc(l)}">${svg(i)}<span class="lbl">${esc(l)}</span></button>`).join('')||'<span class="pp-mono" style="color:var(--s-dim);padding:0 8px">Nessuna azione</span>';
-    E.quick.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const q=quick[+b.dataset.q];act(q[0],q[1]);});}
+    E.quick.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const q=quick[+b.dataset.q];if(q[0]==='@link')openQuick(q[1]);else act(q[0],q[1]);});}
 }
 
 /* ── Riquadri ── */
 function head(id,right='',title=null){
   const t=typeOf(id),n=linksOf(id).length;
-  const h=title??({tasks:'Da fare',shots:'Galleria',files:'Dove eri rimasto',stream:'Cosa è successo',res:'Collegamenti fissi'})[t];
+  const h=title??TITLES[D.mode||'project'][t];
   return `<div class="pp-th"><div style="min-width:0"><span class="pp-mono k">${LABEL[t]}</span>${h?`<h3>${esc(h)}</h3>`:''}</div><div class="pp-tools">${n?`<span class="pp-mono pp-links-n" title="Collegamenti">${svg('link',13)}${n}</span>`:''}${right}<button data-tool="grip" title="Trascina per spostare">${svg('drag',15)}</button><button data-tool="size" title="Dimensione">${svg('size',15)}</button><button data-tool="remove" title="Togli dalla tela">${svg('close',15)}</button></div></div>`;
 }
 const mainCommand=()=>D.commands.find(c=>c.status==='running')||D.commands.find(c=>c.error)||D.commands[0]||null;
@@ -208,7 +221,7 @@ const BODY={
     ev.sort((a,b)=>(b.top||0)-(a.top||0)||b.w-a.w);
     return head(id,D.commands.some(c=>c.status==='running')?'<span class="pp-tag ok">Live</span>':'')+`<div class="pp-tb"><div class="pp-list">${ev.slice(0,10).map(e=>`<div class="pp-ev"><div class="av" style="color:var(${e.c})">${svg(e.i,15)}</div><div class="w"><div class="h"><b>${esc(e.t)}</b><span class="pp-mono" style="color:var(--s-dim)">${e.w?ago(e.w):'ora'}</span></div><p>${esc(e.p)}</p></div></div>`).join('')||'<div class="pp-empty">Ancora niente: qui compaiono server, file modificati, screenshot e attività fatte.</div>'}</div></div>`;
   },
-  notes(id){return head(id,'<span class="pp-mono" style="color:var(--s-dim)">note.md</span>','')+`<div class="pp-tb"><div class="pp-note"><textarea spellcheck="false" data-k="notes" placeholder="Appunti del progetto…">${esc(D.pp.notes||'')}</textarea></div></div>`;},
+  notes(id){return head(id,'','')+`<div class="pp-tb"><div class="pp-note"><textarea spellcheck="false" data-k="notes" placeholder="${D.mode==='game'?'Strategie, rotazioni, cose da ricordare…':'Appunti del progetto…'}">${esc(P.notes||'')}</textarea></div></div>`;},
   res(id){
     const items=[];
     for(const u of D.resources)items.push({i:'bookmark',n:hostOf(u),s:u,url:u});
@@ -319,7 +332,7 @@ function wireTile(el,id){
   el.querySelector('[data-tool=size]').onclick=e=>sizeMenu(e,id);
   el.querySelectorAll('.pp-port').forEach(p=>p.addEventListener('pointerdown',e=>dragLink(e,id,p.dataset.s)));
   el.querySelector('.pp-rs').addEventListener('pointerdown',e=>resize(e,T,el,drawWires));
-  el.ondblclick=e=>{if(type==='shot'&&!e.target.closest('button'))act('projectPageOpenShot',{name:T.shot});};
+  el.ondblclick=e=>{if(type==='shot'&&!e.target.closest('button'))act('boardOpenShot',{kind:D.mode,key:String(D.gk),name:T.shot});};
   el.querySelectorAll('[data-own]').forEach(f=>f.addEventListener('input',()=>{T[f.dataset.own]=f.value;save();}));
   const ta=el.querySelector('[data-k=notes]');if(ta)ta.addEventListener('input',()=>saveNotes(ta.value));
   el.querySelectorAll('[data-do]').forEach(b=>b.onclick=e=>{e.stopPropagation();doAction(b.dataset.do,id,b);});
@@ -340,9 +353,7 @@ function wireTile(el,id){
   }
   if(type==='files')el.querySelectorAll('.pp-f').forEach(f=>{f.onclick=()=>act('projectOpenRel',{rel:f.dataset.rel});
     f.addEventListener('pointerdown',e=>pullOut(e,()=>({type:'file',data:{rel:f.dataset.rel}}),f));});
-  if(type==='res'){const items=[];for(const u of D.resources)items.push({url:u});for(const p of D.kind?.panels||[])items.push({url:p.url});
-    if((D.kind?.actions||[]).some(a=>a.id==='repo'))items.unshift({repo:true});
-    el.querySelectorAll('.pp-re').forEach(b=>b.onclick=()=>{const r=items[+b.dataset.n];if(!r)return;if(r.repo)act('projectTypeAction',{id:'repo'});else act('resource',{url:r.url});});}
+  extraWire(el,id,type);
 }
 function doAction(what,id,btn){
   const T=P.tiles[id];
@@ -354,7 +365,8 @@ function doAction(what,id,btn){
   else if(what==='cover'){const s=shotByName(galSel)||coverShot();if(s){P.cover=s.name;refreshDynamic();refill('shots');save();flash('hero');}}
   else if(what==='pull'){const s=shotByName(galSel)||coverShot();if(s){const nid=newTile('shot',{shot:s.name},T.x+T.w+72,T.y);addLink(id,nid);}}
   else if(what==='zoom')lightbox(shotByName(T.shot)?.url);
-  else if(what==='openlink'){if(/^https?:\/\//i.test(T.url||''))act('resource',{url:T.url});else flash(id);}
+  else if(what==='openlink'){if(/^https?:\/\//i.test(T.url||''))openQuick({u:T.url,n:T.title,w:'scheda'});else flash(id);}
+  else if(extraAction(what,id,btn))return;
   else if(what==='openrel')act('projectOpenRel',{rel:T.rel});
   else if(what==='reveal')act('projectRevealRel',{rel:T.rel});
 }
@@ -431,7 +443,7 @@ function addMenu(anchor){const m=E.menu;
   m.querySelectorAll('button:not([disabled])').forEach(b=>b.onclick=()=>{m.classList.remove('on');const k=b.dataset.k,c=center();
     if(k==='shot')return chooseShots(c);if(k==='area')return addArea(c);
     if(SINGLE.includes(k)){const [w,h]=SIZES[k];addSingle(k,c.x-w/2,c.y-h/2);return;}
-    const id=newTile(k,k==='note'?{text:''}:{title:'Nuovo link',url:''},c.x-150,c.y-60);
+    const id=newTile(k,k==='timer'?{timer:{label:'Timer',mode:'down',secs:300,left:300,run:false}}:k==='note'?{text:''}:{title:'Nuovo link',url:''},c.x-150,c.y-60);
     setTimeout(()=>tileEl(id)?.querySelector(k==='note'?'textarea':'[data-own=url]')?.focus(),30);});}
 /* «Cosa vuoi creare?»: appare dove rilasci il filo sul vuoto; si può scrivere per cercare (Invio = il primo). */
 const CREATE=[['Contenuti','note','note','Nota','testo libero'],['Contenuti','shot-pick','image','Screenshot del progetto','scegli ›'],['Contenuti','shot-pc','upload','Screenshot dal PC','sfoglia'],
@@ -445,6 +457,7 @@ function createMenu(cx,cy,p,from){const m=E.cmenu,A=box(from),dx=p.x-(A.x+A.w/2)
   const make=(type,data)=>{close();const [w,h]=SIZES[type],q=at(w,h),nid=newTile(type,data,q.x,q.y);addLink(from,nid);
     if(type==='note')setTimeout(()=>tileEl(nid)?.querySelector('textarea')?.focus(),30);if(type==='link')setTimeout(()=>tileEl(nid)?.querySelector('[data-own=url]')?.focus(),30);};
   const pick=k=>{
+    if(k==='timer')return make('timer',{timer:{label:'Timer',mode:'down',secs:300,left:300,run:false}});
     if(k==='note')return make('note',{text:''});
     if(k==='link')return make('link',{title:'Nuovo link',url:''});
     if(k==='shot-pc'){close();const [w,h]=SIZES.shot,q=at(w,h);return chooseShots({x:q.x+w/2,y:q.y+h/2},from);}
@@ -470,14 +483,14 @@ function createMenu(cx,cy,p,from){const m=E.cmenu,A=box(from),dx=p.x-(A.x+A.w/2)
 
 /* ── Screenshot dal PC: pulsante (Esplora file) o immagini trascinate sulla tela ── */
 async function chooseShots(at,linkTo=null){
-  const r=await act('projectPageChooseShots').catch(()=>null);
+  const r=await act('boardChooseShots',{kind:D.mode,key:String(D.gk)}).catch(()=>null);
   if(!r?.ok||!r.names?.length||!at)return;
   await waitForShots(r.names);
   r.names.forEach((n,i)=>{const nid=newTile('shot',{shot:n},at.x-228+i*48,at.y-156+i*48);if(linkTo)addLink(linkTo,nid);});
 }
 function addImages(files,at){
   [...files].filter(f=>f.type.startsWith('image/')).slice(0,12).forEach((f,i)=>{const rd=new FileReader();
-    rd.onload=async()=>{const r=await act('projectPageAddShot',{name:f.name,data:rd.result}).catch(()=>null);if(!r?.ok)return;
+    rd.onload=async()=>{const r=await act('boardAddShot',{kind:D.mode,key:String(D.gk),name:f.name,data:rd.result}).catch(()=>null);if(!r?.ok)return;
       galSel=r.name;await waitForShots([r.name]);if(at){newTile('shot',{shot:r.name},at.x-228+i*48,at.y-156+i*48);}else refill('shots');};
     rd.readAsDataURL(f);});
 }
@@ -516,8 +529,9 @@ function drawMini(){const cv=E.mini?.querySelector('canvas');if(!cv||!P)return;c
   drawMini.map={b,pad,k,ox,oy};}
 
 function wireChrome(){
-  E.path.onclick=()=>act('projectOpenFolder');
-  E.panelBtn.onclick=()=>act('openSidePanel',{panel:'project'});
+  E.path.onclick=()=>D.mode==='game'?act('gameOpenFolder',{id:+D.gk}):act('projectOpenFolder');
+  E.panelBtn.onclick=()=>act('openSidePanel',{panel:D.mode==='game'?'games':'project'});
+  E.bchip.onclick=()=>boardsPanel();
   E.addTop.onclick=e=>{e.stopPropagation();addMenu(E.addTop);};
   E.addDock.onclick=e=>{e.stopPropagation();addMenu(E.addDock);};
   E.zin.onclick=()=>zoomAt(1.15);E.zout.onclick=()=>zoomAt(1/1.15);
@@ -532,7 +546,7 @@ function wireChrome(){
   ra('snap').onclick=e=>{snap=!snap;e.currentTarget.setAttribute('aria-pressed',snap);};
   ra('fit').onclick=()=>{fit(true);saveView();};
   ra('reset').onclick=()=>{if(!confirm('Tornare alla disposizione iniziale? Riquadri, fili e aree tornano come all\'inizio (attività, note e screenshot restano).'))return;
-    const tasks=P.tasks,cover=P.cover;P=JSON.parse(JSON.stringify(DEFAULT));P.tasks=tasks;P.cover=cover;renderAll();fit(true);save();};
+    const keep={tasks:P.tasks,cover:P.cover,notes:P.notes,build:P.build,sessions:P.sessions};P=Object.assign(JSON.parse(JSON.stringify(D.mode==='game'?DEFAULT_GAME:DEFAULT)),keep);renderAll();fit(true);save();};
   E.wlab.addEventListener('input',()=>{const l=P.links[selWire];if(!l)return;l.t=E.wlab.value.slice(0,60);drawWires();save();});
   E.wlab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Escape')dropWire();});
   E.wrev.onclick=()=>{const l=P.links[selWire];if(!l)return;[l.a,l.b]=[l.b,l.a];drawWires();save();};
@@ -575,6 +589,350 @@ const DEFAULT={version:1,n:2,tiles:{hero:{x:96,y:144,w:768,h:576},tasks:{x:960,y
 /* Il tema cambia le variabili: ridisegniamo fili, nastri e minimappa */
 let themeKey='';
 function themeChanged(){if(!root||!P)return;const k=tok('--s-sig')+tok('--s-ground')+tok('--s-alt');if(k===themeKey)return;themeKey=k;tapeColors();drawWires();if(selWire!=null)pickWire(selWire);}
+
+/* ══════════ Beta 0.43.3: board (run, stagioni, fasi), etichette e link modificabili, timer, pagina del gioco ══════════ */
+const DEFAULT_GAME={version:1,n:3,tiles:{hero:{x:96,y:144,w:768,h:576},tasks:{x:960,y:144,w:336,h:408},'timer-1':{x:960,y:600,w:336,h:192,timer:{label:'Pausa',mode:'down',secs:600,left:600,run:false}},
+  'timer-2':{x:960,y:840,w:336,h:192,timer:{label:'Reset settimanale',mode:'until',secs:300,left:300,run:false,day:2,hour:18}},notes:{x:96,y:792,w:384,h:312},shots:{x:528,y:792,w:384,h:360},
+  files:{x:1392,y:144,w:384,h:384},stream:{x:1392,y:576,w:384,h:360},res:{x:1872,y:144,w:336,h:408}},
+  links:[{a:'hero',b:'stream',t:'storico',c:0},{a:'tasks',b:'timer-1',t:'',c:4},{a:'files',b:'res',t:'',c:1}],areas:{'area-1':{x:48,y:96,w:1296,h:1104,t:'Partita',c:0}},tasks:[],cover:'',view:null};
+IP.timer='M12 8v5l3 2M9 3h6M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16z';IP.tag='M3 12V4h8l10 10-8 8zM7.5 8.5h.01';IP.edit='M4 20h4L19 9l-4-4L4 16zM14 6l4 4';IP.history='M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 8v4l3 2';
+IP.pause='M8 5v14M16 5v14';IP.replay='M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5';IP.stop='M6 6h12v12H6z';IP.gamepad='M6 9h12a4 4 0 0 1 3.9 4.8l-.8 3.6a2.4 2.4 0 0 1-4.3.9L15 16H9l-1.8 2.3a2.4 2.4 0 0 1-4.3-.9l-.8-3.6A4 4 0 0 1 6 9zM8 11v4M6 13h4M16 12h.01M18 14h.01';
+IP.archive='M3 5h18v4H3zM5 9v10h14V9M10 13h4';IP.copy='M8 8h12v12H8zM4 16V4h12';IP.list='M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01';
+const fileUrl=p=>'file:///'+String(p).replace(/\\/g,'/').split('/').map(encodeURIComponent).join('/').replace(/^file:\/\/\/([a-z])%3A/i,'file:///$1:');
+const hm=ms=>{const m=Math.floor(ms/60000);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');};
+const hms=ms=>{const x=Math.floor(ms/1000);return Math.floor(x/3600)+':'+String(Math.floor(x/60)%60).padStart(2,'0')+':'+String(x%60).padStart(2,'0');};
+const fmtDur=ms=>{const m=Math.round(ms/60000);return m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min';};
+function fmtDay(t){const d=new Date(t),diff=Math.round((new Date().setHours(0,0,0,0)-new Date(t).setHours(0,0,0,0))/86400e3);
+  return (diff===0?'Oggi':diff===1?'Ieri':d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'short'}))+' · '+d.toTimeString().slice(0,5);}
+function toast(t){E.toast.textContent=t;E.toast.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>E.toast.classList.remove('on'),3200);}
+const kk=()=>({kind:D.mode,key:String(D.gk)});
+async function flushSave(){if(!saveTimer)return;clearTimeout(saveTimer);saveTimer=null;P.view={x:Math.round(view.x),y:Math.round(view.y),z:+view.z.toFixed(3)};
+  const args={...kk(),board:JSON.stringify(P)};if(indexDirty){args.index=JSON.stringify({tags:IX.tags,quick:IX.quick,presets:IX.presets,lastPreset:IX.lastPreset,boards:IX.boards});indexDirty=false;}
+  const r=await act('boardSave',args).catch(()=>null);if(r?.ok)savedRev=r.rev;dirty=false;}
+
+/* Menu «Aggiungi» e «Cosa vuoi creare?»: timer per tutti, nomi del gioco o del progetto */
+let menusDone=false;
+function menuLabels(){
+  if(!menusDone){menusDone=true;ADD.unshift(['timer','timer','Timer','tanti']);CREATE.splice(1,0,['Contenuti','timer','timer','Timer','conto alla rovescia']);}
+  const L=LABELS[D.mode||'project'],names={hero:L.hero,tasks:L.tasks,shots:D.mode==='game'?'Catture':'Cartella screenshot',files:L.files,stream:L.stream,notes:L.notes,res:L.res};
+  for(const a of ADD)if(names[a[0]])a[2]=names[a[0]];
+  for(const c of CREATE)if(names[c[1]])c[3]=names[c[1]];
+}
+
+/* ── Etichette (colorate, in comune tra le board) ── */
+function tagStyle(n){const t=(IX?.tags||[]).find(t=>t.n===n);if(!t)return '';const c=wireColor(t.c);return `background:${c};color:${onColor(c)}`;}
+/* ── Link rapidi (in comune tra le board) ── */
+function openQuick(l){
+  if(!/^https?:\/\//i.test(l.u||''))return;
+  if(l.w==='pannello')act('webPanelAdd',{url:l.u,title:l.n});
+  else if(D.mode==='game')act('gameOpenLink',{id:+D.gk,url:l.u});
+  else act('resource',{url:l.u});
+}
+
+/* ── Timer: conto alla rovescia o «fino a» un giorno e un'ora ── */
+function nextReset(t){const d=new Date(),r=new Date(d);r.setHours(t.hour??18,0,0,0);r.setDate(d.getDate()+(((t.day??2)-d.getDay()+7)%7));if(r<=d)r.setDate(r.getDate()+7);return r;}
+function timerLeft(t){if(t.mode==='until')return Math.max(0,(nextReset(t)-Date.now())/1000);if(t.run&&t.at)return t.left-(Date.now()-t.at)/1000;return t.left;}
+function fmtLeft(x,t){if(t.mode==='until'){const d=Math.floor(x/86400),h=Math.floor(x/3600)%24,m=Math.floor(x/60)%60;return d?`${d}g ${h}h`:`${h}:${String(m).padStart(2,'0')}`;}
+  x=Math.max(0,Math.ceil(x));return Math.floor(x/60)+':'+String(x%60).padStart(2,'0');}
+const DAYS=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+BODY.timer=id=>{const t=P.tiles[id].timer,left=timerLeft(t),st=t.mode==='until'?'idle':left<=0?'err':left<=10?'warn':t.run?'ok':'idle';
+  return head(id,`<button data-tm="edit" title="Nome e durata">${svg('edit',14)}</button>`,t.label)+`<div class="pp-tb"><div class="pp-tm pp-tm-${st}" data-timer="${id}"><span class="v">${fmtLeft(left,t)}</span>
+    ${t.mode==='until'?`<span class="pp-mono sub">${DAYS[t.day??2]} · ${String(t.hour??18).padStart(2,'0')}:00</span>`:`<span class="btns"><button data-tm="toggle" title="Avvia o pausa">${svg(t.run?'pause':'play',17)}</button><button data-tm="reset" title="Ricomincia">${svg('replay',17)}</button></span>`}</div></div>`;};
+const beeped=new Set();
+setInterval(()=>{if(!P||!root||root.hidden)return;
+  for(const [id,tile] of Object.entries(P.tiles)){if(!tile.timer)continue;const t=tile.timer,box=E.tiles.querySelector(`[data-timer="${CSS.escape(id)}"]`);if(!box)continue;
+    const left=timerLeft(t);box.querySelector('.v').textContent=fmtLeft(left,t);box.className='pp-tm pp-tm-'+(t.mode==='until'?'idle':left<=0?'err':left<=10?'warn':t.run?'ok':'idle');
+    if(t.mode!=='until'&&t.run&&left<=0&&!beeped.has(id)){beeped.add(id);toast(`«${t.label}» è scaduto`);box.animate([{transform:'scale(1)'},{transform:'scale(1.04)'},{transform:'scale(1)'}],{duration:400,iterations:3});}
+    if(left>0)beeped.delete(id);}
+  const live=E.tiles.querySelector('[data-live=sess]');if(live&&IX?.session)live.textContent=hm(Date.now()-IX.session.start);
+  const bar=E.tiles.querySelector('.pp-gbar');if(bar&&IX?.session){const d=Date.now()-IX.session.start;bar.querySelector('i').style.width=Math.min(100,d/(4*3600e3)*100)+'%';bar.querySelector('span').textContent='partita '+hms(d);}
+},500);
+function editTimer(id){const t=P.tiles[id].timer;
+  modal(`<h2>Timer</h2><div class="pp-form">
+    <label class="pp-row"><span class="pp-mono">Nome</span><input data-f="label" value="${esc(t.label)}" maxlength="40"></label>
+    <div class="pp-row"><span class="pp-mono">Tipo</span><div class="pp-seg"><button data-mode="down" class="${t.mode!=='until'?'on':''}">Conto alla rovescia</button><button data-mode="until" class="${t.mode==='until'?'on':''}">Fino a un giorno e un'ora</button></div></div>
+    <label class="pp-row" data-for="down"><span class="pp-mono">Durata</span><input data-f="dur" value="${Math.floor(t.secs/60)}:${String(t.secs%60).padStart(2,'0')}" placeholder="mm:ss"></label>
+    <label class="pp-row" data-for="until"><span class="pp-mono">Quando</span><select data-f="day">${DAYS.map((d,i)=>`<option value="${i}"${i===(t.day??2)?' selected':''}>${d}</option>`).join('')}</select><input data-f="hour" type="number" min="0" max="23" value="${t.hour??18}" style="max-width:80px"><span class="pp-mono">:00</span></label>
+  </div>`,[['Annulla'],['Salva',true,()=>{const m=E.modal,mode=m.querySelector('.pp-seg .on').dataset.mode,dur=(m.querySelector('[data-f=dur]').value.match(/^(\d+)(?::(\d{1,2}))?$/)||[]);
+    t.label=m.querySelector('[data-f=label]').value.trim()||'Timer';t.mode=mode;if(mode==='down'&&dur[1]){t.secs=Math.max(1,+dur[1]*60+ +(dur[2]||0));t.left=t.secs;t.run=false;delete t.at;}
+    if(mode==='until'){t.day=+m.querySelector('[data-f=day]').value;t.hour=Math.max(0,Math.min(23,+m.querySelector('[data-f=hour]').value||0));t.run=false;}refill(id);save();}]]);
+  const sync=()=>{const mode=E.modal.querySelector('.pp-seg .on').dataset.mode;E.modal.querySelectorAll('[data-for]').forEach(r=>r.hidden=r.dataset.for!==mode);};
+  E.modal.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{E.modal.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));sync();});sync();
+}
+
+/* ── Riquadri che cambiano: attività/obiettivi con etichette, link rapidi, e quelli del gioco ── */
+const _BODY={...BODY};
+BODY.tasks=id=>{const done=P.tasks.filter(t=>t.done).length,p=P.tasks.length?Math.round(done/P.tasks.length*100):0;
+  return head(id,`<span class="pp-kbd" style="color:var(--s-sig-ink)">${p}%</span><button data-tags title="Gestisci le etichette">${svg('tag',14)}</button>`)+`<div class="pp-tb"><div class="pp-prog"><i style="width:${p}%"></i></div><div class="pp-tasks">${P.tasks.map((x,i)=>`
+    <label class="pp-task${x.done?' done':''}" data-i="${i}"><input type="checkbox"${x.done?' checked':''}><div class="t"><span>${esc(x.t)}</span><div class="meta"><button class="pp-tagc" data-tagof="${i}" style="${tagStyle(x.tag)}" title="Cambia etichetta">${esc(x.tag)}</button></div></div>
+    <button class="del" title="Elimina">${svg('close',14)}</button></label>`).join('')||`<div class="pp-empty">${D.mode==='game'?'Nessun obiettivo. Scrivine uno qui sotto.':'Nessuna attività. Scrivine una qui sotto.'}</div>`}</div>
+    <form class="pp-add">${svg('task',15)}<input placeholder="${D.mode==='game'?'Nuovo obiettivo…':'Nuova attività…'}" maxlength="300"><select>${(IX?.tags||[]).map(t=>`<option>${esc(t.n)}</option>`).join('')}</select><button class="pp-btn sm" type="submit">${svg('plus',13)}</button></form></div>`;};
+BODY.res=id=>head(id,`<button data-addlink title="Aggiungi un link">${svg('plus',14)}</button>`)+`<div class="pp-tb"><div class="pp-list">${(IX?.quick||[]).map((l,i)=>`<div class="pp-re" data-li="${i}" title="${esc(l.u)}"><span class="ic">${svg('link',15)}</span><span class="w"><b>${esc(l.n)}</b><small>${esc(hostOf(l.u))}${l.sug?' · suggerito':''}</small></span>
+  <span class="pp-kbd">${l.w}</span><span class="re-tools"><button data-le="${i}" title="Modifica">${svg('edit',14)}</button><button data-ld="${i}" title="Togli">${svg('close',14)}</button></span></div>`).join('')||'<div class="pp-empty">Nessun link: aggiungine uno col +.</div>'}</div></div>`;
+BODY.hero=id=>D.mode==='game'?gameHero(id):_BODY.hero(id);
+BODY.shots=id=>D.mode==='game'?gameShots(id):_BODY.shots(id);
+BODY.files=id=>D.mode==='game'?gameConfig(id):_BODY.files(id);
+BODY.stream=id=>D.mode==='game'?gameHistory(id):_BODY.stream(id);
+const imgShots=()=>D.shots.filter(s=>!s.clip);
+function gameHero(id){
+  const g=D.game||{},s=IX.session,pr=s?IX.presets?.[s.preset]:null,cov=shotByName(P.cover)||imgShots()[0],tot=P.sessions.reduce((a,x)=>a+x.dur,0),done=P.tasks.filter(t=>t.done).length;
+  const dur=s?Date.now()-s.start:0;
+  return head(id,s?'<span class="pp-tag ok">In gioco</span>':g.running?'<span class="pp-tag warn">Aperto</span>':'<span class="pp-tag idle">Non in esecuzione</span>','')+`<div class="pp-stage">${cov?`<div class="art" style="background-image:url('${cov.url}')"></div>`:'<div class="noart">La copertina è l\'ultima cattura: aggiungine una</div>'}
+    <span class="chip">${esc(g.exe||'')}</span>
+    <div class="over"><div style="flex:1;min-width:0"><span class="pp-mono url">${s?`board «${esc(IX.boards[s.board]?.name||'')}» · preset «${esc(pr?.n||'—')}»`+(g.companion?` · companion su ${esc(g.companion)}`:''):P.sessions[0]?'Ultima partita: '+esc(fmtDay(P.sessions[0].start).toLowerCase())+' · '+fmtDur(P.sessions[0].dur):'Nessuna partita su questa board'}</span>
+      <h2>${esc(g.name||D.pp.name)}</h2><p>${s?'Partita iniziata alle '+new Date(s.start).toTimeString().slice(0,5):g.watcher?'La partita inizia da sola quando apri il gioco':'Rilevamento dei giochi spento: inizia la partita da qui'}</p></div>
+      ${s?`<button class="pp-btn" data-do="gpreset">${svg('list',15)}Preset</button><button class="pp-btn pri" data-do="gstop">${svg('stop',15)}Chiudi partita</button>`:`<button class="pp-btn" data-do="gpreset">${svg('list',15)}Preset</button><button class="pp-btn pri" data-do="gstart">${svg('play',15)}Inizia partita</button>`}</div></div>
+    <div class="pp-gbar"><i style="width:${Math.min(100,dur/(4*3600e3)*100)}%"></i><span class="pp-mono">${s?'partita '+hms(dur):'—'}</span></div>
+    <div class="pp-metrics">
+      <div class="pp-metric"><div class="row pp-mono"><span>Partita</span></div><div class="val" data-live="sess">${s?hm(dur):'—'}</div></div>
+      <div class="pp-metric"><div class="row pp-mono"><span>Board</span><span>totale</span></div><div class="val">${hm(tot)}</div></div>
+      <div class="pp-metric${P.sessions.length?' ok':''}"><div class="row pp-mono"><span>Partite</span></div><div class="val">${P.sessions.length}</div></div>
+      <div class="pp-metric"><div class="row pp-mono"><span>${LABEL.tasks}</span></div><div class="val">${done} / ${P.tasks.length}</div></div></div>`;
+}
+function gameShots(id){
+  const list=D.shots,sel=shotByName(galSel)||list[0];
+  const bg=x=>x.clip?'':`background-image:url('${x.url}')`;
+  return head(id,`<span class="pp-kbd">${list.length}</span>`)+`<div class="pp-tb">${sel?`<div class="pp-feature${sel.clip?' clip':''}" data-feat><div class="art" style="${bg(sel)}"></div>${sel.clip?'<span class="pp-play">▶</span>':''}
+    <div class="bl"><b>${esc(sel.name)}</b><span class="pp-mono" style="opacity:.7">${ago(sel.mtime)}</span><span class="pp-grow"></span>${sel.clip?'':`<button class="pp-btn sm" data-do="cover">${P.cover===sel.name?'In copertina':'Copertina'}</button>`}<button class="pp-btn sm" data-do="pull">${svg('open',13)}</button></div></div>`
+    :'<div class="pp-empty">Nessuna cattura. Alla fine di ogni partita VARCO propone quelle fatte (Xbox Game Bar, Steam, NVIDIA); puoi anche aggiungerle col +.</div>'}
+    <div class="pp-thumbs">${list.slice(0,40).map(x=>`<div class="pp-thumb${sel&&x.name===sel.name?' on':''}${x.clip?' clip':''}" data-n="${esc(x.name)}" title="${esc(x.name)}" style="${bg(x)}"></div>`).join('')}<button class="pp-thumb up" data-do="upload" title="Aggiungi dal PC">${svg('upload')}</button></div></div>`;
+}
+function gameConfig(id){
+  return head(id,`<button data-addrow title="Aggiungi una riga">${svg('plus',14)}</button>`)+`<div class="pp-tb"><div class="pp-slots">${P.build.map((r,i)=>`<div class="pp-slot"><input class="pp-field pp-mono" data-bk="${i}" value="${esc(r.k)}" placeholder="Voce"><input class="pp-field" data-bv="${i}" value="${esc(r.v)}" placeholder="Valore"><button class="del" data-bd="${i}" title="Togli">${svg('close',12)}</button></div>`).join('')}</div>
+    <p class="pp-hint2">Scrivi tu cosa conta in questo gioco: personaggio, classe, armi, agente, seme del mondo…</p></div>`;
+}
+function gameHistory(id){
+  const tot=P.sessions.reduce((a,x)=>a+x.dur,0)+(IX.session&&IX.session.board===IX.current?Date.now()-IX.session.start:0),live=IX.session&&IX.session.board===IX.current;
+  const row=(x,i,isLive)=>`<button class="pp-ev pp-evb" ${isLive?'data-live-s':`data-si="${i}"`}><div class="av">${svg(isLive?'play':'gamepad',15)}</div><div class="w"><div class="h"><b>${esc(IX.presets?.[x.p||x.preset]?.n||'Partita')}</b><span class="pp-mono" style="color:var(--s-dim)">${esc(fmtDay(x.start))}</span></div>
+    <p>${isLive?'<span style="color:var(--s-sig-ink)">● in corso</span>':fmtDur(x.dur)+' · '+x.caps.length+' catture'+(x.note?' · nota':'')+(x.done?.length?' · '+x.done.length+' fatti':'')}</p></div></button>`;
+  return head(id,`<span class="pp-kbd">${P.sessions.length+(live?1:0)} · ${fmtDur(tot)}</span>`)+`<div class="pp-tb"><div class="pp-list">${live?row(IX.session,-1,true):''}${P.sessions.map((x,i)=>row(x,i,false)).join('')||(live?'':'<div class="pp-empty">Ancora nessuna partita su questa board.</div>')}</div></div>`;
+}
+/* Firma dei riquadri dinamici: progetto come prima, gioco con partita e storico */
+function sigOf(id){
+  const t=typeOf(id),L=linksOf(id).length;
+  if(t==='tasks')return JSON.stringify([IX?.tags,L]);
+  if(t==='res')return JSON.stringify([IX?.quick,L]);
+  if(D.mode==='game'){
+    if(t==='hero')return JSON.stringify([IX.session,IX.boards[IX.current]?.name,D.game,P.cover,imgShots()[0]?.name,P.sessions.length,P.tasks.length,P.tasks.filter(x=>x.done).length,L,IX.session?0:Math.floor(Date.now()/60000)]);
+    if(t==='stream')return JSON.stringify([IX.session,P.sessions.length,Math.floor(Date.now()/60000),L]);
+    if(t==='shots')return JSON.stringify([D.shots.map(s=>s.name+s.mtime),galSel,P.cover,L]);
+    if(t==='shot')return JSON.stringify([P.tiles[id].shot,!!shotByName(P.tiles[id].shot),L]);
+    return null;
+  }
+  if(t==='hero')return JSON.stringify([D.commands.map(c=>[c.status,c.phase,c.phaseLabel,c.url,c.network,c.ports,c.error?.text,c.warning?.text,c.ready]),D.project.status,D.kind?.label,D.kind?.engine,D.kind?.changedToday,(D.kind?.actions||[]).map(a=>a.label),P.cover,D.shots[0]?.name,P.tasks.length,P.tasks.filter(x=>x.done).length,L]);
+  if(t==='files')return JSON.stringify([D.kind?.recent,D.kind?.scanning,L]);
+  if(t==='stream')return JSON.stringify([D.commands.map(c=>[c.status,c.phaseLabel,c.url,c.error?.text]),(D.kind?.recent||[]).slice(0,4),D.shots.slice(0,3).map(s=>s.name),P.tasks.filter(x=>x.doneAt).length,Math.floor(Date.now()/60000),L]);
+  if(t==='shots')return JSON.stringify([D.shots.map(s=>s.name+s.mtime),galSel,P.cover,L]);
+  if(t==='shot')return JSON.stringify([P.tiles[id].shot,!!shotByName(P.tiles[id].shot),L]);
+  return null;
+}
+
+/* ── Collegamenti dei riquadri nuovi ── */
+function extraWire(el,id,type){
+  if(type==='tasks'){
+    el.querySelectorAll('[data-tagof]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const i=+b.dataset.tagof;
+      pop(b,[...IX.tags.map(t=>({t:t.n,sw:wireColor(t.c),on:t.n===P.tasks[i].tag})),{t:'Gestisci le etichette…',manage:1}],it=>{if(it.manage)return tagEditor();P.tasks[i].tag=it.t;refill('tasks');save();});}));
+    const m=el.querySelector('[data-tags]');if(m)m.onclick=e=>{e.stopPropagation();tagEditor();};
+  }
+  if(type==='res'){
+    el.querySelectorAll('[data-li]').forEach(r=>r.onclick=e=>{if(e.target.closest('button'))return;openQuick(IX.quick[+r.dataset.li]);});
+    el.querySelectorAll('[data-le]').forEach(b=>b.onclick=e=>{e.stopPropagation();linkEditor(+b.dataset.le);});
+    el.querySelectorAll('[data-ld]').forEach(b=>b.onclick=e=>{e.stopPropagation();const l=IX.quick.splice(+b.dataset.ld,1)[0];refill('res');saveIndex();sigs.quick=null;chrome();toast(`«${l.n}» tolto dai link rapidi`);});
+    const a=el.querySelector('[data-addlink]');if(a)a.onclick=e=>{e.stopPropagation();linkEditor(-1);};
+  }
+  if(type==='timer'){const t=P.tiles[id].timer;
+    el.querySelectorAll('[data-tm]').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.tm;
+      if(k==='edit')return editTimer(id);
+      if(k==='toggle'){if(t.run){t.left=timerLeft(t);t.run=false;delete t.at;}else{if(t.left<=0)t.left=t.secs;t.run=true;t.at=Date.now();}}else{t.left=t.secs;t.run=false;delete t.at;}
+      refill(id);save();});}
+  if(D.mode!=='game')return;
+  if(type==='files'){
+    el.querySelectorAll('[data-bk],[data-bv]').forEach(f=>f.addEventListener('input',()=>{const i=+(f.dataset.bk??f.dataset.bv);P.build[i][f.dataset.bk!=null?'k':'v']=f.value;save();}));
+    el.querySelectorAll('[data-bd]').forEach(b=>b.onclick=e=>{e.stopPropagation();P.build.splice(+b.dataset.bd,1);refill('files');save();});
+    const a=el.querySelector('[data-addrow]');if(a)a.onclick=e=>{e.stopPropagation();P.build.push({k:'',v:''});refill('files');save();setTimeout(()=>tileEl('files')?.querySelector(`[data-bk="${P.build.length-1}"]`)?.focus(),30);};
+  }
+  if(type==='stream'){
+    el.querySelectorAll('[data-si]').forEach(b=>b.onclick=e=>{e.stopPropagation();history(+b.dataset.si);});
+    const l=el.querySelector('[data-live-s]');if(l)l.onclick=e=>{e.stopPropagation();history(-1);};
+  }
+  if(type==='shots')el.querySelectorAll('.pp-thumb.clip[data-n]').forEach(t=>t.ondblclick=()=>act('boardOpenShot',{...kk(),name:t.dataset.n}));
+}
+function extraAction(what,id,btn){
+  if(what==='gstart'){act('gameSessionStart',{id:+D.gk});return true;}
+  if(what==='gstop'){flushSave().then(()=>act('gameSessionStop',{id:+D.gk}));return true;}
+  if(what==='gpreset'){presetMenu(btn);return true;}
+  return false;
+}
+
+/* ── Menu piccolo, modale e pannello a lato ── */
+function pop(anchor,items,onPick){const m=E.menu;
+  m.innerHTML=items.map((it,i)=>`<button data-i="${i}">${it.sw?`<i class="pp-sw" style="background:${it.sw}"></i>`:''}${esc(it.t)}${it.on?'<small>✓</small>':it.sub?`<small>${esc(it.sub)}</small>`:''}</button>`).join('');
+  placeMenu(m,anchor.getBoundingClientRect());m.querySelectorAll('[data-i]').forEach(b=>b.onclick=e=>{e.stopPropagation();m.classList.remove('on');onPick(items[+b.dataset.i]);});}
+function modal(html,actions=[],{wide=false}={}){
+  const m=E.modal;m.classList.toggle('wide',wide);
+  m.innerHTML=`<button class="pp-x" data-close title="Chiudi">${svg('close',15)}</button>${html}<div class="pp-actions">${actions.map(([t,pri],i)=>`<button class="pp-btn${pri?' pri':''}" data-a="${i}">${t}</button>`).join('')}</div>`;
+  const close=()=>{m.classList.remove('on');E.scrim.classList.remove('on');};
+  m.querySelector('[data-close]').onclick=close;E.scrim.onclick=close;
+  m.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const fn=actions[+b.dataset.a][2];if(fn&&fn()===false)return;close();});
+  m.classList.add('on');E.scrim.classList.add('on');return m;
+}
+function tagEditor(){
+  const draw=()=>{modal(`<span class="pp-mono pp-kick">Etichette · ${esc(D.pp.name)}</span><h2>${D.mode==='game'?'Etichette degli obiettivi':'Etichette delle attività'}</h2>
+    <p class="pp-hint2">Valgono per tutte le board. Rinominare un'etichetta aggiorna anche ${D.mode==='game'?'gli obiettivi':'le attività'} che la usano.</p>
+    <div class="pp-tags">${IX.tags.map((t,i)=>`<div class="pp-tagrow"><span class="pp-tagc big" style="${tagStyle(t.n)}">${esc(t.n)}</span><input data-tn="${i}" value="${esc(t.n)}" maxlength="24">
+      <span class="pp-sws">${[0,1,2,3,4].map(c=>`<button data-tc="${i}:${c}" class="${c===t.c?'on':''}" style="background:${wireColor(c)}"></button>`).join('')}</span><span class="pp-mono">${P.tasks.filter(x=>x.tag===t.n).length}</span>
+      <button class="pp-x2" data-td="${i}" title="Elimina">${svg('close',13)}</button></div>`).join('')}</div>
+    <button class="pp-btn" data-tadd style="margin-top:10px">${svg('plus',14)}Nuova etichetta</button>`,[['Fatto',true,()=>{refill('tasks');}]]);
+    const m=E.modal;
+    m.querySelectorAll('[data-tn]').forEach(inp=>inp.onchange=()=>{const t=IX.tags[+inp.dataset.tn],old=t.n,v=inp.value.trim()||old;P.tasks.forEach(x=>{if(x.tag===old)x.tag=v;});t.n=v;saveIndex();draw();});
+    m.querySelectorAll('[data-tc]').forEach(b=>b.onclick=()=>{const [i,c]=b.dataset.tc.split(':').map(Number);IX.tags[i].c=c;saveIndex();draw();});
+    m.querySelectorAll('[data-td]').forEach(b=>b.onclick=()=>{if(IX.tags.length<2)return;const t=IX.tags.splice(+b.dataset.td,1)[0];P.tasks.forEach(x=>{if(x.tag===t.n)x.tag=IX.tags[0].n;});saveIndex();draw();});
+    m.querySelector('[data-tadd]').onclick=()=>{IX.tags.push({n:'Nuova',c:IX.tags.length%5});saveIndex();draw();const ins=E.modal.querySelectorAll('[data-tn]');ins[ins.length-1].select();};};
+  draw();
+}
+function linkEditor(i){
+  const isNew=i<0,l=isNew?{i:'link',n:'',u:'',w:'scheda',dock:false}:{...IX.quick[i]};
+  const wheres=D.mode==='game'?[['pannello','Pannello'],['scheda','Scheda'],['companion','Companion']]:[['pannello','Pannello'],['scheda','Scheda']];
+  modal(`<span class="pp-mono pp-kick">Link rapidi · ${esc(D.pp.name)}</span><h2>${isNew?'Nuovo link':'Modifica link'}</h2><div class="pp-form">
+    <label class="pp-row"><span class="pp-mono">Nome</span><input data-f="n" value="${esc(l.n)}" placeholder="es. Wiki, Mappa, Documentazione" maxlength="28"></label>
+    <label class="pp-row"><span class="pp-mono">Indirizzo</span><input data-f="u" value="${esc(l.u)}" placeholder="https://…" spellcheck="false"></label>
+    <div class="pp-row"><span class="pp-mono">Si apre</span><div class="pp-seg">${wheres.map(([k,t])=>`<button data-w="${k}" class="${l.w===k?'on':''}">${t}</button>`).join('')}</div></div>
+    <label class="pp-row"><span class="pp-mono">Dock</span><span class="pp-check"><input type="checkbox" data-f="dock"${l.dock?' checked':''}> mostra il pulsante nel dock in basso</span></label></div>`,
+    [['Annulla'],[isNew?'Aggiungi':'Salva',true,()=>{const m=E.modal;l.n=m.querySelector('[data-f=n]').value.trim();let u=m.querySelector('[data-f=u]').value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;l.u=u;
+      l.w=m.querySelector('[data-w].on')?.dataset.w||'scheda';l.dock=m.querySelector('[data-f=dock]').checked;l.sug=false;
+      if(!l.n||!/^https?:\/\/[^\s.]+\.[^\s]+/i.test(l.u)){toast('Servono un nome e un indirizzo valido');return false;}
+      if(isNew)IX.quick.push(l);else IX.quick[i]=l;refill('res');saveIndex();sigs.quick=null;chrome();}]]);
+  E.modal.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>E.modal.querySelectorAll('[data-w]').forEach(x=>x.classList.toggle('on',x===b)));
+  setTimeout(()=>E.modal.querySelector('[data-f=n]').focus(),30);
+}
+
+/* ── Collezione di board ── */
+function boardStats(id){if(id===IX.current)return {n:P.sessions.length,t:P.sessions.reduce((a,x)=>a+x.dur,0),done:P.tasks.filter(t=>t.done).length,tasks:P.tasks.length,last:P.sessions[0]?.start||IX.boards[id].last};
+  return D.pp.stats?.[id]||{n:0,t:0,done:0,tasks:0,last:IX.boards[id].last};}
+async function openBoard(id){await flushSave();await act('boardSwitch',{...kk(),id});}
+function boardsPanel(creating=false,showArch=false){
+  const ids=Object.keys(IX.boards).sort((a,b)=>(boardStats(b).last||IX.boards[b].created)-(boardStats(a).last||IX.boards[a].created));
+  const vis=ids.filter(id=>showArch||!IX.boards[id].archived),arch=ids.filter(id=>IX.boards[id].archived).length;
+  const what=D.mode==='game'?'run, stagione o mondo':'fase, versione o filone di lavoro';
+  modal(`<span class="pp-mono pp-kick">Board · ${esc(D.pp.name)}</span><h2>Le tue board</h2><p class="pp-hint2">Una board per ogni ${what}. Ognuna ha i suoi riquadri, ${LABEL.tasks.toLowerCase()}, note${D.mode==='game'?', configurazione e storico delle partite':''}; etichette e link rapidi${D.mode==='game'?' e preset':''} sono in comune.</p>
+    <div class="pp-bgrid">${vis.map(id=>{const b=IX.boards[id],st=boardStats(id),cur=id===IX.current;
+      return `<div class="pp-bcard${cur?' cur':''}${b.archived?' arch':''}"><div class="pp-bhead"><span class="pp-mono">${cur?'● aperta':b.archived?'archiviata':'in corso'}</span></div>
+        <input class="pp-bname" data-rn="${id}" value="${esc(b.name)}" maxlength="40" title="Rinomina">
+        <div class="pp-bmeta pp-mono">${D.mode==='game'?`<span>${st.n} partite</span><span>${hm(st.t)} ore</span>`:''}<span>${st.done}/${st.tasks} fatti</span></div>
+        <div class="pp-mono pp-blast">${st.last?'ultima: '+esc(fmtDay(st.last)):'creata '+esc(fmtDay(b.created))}</div>
+        <div class="pp-bacts">${cur?'':`<button class="pp-btn sm pri" data-open="${id}">Apri</button>`}<button class="pp-btn sm" data-dup="${id}" title="Duplica">${svg('copy',13)}</button>
+        <button class="pp-btn sm" data-arc="${id}" title="${b.archived?'Ripristina':'Archivia'}">${svg('archive',13)}</button>${cur?'':`<button class="pp-btn sm" data-del="${id}" title="Elimina">${svg('trash',13)}</button>`}</div></div>`;}).join('')}
+      <button class="pp-bcard pp-bnew" data-new>${svg('plus',26)}<b>Nuova board</b><small>una nuova ${what}</small></button></div>
+    ${arch?`<button class="pp-btn sm" data-arch style="margin-top:10px">${showArch?'Nascondi':'Mostra'} le archiviate (${arch})</button>`:''}
+    ${creating?`<div class="pp-bform"><span class="pp-mono">Nuova board</span><label class="pp-row"><span class="pp-mono">Nome</span><input data-nn placeholder="${D.mode==='game'?'es. Run 2 · Mago, Stagione 25, Mondo hardcore':'es. Versione 2, Refactor, Demo'}" maxlength="40"></label>
+      <div class="pp-row top"><span class="pp-mono">Parti da</span><div class="pp-from">
+        <label><input type="radio" name="from" value="layout" checked><b>La disposizione di «${esc(IX.boards[IX.current].name)}»</b><small>stessi riquadri, fili e aree; contenuti vuoti</small></label>
+        <label><input type="radio" name="from" value="empty"><b>Una board pulita</b><small>i riquadri di base, tutto da riempire</small></label>
+        <label><input type="radio" name="from" value="copy"><b>Una copia completa</b><small>anche ${LABEL.tasks.toLowerCase()} e note${D.mode==='game'?' (lo storico riparte da zero)':''}</small></label></div></div></div>`:''}`,
+    creating?[['Annulla',false,()=>{setTimeout(()=>boardsPanel(false,showArch),0);}],['Crea e apri',true,()=>{const m=E.modal;const name=m.querySelector('[data-nn]').value.trim(),from=m.querySelector('input[name=from]:checked').value;
+      flushSave().then(()=>act('boardCreate',{...kk(),name,from}));}]]:[['Chiudi',true]],{wide:true});
+  const m=E.modal;
+  m.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{m.classList.remove('on');E.scrim.classList.remove('on');openBoard(b.dataset.open);});
+  m.querySelectorAll('[data-rn]').forEach(inp=>inp.onchange=()=>{IX.boards[inp.dataset.rn].name=inp.value.trim()||IX.boards[inp.dataset.rn].name;saveIndex();chrome();});
+  m.querySelectorAll('[data-dup]').forEach(b=>b.onclick=()=>{flushSave().then(()=>act('boardCreate',{...kk(),name:IX.boards[b.dataset.dup].name+' (copia)',from:'copy',source:b.dataset.dup}));m.classList.remove('on');E.scrim.classList.remove('on');});
+  m.querySelectorAll('[data-arc]').forEach(b=>b.onclick=()=>{const bd=IX.boards[b.dataset.arc];bd.archived=!bd.archived;saveIndex();boardsPanel(false,showArch);});
+  m.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const bd=IX.boards[b.dataset.del];if(!confirm(`Eliminare la board «${bd.name}»${D.mode==='game'?' con il suo storico':''}? Non si può annullare.`))return;
+    act('boardDelete',{...kk(),id:b.dataset.del}).then(()=>{delete IX.boards[b.dataset.del];boardsPanel(false,showArch);});});
+  const ab=m.querySelector('[data-arch]');if(ab)ab.onclick=()=>boardsPanel(creating,!showArch);
+  m.querySelector('[data-new]').onclick=()=>{boardsPanel(true,showArch);setTimeout(()=>E.modal.querySelector('[data-nn]')?.focus(),30);};
+}
+
+/* ── Preset (giochi): scegli quello della partita, modificali ── */
+function presetMenu(anchor){
+  const items=Object.entries(IX.presets||{}).map(([k,p])=>({t:p.n,k,on:k===(IX.session?.preset||IX.lastPreset)}));
+  pop(anchor,[...items,{t:'Modifica i preset…',manage:1}],it=>{if(it.manage)return presetEditor(IX.session?.preset||IX.lastPreset);act('gameSessionPreset',{id:+D.gk,preset:it.k});toast(`Preset «${it.t}»: si aprono i suoi siti`);});
+}
+const PICONS=['group','emoji_events','videocam','person','swords','sports_esports','explore','school','nightlight'];
+const PI={group:'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 6-5s6 2 6 5M14 15c3 0 8 1 8 5',emoji_events:'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4a3 3 0 0 0 4 4M16 6h4a3 3 0 0 1-4 4M12 13v4M8 21h8M10 17h4',
+  videocam:'M3 7h12v10H3zM15 10l6-3v10l-6-3',person:'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6',swords:'M4 4l10 10M4 4h4M4 4v4M20 4L10 14M20 4h-4M20 4v4M8 16l-4 4M16 16l4 4',
+  sports_esports:IP.gamepad,explore:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM16 8l-2 6-6 2 2-6z',school:'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5',nightlight:'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z'};
+for(const [k,v] of Object.entries(PI))IP['p-'+k]=v;
+function presetDesc(p){const tl=Object.values(P.tiles).filter(t=>t.timer);const d=[p.open.length?p.open.join(' + ')+(p.companion?' nel companion':' in schede'):'nessun sito'];
+  d.push(p.timer!=null&&tl[p.timer]?'timer «'+tl[p.timer].timer.label+'»':'niente timer');d.push(p.clips?'clip in automatico':p.notes?'note tattiche':'niente note');return d.join(' · ');}
+function presetEditor(sel){
+  let cur=IX.presets[sel]?sel:Object.keys(IX.presets)[0];
+  const draw=()=>{const p=IX.presets[cur];if(!p)return;const timers=Object.values(P.tiles).filter(t=>t.timer);
+    modal(`<span class="pp-mono pp-kick">Preset · ${esc(D.pp.name)}</span><h2>Cosa apre ogni preset</h2>
+    <div class="pp-ptabs">${Object.entries(IX.presets).map(([k,v])=>`<button data-k="${k}" class="${k===cur?'on':''}">${svg('p-'+v.i,15)}${esc(v.n)}</button>`).join('')}<button data-pnew title="Nuovo preset">${svg('plus',15)}</button></div>
+    <div class="pp-form"><label class="pp-row"><span class="pp-mono">Nome</span><input data-f="n" value="${esc(p.n)}" maxlength="24"></label>
+      <div class="pp-row"><span class="pp-mono">Icona</span><div class="pp-icons">${PICONS.map(i=>`<button data-ic="${i}" class="${i===p.i?'on':''}">${svg('p-'+i,16)}</button>`).join('')}</div></div>
+      <div class="pp-row top"><span class="pp-mono">Apri</span><div class="pp-sites">${IX.quick.map(l=>`<label><input type="checkbox" data-site="${esc(l.n)}"${p.open.includes(l.n)?' checked':''}>${esc(l.n)}</label>`).join('')||'<span class="pp-hint2">Aggiungi prima dei link rapidi.</span>'}</div></div>
+      <label class="pp-row"><span class="pp-mono">Companion</span><span class="pp-check"><input type="checkbox" data-f="companion"${p.companion?' checked':''}> i siti si aprono nel workspace del gioco (companion)</span></label>
+      <label class="pp-row"><span class="pp-mono">Timer</span><select data-f="timer"><option value="">Nessuno</option>${timers.map((t,i)=>`<option value="${i}"${p.timer===i?' selected':''}>${esc(t.timer.label)}</option>`).join('')}</select></label>
+      <label class="pp-row"><span class="pp-mono">Note</span><span class="pp-check"><input type="checkbox" data-f="notes"${p.notes?' checked':''}> mostra le note tattiche</span></label>
+      <label class="pp-row"><span class="pp-mono">Clip</span><span class="pp-check"><input type="checkbox" data-f="clips"${p.clips?' checked':''}> proponi le clip della partita in automatico</span></label>
+      <div class="pp-prev pp-mono">${esc(presetDesc(p))}</div></div>`,
+      [...(Object.keys(IX.presets).length>1?[['Elimina',false,()=>{delete IX.presets[cur];if(IX.lastPreset===cur)IX.lastPreset=Object.keys(IX.presets)[0];cur=Object.keys(IX.presets)[0];saveIndex();setTimeout(draw,0);}]]:[]),['Fatto',true,()=>{refreshDynamic();}]]);
+    const m=E.modal;
+    m.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cur=b.dataset.k;draw();});
+    m.querySelector('[data-pnew]').onclick=()=>{const k='p'+Date.now().toString(36).slice(-6);IX.presets[k]={n:'Nuovo preset',i:'sports_esports',open:[],companion:false,timer:null,notes:true,clips:false};cur=k;saveIndex();draw();E.modal.querySelector('[data-f=n]').select();};
+    m.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>{p.i=b.dataset.ic;saveIndex();draw();});
+    m.querySelectorAll('[data-site]').forEach(c=>c.onchange=()=>{const n=c.dataset.site;p.open=c.checked?[...p.open,n]:p.open.filter(x=>x!==n);saveIndex();m.querySelector('.pp-prev').textContent=presetDesc(p);});
+    m.querySelectorAll('[data-f]').forEach(f=>f.oninput=f.onchange=()=>{const k=f.dataset.f;p[k]=f.type==='checkbox'?f.checked:k==='timer'?(f.value===''?null:+f.value):f.value;saveIndex();m.querySelector('.pp-prev').textContent=presetDesc(p);});};
+  draw();
+}
+
+/* ── Storico delle partite (pannello a lato) ── */
+function history(sel){
+  const list=P.sessions,tot=list.reduce((a,x)=>a+x.dur,0),url=n=>shotByName(n)?.url;
+  const one=x=>{const p=IX.presets?.[x.p]||{n:'Partita'};
+    return `<div class="pp-hdet"><div class="pp-sum"><div><h2>${esc(p.n)}</h2><p>${esc(fmtDay(x.start))}</p></div><div class="pp-dur">${hm(x.dur)}<small>ore</small></div></div>
+    <div class="pp-gbar"><i style="width:${Math.min(100,x.dur/(4*3600e3)*100)}%"></i><span class="pp-mono">${fmtDur(x.dur)}</span></div>
+    <h3 class="pp-mono">Catture · ${x.caps.length}</h3><div class="pp-caps">${x.caps.slice(0,12).map(c=>`<div class="pp-cap${/\.(mp4|mkv|webm)$/i.test(c)?' clip':''}" style="${url(c)&&!/\.(mp4|mkv|webm)$/i.test(c)?`background-image:url('${url(c)}')`:''}" title="${esc(c)}" data-cap="${esc(c)}"><span>${esc(c)}</span></div>`).join('')||'<p class="pp-hint2">Nessuna cattura.</p>'}</div>
+    <h3 class="pp-mono">Nota</h3><p class="pp-hnote">${x.note?esc(x.note):'<span class="pp-hint2">Nessuna nota.</span>'}</p>
+    <h3 class="pp-mono">${LABEL.tasks} fatti</h3>${x.done?.length?`<ul class="pp-hdone">${x.done.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p class="pp-hint2">Nessuno.</p>'}
+    <div class="pp-dest pp-mono">sessioni\\${new Date(x.start).toISOString().slice(0,10)}.md</div></div>`;};
+  const draw=i=>{E.sheet.innerHTML=`<div class="pp-shead"><span class="pp-mono">Storico · ${esc(IX.boards[IX.current].name)}</span><button class="pp-x" data-close>${svg('close',15)}</button></div>
+    <div class="pp-htot"><div><b>${list.length}</b><span class="pp-mono">partite</span></div><div><b>${hm(tot)}</b><span class="pp-mono">ore</span></div><div><b>${list.reduce((a,x)=>a+x.caps.length,0)}</b><span class="pp-mono">catture</span></div></div>
+    <div class="pp-hlist">${list.map((x,j)=>`<button class="pp-hit${j===i?' on':''}" data-j="${j}">${svg('gamepad',16)}<span><b>${esc(IX.presets?.[x.p]?.n||'Partita')}</b><small>${esc(fmtDay(x.start))}</small></span><span class="pp-mono">${fmtDur(x.dur)}</span></button>`).join('')}</div>
+    ${i>=0&&list[i]?one(list[i]):`<p class="pp-hint2">${IX.session?'La partita in corso entra nello storico quando chiudi il gioco.':'Scegli una partita.'}</p>`}`;
+    E.sheet.querySelectorAll('[data-j]').forEach(x=>x.onclick=()=>draw(+x.dataset.j));
+    E.sheet.querySelectorAll('[data-cap]').forEach(x=>x.ondblclick=()=>act('boardOpenShot',{...kk(),name:x.dataset.cap}));
+    E.sheet.querySelector('[data-close]').onclick=()=>E.sheet.classList.remove('on');};
+  draw(sel);E.sheet.classList.add('on');
+}
+
+/* ── Fine della partita: la board resta, la partita va nello storico ── */
+let endShownFor=null;
+function endDialog(){
+  const pd=IX.pending;if(!pd)return;endShownFor=pd.end;
+  const dur=pd.end-pd.start,p=IX.presets?.[pd.preset]||{n:'Partita'},bname=IX.boards[pd.board]?.name||'';
+  const done=pd.board===IX.current?P.tasks.filter(t=>t.done).length:null;
+  modal(`<span class="pp-mono pp-kick">Partita finita · board «${esc(bname)}»</span>
+    <div class="pp-sum"><div><h2>${esc(D.game?.name||'')} · ${esc(p.n)}</h2><p>dalle ${new Date(pd.start).toTimeString().slice(0,5)} alle ${new Date(pd.end).toTimeString().slice(0,5)}</p></div><div class="pp-dur">${hm(dur)}<small>ore</small></div></div>
+    <div class="pp-gbar"><i style="width:${Math.min(100,dur/(4*3600e3)*100)}%"></i><span class="pp-mono">${hms(dur)}</span></div>
+    <h3 class="pp-mono">Catture fatte durante la partita · ${pd.caps.length}</h3>
+    <div class="pp-caps">${pd.caps.map((c,i)=>`<label class="pp-cap${c.clip?' clip':''}" style="${c.clip?'':`background-image:url('${fileUrl(c.path)}')`}"><input type="checkbox" checked data-c="${i}"><span>${esc(c.name)}</span></label>`).join('')||'<p class="pp-hint2">Nessuna cattura trovata (Xbox Game Bar, Steam, NVIDIA).</p>'}</div>
+    <h3 class="pp-mono">Com'è andata?</h3><textarea class="pp-endnote" placeholder="Una riga per ricordartela nello storico."></textarea>
+    <label class="pp-check"><input type="checkbox" checked data-keep> Segna nello storico ${LABEL.tasks.toLowerCase()} fatti${done!=null?' ('+done+')':''}</label>
+    <label class="pp-check"><input type="checkbox" data-reset> Per la prossima partita, togli la spunta a ${LABEL.tasks.toLowerCase()} fatti</label>
+    <p class="pp-hint2">La board resta com'è: riquadri, ${LABEL.tasks.toLowerCase()}, note e catture non si perdono.</p>`,
+    [['Non salvare',false,()=>{act('gameSessionDrop',{id:+D.gk});}],['Dopo',false,()=>{}],['Aggiungi allo storico',true,()=>{const m=E.modal;
+      const keep=[...m.querySelectorAll('[data-c]')].filter(x=>x.checked).map(x=>pd.caps[+x.dataset.c].path);
+      const json=JSON.stringify({keep,note:m.querySelector('.pp-endnote').value.trim(),keepDone:m.querySelector('[data-keep]').checked,reset:m.querySelector('[data-reset]').checked});
+      flushSave().then(()=>act('gameSessionFinish',{id:+D.gk,json})).then(r=>{if(r?.ok!==false)toast(`Partita aggiunta allo storico di «${bname}»`);});}]],{wide:true});
+}
+/* Dopo ogni stato: partita finita da salvare, testata */
+function boardExtras(){
+  if(D.mode==='game'&&IX.pending&&endShownFor!==IX.pending.end&&!E.modal.classList.contains('on'))endDialog();
+}
+function chromeGame(){
+  const g=D.game||{},name=g.name||D.pp.name;
+  E.logo.textContent=name.replace(/[^A-Za-z0-9À-ÿ ]/g,' ').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'G';
+  E.name.textContent=name;E.type.textContent='Gioco';E.pathText.textContent=D.pp.root;
+  const metaSig=JSON.stringify([g.running,IX.session?.start,Object.keys(IX.boards).length,Object.keys(P.tiles).length,P.links.length,Math.round(view.z*100)]);
+  if(metaSig!==sigs.meta){sigs.meta=metaSig;
+    E.meta.innerHTML=`${esc(g.exe||'')} <i>${g.running?'in esecuzione':'chiuso'}</i><span class="bar"></span>BOARD <i>${Object.keys(IX.boards).length}</i><span class="bar"></span>RIQUADRI <i>${Object.keys(P.tiles).length}</i><span class="bar"></span>FILI <i>${P.links.length}</i><span class="bar"></span>ZOOM <i>${Math.round(view.z*100)}%</i>`;}
+  const quick=[...(IX.quick||[]).filter(l=>l.dock).slice(0,4).map(l=>['@link',l,'link',l.n]),['gameOpenFolder',{id:+D.gk},'folder','Cartella']];
+  const qSig=JSON.stringify(quick);
+  if(qSig!==sigs.quick){sigs.quick=qSig;E.quick.innerHTML=quick.map(([c,a,i,l],n)=>`<button data-q="${n}" title="${esc(l)}">${svg(i)}<span class="lbl">${esc(l)}</span></button>`).join('');
+    E.quick.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const q=quick[+b.dataset.q];if(q[0]==='@link')openQuick(q[1]);else act(q[0],q[1]);});}
+}
 
 window.ProjectPage={render(state){render(state);themeChanged();},hide(){if(root){root.querySelectorAll('.pp-menu,.pp-cmenu').forEach(m=>m.classList.remove('on'));}}};
 })();

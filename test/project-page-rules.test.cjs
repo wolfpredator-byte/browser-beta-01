@@ -21,7 +21,7 @@ test('la pagina salvata viene controllata: riquadri, fili, aree, attività',()=>
   assert.deepEqual(p.links,[{a:'hero',b:'note-3',t:'eventi',c:0}]);       // doppione, filo verso il nulla e anello scartati
   assert.deepEqual(Object.keys(p.areas),['area-1']);
   assert.equal(p.areas['area-1'].t,'Area');
-  assert.deepEqual(p.tasks,[{t:'Fare la build',tag:'Build',done:true,doneAt:5},{t:'Altro',tag:'Altro',done:false}]);
+  assert.deepEqual(p.tasks,[{t:'Fare la build',tag:'Build',done:true,doneAt:5},{t:'Altro',tag:'Strano',done:false}]);   // Beta 0.43.3: etichette libere (le gestisci tu)
   assert.equal(p.cover,'foto.png');
   assert.equal(p.view.z,1.6);
   assert.equal(p.n,6);                                                    // il contatore non riusa numeri già presi

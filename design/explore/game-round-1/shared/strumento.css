@@ -1,0 +1,172 @@
+/* Stile «Strumento» legato ai colori del tema di VARCO.
+   I valori --s-* li calcola strumento-theme.js da: accento, secondo colore, sfondo e modalità (scuro / chiaro / OLED)
+   del tema attivo, con le stesse regole di lib/appearance-rules.cjs. Qui sotto ci sono i valori del tema VARCO scuro.
+   Restano fissi solo i colori di stato (errore, attenzione, riuscito), così un errore resta un errore con ogni tema. */
+
+:root{
+  --s-ground:#101013;--s-tile:#19191d;--s-row:#202025;--s-row-hover:#27272d;--s-well:#141417;--s-chrome:#1b1b1f;
+  --s-edge:#2b2b31;--s-edge-2:#38383f;--s-text:#ececf0;--s-muted:#a2a2ab;--s-dim:#6b6b74;
+  --s-sig:#7c6cff;--s-on-sig:#ffffff;--s-alt:#6fd3ff;--s-on-alt:#111111;
+  --s-press:#0a0a0c;--s-dots:#26262b;--s-cable-edge:#050506;--s-note:#1f1d16;
+  --s-ok:#c8f135;--s-warn:#ffcc33;--s-err:#ff5b2e;--s-on-state:#111111;
+  --s-radius:12px;
+}
+/* Generali: niente aloni, vetro o fili luminosi */
+#bg::before,#bg::after,.hero-line,.pulse,#wires .glow,#wires .flow{display:none}
+.tile,.rail,.dock,.top,.meta,.chips,.menu,.cmenu,.wbar,.chip-glass{backdrop-filter:none}
+
+:root:root{
+  --ground:var(--s-ground);--tile:var(--s-tile);--tile-2:var(--s-row);--chrome:var(--s-chrome);--edge:var(--s-edge);--edge-2:var(--s-edge-2);
+  --text:var(--s-text);--muted:var(--s-muted);--dim:var(--s-dim);--v-accent:var(--s-sig);--v-alt:var(--s-sig);--v-violet:var(--s-alt);
+  --ok:var(--s-ok);--warn:var(--s-warn);--err:var(--s-err);
+  --mono:"Geist Mono",Consolas,monospace;--head:"Geist","Segoe UI",sans-serif;--body:"Geist","Segoe UI",sans-serif;
+  --tile-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 2px 0 var(--s-press);font-family:var(--body);color:var(--s-text);
+  transition:background-color .3s}
+body{background:var(--s-ground);transition:background-color .3s}
+#dots{background-image:radial-gradient(var(--s-dots) 1.1px,transparent 1.3px)}
+.top{background:var(--s-chrome);box-shadow:0 1px 0 var(--s-edge)}
+.logo{background:var(--s-sig);color:var(--s-on-sig);border-radius:8px;box-shadow:none}
+.ptype{background:var(--s-row);color:var(--s-muted);border-radius:3px}
+.sep{background:var(--s-edge-2)}
+.ws{background:var(--s-row);border-color:var(--s-edge)}
+.ws .ms{color:var(--s-sig-ink)!important}
+.tabs button{color:var(--s-muted)}
+.tabs button[aria-pressed=true]{background:var(--s-row-hover);color:var(--s-text)}
+.saved{color:var(--s-dim)}.saved.on{color:var(--s-sig-ink)}
+
+/* Riquadri */
+.tile{border-radius:var(--s-radius);background:var(--s-tile);border:1px solid var(--s-edge);box-shadow:var(--tile-shadow)}
+.tile:hover{border-color:var(--s-edge-2);box-shadow:var(--tile-shadow)}
+.tile.lit{box-shadow:var(--tile-shadow);outline:2px solid var(--s-sig-ink);outline-offset:3px;border-color:var(--s-edge)}
+.tile.target{box-shadow:var(--tile-shadow);outline:3px solid var(--s-sig-ink);outline-offset:3px}
+.tile.sel{outline:2px solid var(--s-sig-ink);outline-offset:3px;box-shadow:var(--tile-shadow)}
+.tile.moving{box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.th{padding:14px 16px 10px;align-items:center}
+.th .mono{color:var(--s-muted);display:inline-flex;align-items:center;gap:7px}
+.th .mono::before{content:"";width:6px;height:6px;border-radius:1px;background:var(--s-dim)}
+.tile.lit .th .mono::before,.tile.sel .th .mono::before{background:var(--s-sig-ink)}
+.th h3{font:600 17px/22px var(--head);letter-spacing:-.01em}
+.th .tools button{color:var(--s-dim)}.th .tools button:hover{background:var(--s-row);color:var(--s-text)}
+.tb{padding:0 16px 16px}
+.links-n{color:var(--s-sig-ink)}
+.mono,.kbd,.tag{font-family:var(--mono)}
+.tag{border-radius:4px;border:0;font-weight:600}
+.tag.ok{background:var(--s-ok);color:var(--s-on-state)}.tag.warn{background:var(--s-warn);color:var(--s-on-state)}
+.tag.err{background:var(--s-err);color:var(--s-on-state)}.tag .dot{background:var(--s-on-state)}
+.kbd{border-radius:3px;background:var(--s-row-hover);color:var(--s-muted)}
+.btn{border-radius:8px;background:var(--s-row);border:1px solid var(--s-edge-2);box-shadow:0 2px 0 var(--s-press);font-weight:500;color:var(--s-text)}
+.btn:hover{background:var(--s-row-hover)}
+.btn:active{transform:translateY(1px);box-shadow:0 1px 0 var(--s-press)}
+.btn.pri{background:var(--s-sig);border-color:transparent;color:var(--s-on-sig);box-shadow:0 2px 0 var(--s-press)}
+
+/* Stato del progetto */
+.stage{border-radius:8px}
+.stage::after{background:linear-gradient(to top,var(--s-tile) 2%,color-mix(in srgb,var(--s-tile) 40%,transparent) 50%,transparent 75%)}
+.stage h2{font:700 30px/34px var(--head);letter-spacing:-.025em;color:var(--s-text)}
+.stage p{color:var(--s-muted)}
+.stage .mono{color:var(--s-sig-ink)!important}
+.chip-glass{background:var(--s-ground);color:var(--s-text);border-radius:4px;font-family:var(--mono)}
+.err-strip{background:var(--s-err);border:0;border-radius:8px}
+.err-strip .ms,.err-strip code,.err-strip .mono{color:var(--s-on-state)!important}
+.metrics{gap:8px}
+.metric{border-radius:8px;background:var(--s-well);border:1px solid var(--s-edge)}
+.metric .row{color:var(--s-muted)}
+.metric:nth-child(1){background:var(--s-err);border-color:transparent}
+.metric:nth-child(3){background:var(--s-ok);border-color:transparent}
+.metric:nth-child(1) *,.metric:nth-child(3) *{color:var(--s-on-state)!important}
+.metric:nth-child(2) .row span:last-child{color:var(--s-sig-ink)!important}
+.metric .val{font:700 30px/34px var(--head);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.meter{display:none}
+.spark path{stroke:var(--s-sig)}
+
+/* Liste */
+.prog{height:10px;border-radius:2px;background:repeating-linear-gradient(90deg,var(--s-row-hover) 0 8px,transparent 8px 10px)}
+.prog i{border-radius:0;background:repeating-linear-gradient(90deg,var(--s-sig) 0 8px,transparent 8px 10px)}
+.task,.ev,.f,.re,.add{border-radius:8px;background:var(--s-row)}
+.task:hover,.f:hover,.re:hover{background:var(--s-row-hover)}
+.task input{accent-color:var(--s-sig)}
+.task.done .t span{color:var(--s-dim)}
+.add input::placeholder{color:var(--s-dim)}
+.add:focus-within{box-shadow:0 0 0 1px var(--s-sig)}
+.add select{background:var(--s-row-hover);color:var(--s-muted)}
+.ev .av,.re .ic{background:var(--s-row-hover)}
+.ev code{background:var(--s-row-hover);color:var(--s-text)}
+.f:hover h4{color:var(--s-sig-ink)}
+.note{border-radius:8px;background:var(--s-note)}
+.note::before{width:4px;background:var(--s-warn)}
+.note textarea{color:var(--s-text)}
+.feature,.thumb{border-radius:6px}
+.feature::after{background:linear-gradient(to top,rgba(0,0,0,.75),transparent 60%)}
+.feature .chip-glass{background:rgba(0,0,0,.7);color:#eee}
+.feature .bl .mono{color:#ddd}
+.thumb{border-color:var(--s-edge)}
+.thumb.on{outline:2px solid var(--s-sig)}
+.thumb.up{border:1px dashed var(--s-edge-2);color:var(--s-muted);background:none}
+.solo-img::after{background:linear-gradient(to top,var(--s-tile) 0,transparent 45%)}
+.tile.shot .cap b{color:var(--s-text)}
+.link-node .ic{background:var(--s-row-hover)}
+.link-node .ic .ms{color:var(--s-sig-ink)!important}
+.link-node small input{color:var(--s-dim)}
+
+/* Barre e menu */
+.rail{border-radius:14px;background:var(--s-chrome);border-color:var(--s-edge);box-shadow:0 2px 0 var(--s-press)}
+.rail button{border-radius:9px;color:var(--s-muted)}
+.rail button:hover{color:var(--s-text);background:var(--s-row)}
+.rail button[aria-pressed=true]{background:var(--s-row-hover);color:var(--s-sig-ink);box-shadow:inset 0 0 0 1px var(--s-edge-2)}
+.rail hr{background:var(--s-edge-2)}
+.rail button::after{background:var(--s-chrome);border-color:var(--s-edge-2);color:var(--s-text)}
+.dock{border-radius:14px;background:var(--s-chrome);border-color:var(--s-edge);box-shadow:0 2px 0 var(--s-press)}
+.dock button{border-radius:8px;color:var(--s-muted)}
+.dock button:hover{color:var(--s-text);background:var(--s-row)}
+.dock button.pri{background:var(--s-sig);color:var(--s-on-sig);box-shadow:none}
+.dock .vr{background:var(--s-edge-2)}
+#zl{color:var(--s-text)!important}
+.meta,.chips{background:var(--s-chrome);border-color:var(--s-edge)}
+.meta{color:var(--s-dim)}.meta b,.meta i{color:var(--s-text)}.meta .bar{background:var(--s-edge-2)}
+.chips button{color:var(--s-muted)}
+.chips button[aria-pressed=true]{background:var(--s-row-hover);color:var(--s-sig-ink);box-shadow:none}
+.menu,.cmenu,.wbar{background:var(--s-chrome);border-color:var(--s-edge-2);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.cm-head{border-color:var(--s-edge)}
+.cm-sec{color:var(--s-dim)}
+.cm-body>button.first,.cm-body>button:hover,.cm-list button:hover,.menu button:hover{background:var(--s-row-hover)}
+.cm-body .ms,.cm-head .ms,.menu .ms{color:var(--s-muted)}
+.cm-body small,.menu button small{color:var(--s-dim)}
+.wbar input{background:var(--s-row)}
+.wbar button{color:var(--s-muted)}
+.port{border-radius:3px;width:12px;height:12px;background:var(--s-ground);border:2px solid var(--s-dim)}
+.port:hover{background:var(--s-sig);border-color:var(--s-sig)}
+.wlabel{border-radius:4px;background:var(--s-ground)!important;border:1px solid var(--s-edge-2)!important;font-family:var(--mono);text-transform:none;letter-spacing:0}
+.lightbox{background:rgba(0,0,0,.8)}
+/* Area = nastro di carta adesiva con il nome */
+.area{border-radius:14px;border:1px dashed var(--s-edge-2);background:transparent}
+.area .ah{border-radius:2px;background:var(--ac);border:0;transform:rotate(-1.5deg);top:-14px;box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.area .ah input,.area .ah .ms{color:var(--on-ac,#111)!important}
+.area .ah input{font:600 12px var(--mono)}
+
+/* Fili: cavi con la spina */
+#wires .w0{fill:none;stroke:var(--s-cable-edge);stroke-width:8;stroke-linecap:round}
+#wires .w{stroke-width:4.5;stroke-linecap:round}
+#wires g.lit .w,#wires g.sel .w{stroke-width:6}
+#wires g.lit .w0,#wires g.sel .w0{stroke-width:10}
+#wires .tempw{stroke:var(--s-sig);stroke-width:3;stroke-dasharray:7 6}
+#wires .end{stroke-width:2}
+
+/* Pannello dell'anteprima (solo negli esempi: in VARCO i colori arrivano dal tema scelto nelle Impostazioni) */
+.tp{position:fixed;right:16px;bottom:22px;z-index:35;width:268px;padding:12px;border-radius:12px;background:var(--s-chrome);border:1px solid var(--s-edge-2);box-shadow:0 2px 0 var(--s-press)}
+.tp.min .tp-b{display:none}
+.tp-h{display:flex;align-items:center;gap:8px;cursor:pointer}
+.tp-h b{font:600 12.5px var(--body)}
+.tp-h .mono{color:var(--s-dim);margin-left:auto}
+.tp-b{margin-top:10px}
+.tp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0 10px}
+.tp-grid button{aspect-ratio:1;border-radius:7px;position:relative;overflow:hidden;border:1px solid var(--s-edge-2)}
+.tp-grid button i{position:absolute;right:0;bottom:0;width:45%;height:45%;border-top-left-radius:5px}
+.tp-grid button.on{outline:2px solid var(--s-text);outline-offset:2px}
+.tp-seg{display:flex;border:1px solid var(--s-edge-2);border-radius:8px;overflow:hidden}
+.tp-seg button{flex:1;padding:5px 0;color:var(--s-muted);font:500 12px var(--body)}
+.tp-seg button[aria-pressed=true]{background:var(--s-row-hover);color:var(--s-text)}
+.tp-name{font:500 12px var(--body);color:var(--s-text)}
+.tp-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.tp-row label{font:500 11px var(--mono);color:var(--s-dim);text-transform:uppercase;letter-spacing:.05em;width:62px}
+.tp-row input[type=color]{width:34px;height:24px;border:1px solid var(--s-edge-2);border-radius:6px;background:none;padding:0}
+.tp-row button{font:500 11px var(--body);color:var(--s-muted)}

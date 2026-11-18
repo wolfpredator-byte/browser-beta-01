@@ -280,3 +280,44 @@ Richiesta: lo stile Strumento deve seguire i temi di VARCO (colori).
 - **Colori di stato fissi** (errore arancio, attenzione giallo, riuscito lime), così un errore resta un errore con ogni tema.
 - Il nastro delle aree prende il colore del tema, con la scritta leggibile.
 - Provati tutti i 23 temi nelle tre modalità. Negli esempi c'è un pannello «Tema di VARCO» (temi, modalità, accento e secondo colore personalizzati) che in VARCO non serve.
+
+## 2026-11-18 · Pagina del gioco e sessione · Round 1 (game-round-1/) — 0.43.3
+Brief: design/BRIEF-game-session.md. Stessa tela e stesso stile «Strumento» (colori del tema) della pagina del progetto. Esempio: Destiny 2.
+Pin: i quattro timer a blocchi di colore, il termometro giallo, la manopola «Instruments», il pannello avvisi.
+- **Riquadri:** scheda del gioco (stato, monitor, companion, barra della sessione a tacche, sessione/oggi/catture/obiettivi), obiettivi, timer (blocchi pieni: verde in corsa, giallo agli ultimi 10 s, arancio scaduto; anche «Reset settimanale» fino a martedì 18:00), note tattiche, catture (screenshot e clip), build, sessioni passate, link rapidi (pannello o scheda).
+- **Avvio:** scheda in un angolo sopra il gioco: «Che sessione è?» con i preset Raid / PvP / Streaming / Giocatore singolo (tasti 1–4); dopo 10 s si usa l'ultimo.
+- **Fine:** riepilogo (durata, preset, catture da scegliere, nota, obiettivi) → «Salva nella sessione di oggi» in Documenti\VARCO\Giochi\Destiny 2\sessioni\<data>.md, oppure «Non salvare» / «Ricordamelo dopo».
+- Nel pannello dell'esempio: «Simula» avvio, cattura, chiusura.
+
+## 2026-11-18 · Pagina del gioco · Round 2 (game-round-2/) — più generale
+Richiesta: meno legata a Destiny, valida per qualsiasi gioco.
+- **La pagina è la stessa per ogni gioco**; cambiano solo i contenuti che VARCO propone (profilo del gioco):
+  - nome, piattaforma, eseguibile e genere;
+  - siti del gioco più quelli suggeriti per tutti (wiki, Reddit, YouTube, Discord);
+  - due timer di partenza;
+  - righe della configurazione;
+  - obiettivi d'esempio.
+- **Esempi nel pannello** (scelta «Gioco d'esempio»): Elden Ring, Valorant, Minecraft, Destiny 2.
+- **Preset uguali per tutti e modificabili:** Con amici, Competitivo, Streaming, Da solo. Il nuovo editor dei preset (dalla scelta all'avvio o dal pannello) permette di cambiare nome, icona, siti da aprire, companion, timer, note e clip; si possono aggiungere o eliminare preset.
+- **Build → «Configurazione»:** righe libere (voce: valore) che scrivi tu, per esempio classe, agente o seme del mondo.
+- **Timer «fino a»:** giorno e ora configurabili (non solo il reset del martedì).
+
+## 2026-11-18 · Pagina del gioco · Round 3 (game-round-3/) — personalizzabile, persistente, più board
+Richiesta: più personalizzazione (dalle etichette degli obiettivi ai link rapidi); board che non si perde quando chiudi il gioco e fa da storico delle partite; più board per gioco (run diverse) in una collezione.
+- **Etichette degli obiettivi:**
+  - colorate e in comune tra le board del gioco;
+  - clic sull'etichetta per cambiarla;
+  - «Gestisci le etichette» per rinominarle (aggiorna gli obiettivi), cambiare colore, aggiungerle o eliminarle.
+- **Link rapidi:**
+  - aggiungi, modifica o togli;
+  - per ognuno: nome, indirizzo, icona, dove si apre (pannello, scheda o companion) e se va nel dock;
+  - i suggeriti restano segnati finché non li modifichi.
+- **Board persistente:**
+  - alla fine della partita la board resta com'è e la partita va nello «Storico partite»: durata, preset, catture scelte, una riga «Com'è andata?», obiettivi fatti;
+  - facoltativo: togliere le spunte agli obiettivi per la partita dopo.
+- **Storico:** pannello a lato con i totali (partite, ore, catture), l'elenco e il dettaglio di ogni partita.
+- **Collezione di board** (pulsante «Board» nella testata):
+  - una board per run, stagione o mondo, con copertina, partite, ore, obiettivi, ultima partita;
+  - rinomina, duplica, archivia o ripristina, elimina (con conferma);
+  - «Nuova board» parte da: la disposizione della board attuale (contenuti vuoti), una board pulita o una copia completa;
+  - all'avvio del gioco, nella scelta del preset, si sceglie anche la board su cui giocare.

@@ -142,6 +142,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        textContent:`${game.exe} · ${game.workspace} · ${game.sites.length} ${game.sites.length===1?'sito':'siti'}`});
      const actions=el('div',{className:'game-actions'},
        checkRow('Attivo',game.enabled,enabled=>act('setGameEnabled',{id:game.id,enabled})));
+     addButton(actions,'Pagina',()=>act('gamePageOpen',{id:game.id})).title='Pagina del gioco: obiettivi, timer, catture, storico delle partite e board'; // Beta 0.43.3
      addButton(actions,'Modifica',()=>{gamesView={mode:'edit',id:game.id};renderGames();});
      addButton(actions,'Prova',()=>act('testGame',{id:game.id})).title='Apre il companion come se il gioco fosse partito';
      list.append(el('div',{className:'game-row'+(game.enabled?'':' disabled')},title,meta,actions));
@@ -1937,7 +1938,7 @@ function buildStripNode(entry){
    if(t.loading)tab.append(el('span',{className:'tab-spinner','aria-label':'Caricamento'}));
    else if(t.favicon)tab.append(el('img',{className:'tab-favicon',src:t.favicon,alt:''}));
    const title=document.createElement('span');
-   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':t.page==='project'?'project':'home-tab'),t.page==='settings'?'Impostazioni':t.page==='project'?(t.title||'Progetto'):'Home');
+   if(t.isHome)title.replaceChildren(icon(t.page==='settings'?'settings-tab':t.page==='project'?'project':t.page==='game'?'games':'home-tab'),t.page==='settings'?'Impostazioni':t.page==='project'||t.page==='game'?(t.title||'Progetto'):'Home');
    else title.textContent=t.title||t.url;
    title.title=(t.title||t.url)+' — Shift+trascina per creare uno stack';
    title.onclick=()=>act('activateTab',{id:t.id});
@@ -2372,7 +2373,7 @@ function render(){
  // Beta 0.12: la scheda interna può essere la Home o le Impostazioni.
  const onSettings=state.internalPage==='settings';
  // Beta 0.43.2: pagina del progetto (tela con riquadri e collegamenti), disegnata da project-page.js.
- const onProject=state.internalPage==='project';
+ const onProject=state.internalPage==='project'||state.internalPage==='game'; // Beta 0.43.3: anche la pagina del gioco
  document.querySelector('.home-content').hidden=onSettings||onProject;
  $('projectPage').hidden=!(state.homeActive&&onProject);
  if(state.homeActive&&onProject)window.ProjectPage?.render(state);else window.ProjectPage?.hide();
