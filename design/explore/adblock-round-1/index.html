@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocco annunci · esempi</title>
+<style>
+/* Esempi Beta 0.45: avviso quando un sito si rompe, pannello del sito, liste e registro. Colori come la cornice di VARCO (tema arancio). */
+:root{--bg:#0d0a0a;--bg2:#141010;--panel:#171212;--glass:rgba(30,22,20,.92);--line:rgba(255,150,110,.14);--line2:rgba(255,150,110,.3);
+  --acc:#ff5b2e;--acc2:#ff9a6e;--acc-rgb:255,91,46;--text:#ece6e3;--muted:#9a8f8b;--ok:#7bd88f;--warn:#ffcc33;--bad:#ff6b6b;
+  font:13px/19px 'Segoe UI Variable','Segoe UI',sans-serif;color:var(--text)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#000}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+select,input{font:inherit;color:inherit}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* Barra degli esempi */
+#pick{position:fixed;top:0;left:0;right:0;height:44px;z-index:100;display:flex;align-items:center;gap:6px;padding:0 12px;background:#000;border-bottom:1px solid #222;font-size:12px}
+#pick b{color:#888;font-weight:500;margin-right:6px}
+#pick{overflow-x:auto;white-space:nowrap}
+#pick button{padding:6px 11px;border-radius:7px;border:1px solid #333;color:#bbb;white-space:nowrap;flex:none}
+@media (max-width:1100px){#pick .note{display:none}}
+#pick button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#pick .sep{width:1px;height:20px;background:#333;margin:0 6px}
+#pick .note{margin-left:auto;color:#777}
+
+/* Cornice finta di VARCO */
+#app{position:fixed;top:44px;left:0;right:0;bottom:0;display:grid;grid-template-rows:28px 52px 1fr 44px;grid-template-columns:62px 1fr;background:var(--bg)}
+.tbar{grid-column:1/3;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:11px;letter-spacing:.4em;color:var(--text)}
+.tbar small{letter-spacing:.08em;font-size:9px;color:var(--muted)}
+.nav{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 14px}
+.nav .ic{color:var(--muted)}
+.url{flex:1;display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)}
+.shield{position:relative;display:grid;place-items:center;width:26px;height:26px;border-radius:8px;color:var(--text)}
+.shield:hover,.shield.on{background:rgba(var(--acc-rgb),.16)}
+.shield .n{position:absolute;right:-4px;bottom:-3px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--ok);color:#06210d;font:700 9px/15px sans-serif;text-align:center}
+.shield.compat .n{background:var(--warn);color:#2a2000}.shield.off .n{display:none}
+.shield.off{color:var(--muted)}
+.rail{display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:14px;color:var(--muted)}
+.tabs{grid-column:1/3;display:flex;align-items:center;gap:8px;padding:0 12px}
+.tab{height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;border:1px solid var(--line);font-size:12px;color:var(--muted);min-width:150px}
+.tab.on{color:var(--text);background:rgba(var(--acc-rgb),.14);border-color:rgba(var(--acc-rgb),.5)}
+.yt{width:14px;height:10px;border-radius:3px;background:#f00;display:inline-block}
+main{position:relative;overflow:hidden;display:flex}
+
+/* Pagina finta (YouTube) */
+.page{flex:1;position:relative;background:#0f0f0f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#aaa}
+.player{width:min(720px,80%);aspect-ratio:16/9;border-radius:12px;background:#000;display:grid;place-items:center;position:relative;overflow:hidden}
+.player .spin{width:46px;height:46px;border-radius:50%;border:4px solid #333;border-top-color:#fff;animation:sp 1s linear infinite}
+.player.ok{background:linear-gradient(135deg,#2b1a4a,#c0532a)}.player.ok .spin{display:none}
+.player.ok::after{content:'▶  il video parte';color:#fff;font:600 15px sans-serif}
+@keyframes sp{to{transform:rotate(360deg)}}
+.page .cap{font-size:12px}
+
+/* Avviso A: notifica come quelle di VARCO */
+.toast{position:absolute;right:18px;bottom:18px;width:380px;padding:14px 14px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--line2);box-shadow:0 16px 50px rgba(0,0,0,.6);backdrop-filter:blur(14px);z-index:20;
+  transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
+.toast.show{transform:none;opacity:1;pointer-events:auto}
+.t-head{display:flex;gap:10px;align-items:flex-start}
+.t-ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:rgba(255,204,51,.14);color:var(--warn);flex:none}
+.t-head b{display:block;font-weight:650}
+.t-head p{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:17px}
+.t-why{margin:10px 0 0;padding:7px 9px;border-radius:8px;background:rgba(255,255,255,.04);font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.t-acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.btn{padding:6px 11px;border-radius:8px;border:1px solid var(--line2);font-size:12px;white-space:nowrap}
+.btn:hover{background:rgba(var(--acc-rgb),.12)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.x{margin-left:auto;color:var(--muted);width:22px;height:22px;display:grid;place-items:center;border-radius:6px}.x:hover{background:rgba(255,255,255,.06)}
+
+/* Avviso B: barra sopra la pagina */
+.infobar{position:absolute;left:0;right:0;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:9px 14px;background:linear-gradient(90deg,rgba(255,204,51,.14),rgba(255,204,51,.05));border-bottom:1px solid rgba(255,204,51,.35);
+  transform:translateY(-100%);transition:.25s}
+.infobar.show{transform:none}
+.infobar .t-ico{width:26px;height:26px}
+.infobar .msg{flex:1;min-width:0}.infobar .msg b{font-weight:650}.infobar .msg span{color:var(--muted);margin-left:6px;font-size:12px}
+
+/* Pannello del sito A: laterale */
+.side{width:340px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:14px 16px 20px;display:none}
+.side.show{display:block}
+.s-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}.s-head b{font-size:14px;font-weight:650;flex:1}
+.secure{color:var(--ok);font-size:12px;margin-bottom:12px}
+.big{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:8px 0 12px}
+.big div{padding:9px 10px;border-radius:10px;background:var(--bg2);border:1px solid var(--line)}
+.big strong{display:block;font:650 20px/24px 'Segoe UI Variable',sans-serif}
+.big span{font-size:11px;color:var(--muted)}
+.big .ads strong{color:var(--acc2)}.big .trk strong{color:#6fd3ff}.big .oth strong{color:var(--text)}
+h4{margin:16px 0 8px;font:600 10.5px/14px 'Segoe UI',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border-radius:10px;background:var(--bg2);border:1px solid var(--line)}
+.seg button{padding:6px 4px;border-radius:7px;font-size:12px;color:var(--muted)}
+.seg button.on{background:rgba(var(--acc-rgb),.2);color:var(--text);box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.55)}
+.hint{margin:7px 0 0;font-size:11.5px;line-height:16px;color:var(--muted)}
+.until{display:flex;gap:6px;margin-top:8px;align-items:center;font-size:12px;color:var(--muted)}
+.chip{padding:4px 9px;border-radius:999px;border:1px solid var(--line2);font-size:11.5px}
+.chip.on{background:rgba(var(--acc-rgb),.18);border-color:rgba(var(--acc-rgb),.6);color:var(--text)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:11px;background:rgba(255,204,51,.12);color:var(--warn)}
+.lists{display:flex;flex-direction:column;gap:2px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.04)}
+.row .nm{flex:1;min-width:0}.row .nm small{display:block;color:var(--muted);font-size:11px;line-height:15px}
+.sw{width:30px;height:17px;border-radius:9px;background:#3a302d;position:relative;flex:none;transition:.15s}
+.sw::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#bbb;transition:.15s}
+.sw.on{background:var(--acc)}.sw.on::after{left:15px;background:#fff}
+.dom{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12px}
+.dom .d{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Cascadia Mono',Consolas,monospace;font-size:11.5px}
+.tag{font-size:10.5px;padding:1px 7px;border-radius:6px}
+.tag.ads{background:rgba(var(--acc-rgb),.16);color:var(--acc2)}.tag.trk{background:rgba(111,211,255,.14);color:#6fd3ff}.tag.ck{background:rgba(123,216,143,.14);color:var(--ok)}.tag.soc{background:rgba(200,150,255,.14);color:#c896ff}
+.cnt{color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px;width:22px;text-align:right}
+.link{color:var(--acc2);font-size:12px}
+.fold{margin-top:14px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+
+/* Pannello del sito B: finestrella dallo scudo */
+.pop{position:absolute;left:84px;top:4px;width:330px;z-index:30;border-radius:14px;background:var(--glass);border:1px solid var(--line2);box-shadow:0 18px 60px rgba(0,0,0,.65);backdrop-filter:blur(16px);padding:12px 14px 12px;display:none}
+.pop.show{display:block}
+.pop::before{content:'';position:absolute;left:28px;top:-7px;width:12px;height:12px;background:var(--glass);border-left:1px solid var(--line2);border-top:1px solid var(--line2);transform:rotate(45deg)}
+.pop .big{margin:6px 0 10px}
+.pop .foot{display:flex;justify-content:space-between;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+
+/* Impostazioni: liste, aggiornamenti, registro */
+.settings{flex:1;overflow:auto;padding:22px 28px;display:none;background:var(--bg)}
+.settings.show{display:block}
+.settings h2{margin:0 0 4px;font-size:20px;font-weight:650}
+.settings .sub{color:var(--muted);margin:0 0 18px}
+.cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+.card{padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.card h3{margin:0 0 10px;font-size:13px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h3 .r{margin-left:auto;font-weight:400}
+.upd{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--bg2);margin-bottom:10px}
+.upd .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(123,216,143,.15)}
+.upd .t{flex:1}.upd small{display:block;color:var(--muted);font-size:11.5px}
+.steps{display:flex;flex-direction:column;gap:4px;margin:8px 0 2px;font-size:12px;color:var(--muted)}
+.steps span::before{content:'✓ ';color:var(--ok)}
+.log{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.log th:nth-child(1){width:62px}.log th:nth-child(2){width:92px}.log th:nth-child(4){width:84px}
+.log td{overflow:hidden;text-overflow:ellipsis}
+.card{min-width:0}.settings{overflow-x:hidden}
+.log th{text-align:left;font-weight:500;color:var(--muted);font-size:11px;padding:4px 6px;border-bottom:1px solid var(--line)}
+.log td{padding:5px 6px;border-bottom:1px solid rgba(255,255,255,.04);white-space:nowrap}
+.log td.u{max-width:220px;overflow:hidden;text-overflow:ellipsis;font-family:'Cascadia Mono',Consolas,monospace;font-size:11px;color:#cfc6c2}
+.filters{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.exc .row .nm b{font-weight:500}
+</style>
+</head>
+<body>
+<div id="pick">
+ <b>Blocco annunci 0.45</b>
+ <button data-v="toast" class="on">Avviso A · notifica</button>
+ <button data-v="bar">Avviso B · barra sulla pagina</button>
+ <span class="sep"></span>
+ <button data-v="side">Sito A · pannello laterale</button>
+ <button data-v="pop">Sito B · finestrella dallo scudo</button>
+ <span class="sep"></span>
+ <button data-v="set">Impostazioni · liste e registro</button>
+ <span class="note">Lo scudo nella barra apre il pannello · tutto è cliccabile</span>
+</div>
+
+<div id="app">
+ <div class="tbar">▲ VARCO <small>BETA 0.45.0</small></div>
+ <div class="nav">
+  <svg class="i ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+  <svg class="i ic" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+  <svg class="i ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  <svg class="i ic" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+  <div class="url"><button class="shield" id="shield" title="Blocco e permessi del sito"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span class="n" id="shieldN">19</span></button>youtube.com/watch?v=dQw4…</div>
+  <svg class="i ic" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
+ </div>
+ <div class="rail">
+  <svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  <svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>
+  <svg class="i" viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+  <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+  <svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
+ </div>
+ <main id="main">
+  <!-- Pannello laterale (A) -->
+  <aside class="side" id="side"></aside>
+
+  <div class="page" id="page">
+   <div class="player" id="player"><div class="spin"></div></div>
+   <div class="cap" id="cap">Il player non parte · la pagina si è ricaricata 3 volte</div>
+
+   <!-- Avviso A -->
+   <div class="toast" id="toast">
+    <div class="t-head"><div class="t-ico">!</div><div><b>YouTube sembra non funzionare</b><p>Il blocco potrebbe aver rotto la pagina. Scegli come continuare: vale solo per youtube.com.</p></div>
+     <button class="x" data-close>✕</button></div>
+    <div class="t-why"><svg class="i" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/></svg>Ho visto: 3 ricariche in 20 secondi e il video fermo</div>
+    <div class="t-acts">
+     <button class="btn pri" data-do="compat">Modalità compatibile</button>
+     <button class="btn" data-do="hour">Spegni per 1 ora</button>
+     <button class="btn ghost" data-do="keep">Tieni i filtri</button>
+    </div>
+   </div>
+   <!-- Avviso B -->
+   <div class="infobar" id="infobar">
+    <div class="t-ico">!</div>
+    <div class="msg"><b>YouTube sembra non funzionare con il blocco.</b><span>3 ricariche in 20 s, video fermo</span></div>
+    <button class="btn pri" data-do="compat">Modalità compatibile</button>
+    <button class="btn" data-do="hour">Spegni per 1 ora</button>
+    <button class="btn ghost" data-do="keep">Tieni i filtri</button>
+    <button class="x" data-close>✕</button>
+   </div>
+  </div>
+
+  <!-- Finestrella dallo scudo (B) -->
+  <div class="pop" id="pop"></div>
+
+  <!-- Impostazioni -->
+  <section class="settings" id="settings"></section>
+ </main>
+ <div class="tabs"><div class="tab">Home</div><div class="tab on"><span class="yt"></span>YouTube</div><div class="tab">Nuova scheda</div></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+// Stato finto di youtube.com
+const S={mode:'normal',until:'1h',lists:{ads:true,trk:true,ck:true,soc:false,fix:true},auto:true,
+  blocked:[['googleads.g.doubleclick.net','ads',6],['www.google-analytics.com','trk',4],['static.doubleclick.net','ads',3],['jnn-pa.googleapis.com','trk',2],['www.youtube.com/pagead/…','ads',2],['consent.youtube.com (banner)','ck',1],['connect.facebook.net','soc',1]],
+  exceptions:[['youtube.com','Compatibile','per questa sessione'],['twitch.tv','Spento','fino alle 18:42'],['bancaintesa.it','Spento','sempre']]};
+const LISTS=[['ads','Pubblicità','EasyList, uBlock filters, Peter Lowe',61240],['trk','Tracker','EasyPrivacy, uBlock privacy',38110],['ck','Banner dei cookie','EasyList Cookie, uBlock cookie',14920],
+  ['soc','Social e fastidi','Pulsanti social, popup, «iscriviti»',21330],['fix','Correzioni per siti','uBlock quick-fixes e unbreak: sistemano i siti rotti',2140]];
+const TAG={ads:'Pubblicità',trk:'Tracker',ck:'Cookie',soc:'Social'};
+const sum=k=>S.blocked.filter(b=>b[1]===k).reduce((a,b)=>a+b[2],0);
+const total=()=>S.mode==='off'?0:S.blocked.filter(b=>S.lists[b[1]]&&(S.mode==='normal'||b[1]==='ads'||b[1]==='trk')).reduce((a,b)=>a+b[2],0);
+
+function modeBlock(){
+  const hints={normal:'Tutte le liste attive. Se la pagina non va, prova «Compatibile».',compat:'Blocca solo le richieste di pubblicità e tracker, senza toccare la pagina (niente script né riquadri nascosti). Risolve quasi sempre i video che non partono.',off:'Nessun blocco su youtube.com.'};
+  return `<h4>Su questo sito</h4>
+   <div class="seg">${[['normal','Normale'],['compat','Compatibile'],['off','Spento']].map(([k,l])=>`<button data-mode="${k}" class="${S.mode===k?'on':''}">${l}</button>`).join('')}</div>
+   <p class="hint">${hints[S.mode]}</p>
+   ${S.mode!=='normal'?`<div class="until">Per: ${[['1h','1 ora'],['sess','Questa sessione'],['always','Sempre']].map(([k,l])=>`<button class="chip ${S.until===k?'on':''}" data-until="${k}">${l}</button>`).join('')}</div>`:''}`;
+}
+function counters(){return `<div class="big"><div class="ads"><strong>${S.mode==='off'?0:sum('ads')}</strong><span>pubblicità</span></div><div class="trk"><strong>${S.mode==='off'?0:sum('trk')}</strong><span>tracker</span></div><div class="oth"><strong>${S.mode!=='normal'?0:sum('ck')+sum('soc')}</strong><span>cookie e social</span></div></div>`;}
+function domains(n=99){
+  if(S.mode==='off')return '<p class="hint">Niente bloccato: il blocco è spento su questo sito.</p>';
+  return S.blocked.filter(b=>S.lists[b[1]]&&(S.mode==='normal'||b[1]==='ads'||b[1]==='trk')).slice(0,n).map(([d,k,c])=>`<div class="dom"><span class="d">${d}</span><span class="tag ${k}">${TAG[k]}</span><span class="cnt">${c}</span></div>`).join('');
+}
+function renderSide(){
+  $('#side').innerHTML=`<div class="s-head"><b>youtube.com</b><button class="x" data-close-side>✕</button></div>
+   <div class="secure">🔒 Connessione protetta</div>
+   ${S.mode==='compat'?'<span class="badge">● Modalità compatibile · per questa sessione</span>':''}
+   ${counters()}
+   ${modeBlock()}
+   <h4>Bloccati in questa pagina</h4>${domains()}
+   <h4>Liste usate qui</h4>
+   <div class="lists">${LISTS.map(([k,l])=>`<div class="row"><div class="nm">${l}</div><button class="sw ${S.lists[k]&&S.mode==='normal'||S.lists[k]&&S.mode==='compat'&&(k==='ads'||k==='trk')?'on':''}" data-list="${k}"></button></div>`).join('')}</div>
+   <p class="hint">Le liste si cambiano per tutti i siti in Impostazioni → Blocco. <button class="link" data-v="set">Apri il registro</button></p>
+   <div class="fold"><span>Permessi del sito (fotocamera, microfono…)</span><span>›</span></div>`;
+}
+function renderPop(){
+  $('#pop').innerHTML=`<div class="s-head"><b>youtube.com</b><span class="badge" style="${S.mode==='normal'?'display:none':''}">${S.mode==='compat'?'Compatibile':'Spento'}</span></div>
+   ${counters()}
+   <div class="seg">${[['normal','Normale'],['compat','Compatibile'],['off','Spento']].map(([k,l])=>`<button data-mode="${k}" class="${S.mode===k?'on':''}">${l}</button>`).join('')}</div>
+   ${S.mode!=='normal'?`<div class="until">Per: ${[['1h','1 ora'],['sess','Sessione'],['always','Sempre']].map(([k,l])=>`<button class="chip ${S.until===k?'on':''}" data-until="${k}">${l}</button>`).join('')}</div>`:''}
+   <h4>I più bloccati</h4>${domains(3)}
+   <div class="foot"><button class="link" data-v="side">Dettagli e permessi</button><button class="link" data-v="set">Registro</button></div>`;
+}
+function renderSettings(){
+  $('#settings').innerHTML=`<h2>Blocco di pubblicità e tracker</h2><p class="sub">Le liste si scaricano e si controllano qui. Tutto resta sul PC: VARCO non manda niente a nessuno.</p>
+  <div class="cols"><div>
+   <div class="card"><h3>Liste<span class="r hint" style="margin:0">${LISTS.filter(l=>S.lists[l[0]]).reduce((a,l)=>a+l[3],0).toLocaleString('it-IT')} regole attive</span></h3>
+    <div class="lists">${LISTS.map(([k,l,d,n])=>`<div class="row"><div class="nm">${l}<small>${d} · ${n.toLocaleString('it-IT')} regole</small></div><button class="sw ${S.lists[k]?'on':''}" data-list="${k}"></button></div>`).join('')}</div></div>
+   <div class="card" style="margin-top:18px"><h3>Aggiornamenti</h3>
+    <div class="upd"><span class="dot"></span><div class="t">Liste del 17 novembre, verificate<small>Prossimo controllo fra 5 giorni · ${S.auto?'automatico':'solo quando premi «Aggiorna ora»'}</small></div><button class="btn" id="updNow">Aggiorna ora</button></div>
+    <div class="row"><div class="nm">Aggiorna da solo ogni 7 giorni<small>Se lo spegni le liste restano queste finché non aggiorni tu</small></div><button class="sw ${S.auto?'on':''}" data-auto></button></div>
+    <p class="hint" style="margin-top:10px">Ogni aggiornamento viene controllato prima di usarlo:</p>
+    <div class="steps"><span>scaricato solo dagli indirizzi delle liste</span><span>ogni lista letta senza errori</span><span>numero di regole simile a prima (non dimezzato)</span><span>la versione di prima resta come scorta</span></div>
+    <div style="margin-top:10px;display:flex;gap:6px"><button class="btn">Torna alle liste di prima</button></div></div>
+  </div><div>
+   <div class="card"><h3>Siti con eccezioni<span class="r hint" style="margin:0">${S.exceptions.length}</span></h3>
+    <div class="lists exc">${S.exceptions.map(([h,m,u])=>`<div class="row"><div class="nm"><b>${h}</b><small>${m} · ${u}</small></div><button class="btn ghost">Togli</button></div>`).join('')}</div></div>
+   <div class="card" style="margin-top:18px"><h3>Registro<span class="r"><button class="btn ghost">Svuota</button></span></h3>
+    <div class="filters"><button class="chip on">Tutti</button><button class="chip">Pubblicità</button><button class="chip">Tracker</button><button class="chip">Cookie</button><button class="chip">Social</button><button class="chip">Avvisi</button></div>
+    <table class="log"><tr><th>Ora</th><th>Sito</th><th>Bloccato</th><th></th></tr>
+     ${[['17:12:40','youtube.com','googleads.g.doubleclick.net/pagead/id','ads'],['17:12:40','youtube.com','google-analytics.com/collect?v=1…','trk'],['17:12:31','youtube.com','⚠ avviso: 3 ricariche, scelto «Compatibile»','w'],['17:09:02','corriere.it','securepubads.g.doubleclick.net/gampad…','ads'],['17:09:02','corriere.it','iubenda.com/cookie-solution (banner)','ck'],['17:08:55','corriere.it','connect.facebook.net/it_IT/sdk.js','soc'],['17:01:13','github.com','collector.github.com/github/collect','trk']]
+      .map(([t,s,u,k])=>`<tr><td>${t}</td><td>${s}</td><td class="u">${u}</td><td>${k==='w'?'<span class="badge">Avviso</span>':`<span class="tag ${k}">${TAG[k]}</span>`}</td></tr>`).join('')}</table>
+    <p class="hint">Ultimi 2.000 eventi, solo su questo PC. Si svuota da solo dopo 7 giorni.</p></div>
+  </div></div>`;
+}
+function shield(){const s=$('#shield');s.classList.toggle('compat',S.mode==='compat');s.classList.toggle('off',S.mode==='off');$('#shieldN').textContent=total();}
+let view='toast';
+function show(v){
+  view=v;$$('#pick button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#toast').classList.toggle('show',v==='toast'&&S.mode==='normal'&&!S.dismissed);
+  $('#infobar').classList.toggle('show',v==='bar'&&S.mode==='normal'&&!S.dismissed);
+  $('#side').classList.toggle('show',v==='side');$('#pop').classList.toggle('show',v==='pop');
+  $('#settings').classList.toggle('show',v==='set');$('#page').style.display=v==='set'?'none':'flex';
+  $('#shield').classList.toggle('on',v==='side'||v==='pop');
+  render();
+}
+function render(){
+  renderSide();renderPop();renderSettings();shield();
+  const ok=S.mode!=='normal';$('#player').classList.toggle('ok',ok);
+  $('#cap').textContent=ok?(S.mode==='compat'?'Modalità compatibile: pubblicità e tracker ancora bloccati':'Blocco spento per un\'ora su youtube.com'):(S.dismissed?'Hai tenuto i filtri: il player resta fermo':'Il player non parte · la pagina si è ricaricata 3 volte');
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.v){show(t.dataset.v);return;}
+  if(t.id==='shield'){show(view==='pop'?'toast':'pop');return;}
+  if(t.dataset.do){const d=t.dataset.do;if(d==='compat'){S.mode='compat';S.until='sess';}if(d==='hour'){S.mode='off';S.until='1h';}if(d==='keep')S.dismissed=true;show(view);return;}
+  if('close' in t.dataset){S.dismissed=true;show(view);return;}
+  if('closeSide' in t.dataset){show('toast');return;}
+  if(t.dataset.mode){S.mode=t.dataset.mode;S.dismissed=S.mode==='normal'?S.dismissed:false;if(S.mode!=='normal'&&!S.until)S.until='1h';render();return;}
+  if(t.dataset.until){S.until=t.dataset.until;render();return;}
+  if(t.dataset.list){S.lists[t.dataset.list]=!S.lists[t.dataset.list];render();return;}
+  if('auto' in t.dataset){S.auto=!S.auto;render();return;}
+  if(t.id==='updNow'){t.textContent='Controllo…';setTimeout(()=>{t.textContent='Già aggiornate ✓';},900);}
+});
+show('toast');
+</script>
+</body>
+</html>

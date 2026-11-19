@@ -13,6 +13,7 @@ window.popupAPI.onClose(close);
 window.popupAPI.onOpen(message=>{
   close();mode=message.kind;
   if(message.kind==='menu')openMenu(message.items,message.x,message.y,0);
+  else if(message.kind==='site')openSite(message);
   else openDialog(message);
 });
 
@@ -80,6 +81,7 @@ function firstUsable(items,from,step){
 // Clic fuori dai menu: chiude (nessuna voce scelta).
 root.addEventListener('mousedown',e=>{
   if(mode==='menu'&&!e.target.closest('.menu')){window.popupAPI.dismiss();close();}
+  if(mode==='site'&&!e.target.closest('.site-card')){window.popupAPI.dismiss();close();}
 });
 root.addEventListener('contextmenu',e=>e.preventDefault());
 
@@ -95,6 +97,7 @@ document.addEventListener('keydown',e=>{
     else return;
     e.preventDefault();
   }else if(mode==='dialog'&&e.key==='Escape'){e.preventDefault();answer(current.cancelId);}
+  else if(mode==='site'&&e.key==='Escape'){e.preventDefault();window.popupAPI.dismiss();close();}
 });
 
 // ── Dialoghi ─────────────────────────────────────────────────────────────
@@ -123,4 +126,62 @@ function openDialog(d){
   });
   box.append(row);backdrop.append(box);root.append(backdrop);
   (focus||row.firstChild)?.focus();
+}
+
+// ── Finestrella dello scudo (Beta 0.45): blocco di pubblicità e tracker sul sito ──
+const CAT={ads:'Pubblicità',trk:'Tracker',ck:'Cookie',soc:'Social'};
+let siteAt=null;
+window.popupAPI.onUpdate(message=>{if(mode==='site')renderSite(message);});
+function openSite(d){siteAt={x:d.x,y:d.y};renderSite(d,true);}
+function renderSite(d,first=false){
+  root.replaceChildren();
+  const card=el('div','site-card'+(first?' enter':''));card.setAttribute('role','dialog');card.setAttribute('aria-label','Blocco del sito');
+  const act=payload=>window.popupAPI.act(payload);
+  const head=el('div','sc-head');head.append(el('b','',d.site||d.host));
+  if(d.mode!=='normal'&&d.enabled)head.append(el('span','sc-badge',(d.mode==='compat'?'Compatibile':'Spento')+(d.untilText?' · '+d.untilText:'')));
+  card.append(head);
+  if(!d.enabled){
+    card.append(el('p','sc-hint','Il blocco di pubblicità e tracker è spento su tutti i siti.'));
+    const b=el('button','sc-btn primary','Attiva il blocco');b.onclick=()=>act({a:'enable'});card.append(b);
+  }else{
+    if(d.state==='loading')card.append(el('p','sc-hint','Preparo le liste di blocco…'));
+    if(d.state==='error')card.append(el('p','sc-hint warn','Liste non disponibili: '+(d.error||'')));
+    const big=el('div','sc-big');
+    const cell=(cls,n,label)=>{const c=el('div',cls);c.append(el('strong','',String(n)),el('span','',label));return c;};
+    big.append(cell('ads',d.blocked.ads,'pubblicità'),cell('trk',d.blocked.trk,'tracker'),cell('oth',d.blocked.ck+d.blocked.soc,'cookie e social'));
+    card.append(big);
+    const seg=el('div','sc-seg');
+    for(const [m,label] of [['normal','Normale'],['compat','Compatibile'],['off','Spento']]){
+      const b=el('button',d.mode===m?'on':'',label);
+      b.onclick=()=>{if(d.mode!==m)act({a:'mode',mode:m,duration:m==='compat'?'session':m==='off'?'1h':'always'});};
+      seg.append(b);
+    }
+    card.append(seg);
+    card.append(el('p','sc-hint',{normal:'Tutte le liste attive. Se la pagina non va, prova «Compatibile».',
+      compat:'Blocca solo le richieste di pubblicità e tracker, senza toccare la pagina. Risolve quasi sempre i video che non partono.',
+      off:'Nessun blocco su questo sito.'}[d.mode]));
+    if(d.mode!=='normal'){
+      const row=el('div','sc-until');row.append(el('span','','Per:'));
+      for(const [k,label] of [['1h','1 ora'],['session','Sessione'],['always','Sempre']]){
+        const on=d.until==='session'?k==='session':d.until===null?k==='always':k==='1h';
+        const b=el('button','sc-chip'+(on?' on':''),label);b.onclick=()=>{if(!on)act({a:'mode',mode:d.mode,duration:k});};row.append(b);
+      }
+      card.append(row);
+    }
+    if(d.mode!=='off'&&d.domains.length){
+      card.append(el('h4','','I più bloccati'));
+      for(const x of d.domains.slice(0,3)){
+        const r=el('div','sc-dom');r.append(el('span','d',x.host),el('span','tag '+x.cat,CAT[x.cat]||x.cat),el('span','n',String(x.n)));card.append(r);
+      }
+    }
+  }
+  const foot=el('div','sc-foot');
+  const det=el('button','sc-link','Dettagli e permessi');det.onclick=()=>act({a:'details'});
+  const log=el('button','sc-link','Registro e liste');log.onclick=()=>act({a:'settings'});
+  foot.append(det,log);card.append(foot);
+  root.append(card);
+  const r=card.getBoundingClientRect();
+  card.style.left=Math.max(8,Math.min(siteAt.x,innerWidth-r.width-8))+'px';
+  card.style.top=Math.max(8,Math.min(siteAt.y,innerHeight-r.height-8))+'px';
+  card.style.setProperty('--arrow',Math.max(14,Math.min(r.width-26,siteAt.x-parseFloat(card.style.left)+4))+'px');
 }

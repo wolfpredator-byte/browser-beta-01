@@ -4,6 +4,64 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.45.0 — Blocco annunci: avviso, finestrella dello scudo, liste separate
+
+Installer PC: `dist\VARCO Setup 0.45.0.exe` (con la firma VMP).
+
+### Cosa cambia
+- **Avviso quando un sito si rompe:** se il blocco sembra rompere una pagina compare una notifica con 3 scelte. Vale solo per quel sito.
+  - **Modalità compatibile**, per questa sessione;
+  - **Spegni per 1 ora**;
+  - **Tieni i filtri**, e su quel sito non avvisa più.
+  
+  L'avviso scatta per:
+  - 3 caricamenti della stessa pagina in 20 secondi (il «loop» di YouTube);
+  - errori degli script del blocco nella pagina;
+  - un video di YouTube che dopo 12 secondi non ha caricato niente.
+- **Modalità compatibile:** blocca ancora le richieste di pubblicità e tracker, ma non tocca la pagina (niente script iniettati né riquadri nascosti). Lo scudo diventa giallo.
+- **Finestrella dello scudo:** cliccando lo scudo accanto all'indirizzo si apre sotto di lui, sopra la pagina. Contiene:
+  - pubblicità, tracker, cookie e social bloccati nella pagina;
+  - Normale / Compatibile / Spento;
+  - la durata: 1 ora, Sessione o Sempre;
+  - i 3 più bloccati;
+  - i link «Dettagli e permessi» e «Registro e liste».
+- **Pannello del sito** (Dettagli e permessi): gli stessi comandi, più l'elenco di tutto quello che è stato bloccato nella pagina, con il tipo.
+- **Impostazioni → Blocco annunci** (nuova categoria):
+  - **liste separate**, ognuna con le sue regole, che accendi e spegni senza riscaricarle: Pubblicità, Tracker, Banner dei cookie, Social e fastidi (spenta all'inizio), Correzioni per siti;
+  - **aggiornamenti verificati**, automatici ogni 7 giorni (si possono spegnere) e «Aggiorna ora». Le liste nuove si usano solo se:
+    - arrivano dagli indirizzi delle liste;
+    - ogni lista si legge senza errori;
+    - nessun tipo perde più di metà delle regole.
+    
+    Se qualcosa non va, l'aggiornamento viene scartato e resta in uso la versione di prima. **«Torna alle liste di prima»** usa la copia di scorta;
+  - **siti con eccezioni**, con il modo e la scadenza, e «Togli»;
+  - **registro locale**: gli ultimi 2.000 elementi bloccati, gli avvisi e i cambi, con i filtri per tipo. Resta solo sul PC, niente in incognito, e dopo 7 giorni si cancella da solo.
+- Le eccezioni di prima (siti con il blocco spento) restano, come «Spento · sempre».
+
+### Test da fare
+- [ ] **T366** — Al primo avvio dopo l'aggiornamento: Impostazioni → Blocco annunci dice «Liste del …, verificate» con le regole per ogni lista. **📸**
+- [ ] **T367** — Apri un sito di notizie e clicca lo scudo: la finestrella mostra pubblicità, tracker e cookie bloccati e i più bloccati. **📸**
+- [ ] **T368** — Nella finestrella scegli «Compatibile»: la pagina si ricarica, lo scudo diventa giallo e compaiono le durate (Sessione già scelta).
+- [ ] **T369** — «Spento» → «1 ora»: in Impostazioni → Siti con eccezioni c'è «Spento · fino alle …». «Togli» rimette il blocco normale.
+- [ ] **T370** — Ricarica la stessa pagina 3 volte di fila: compare l'avviso con le 3 scelte. «Tieni i filtri»: non ricompare più, e il sito è in «Siti con eccezioni» con «Riattiva gli avvisi».
+- [ ] **T371** — YouTube: se un video non parte, compare l'avviso. «Modalità compatibile» fa partire il video.
+- [ ] **T372** — Spegni «Banner dei cookie» e ricarica un sito con il banner: il banner torna. Riaccendi.
+- [ ] **T373** — «Aggiorna ora»: dice «Liste aggiornate e verificate». Poi compare «Torna alle liste del …».
+- [ ] **T374** — Registro: «Mostra il registro», i filtri Pubblicità, Tracker, Avvisi; «Svuota» lo svuota.
+
+**Stato:**
+- 286 test superati.
+- **Provato in VARCO** con il profilo di prova:
+  - primo avvio: liste scaricate e verificate (pubblicità 102.162, tracker 57.078, cookie 30.143, social 3.582, correzioni 2.678);
+  - corriere.it bloccato in normale (1 pubblicità, 13 tracker, 1 cookie), compatibile e spento;
+  - eccezione «fino alle …» e ritorno al normale;
+  - 3 ricariche → avviso registrato;
+  - finestrella: cambio di modalità e apertura delle impostazioni;
+  - impostazioni e registro con i filtri.
+- In questo ambiente il livello sopra la pagina non viene catturato: la finestrella l'ho controllata a parte, con gli stessi file.
+
+---
+
 ## Beta 0.44.0 — Screenshot: annota, organizza, manda al progetto
 
 Installer PC: `dist\VARCO Setup 0.44.0.exe` (con la firma VMP).

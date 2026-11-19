@@ -807,15 +807,8 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    list.append(el('p',{className:s.secure?'site-secure':'site-insecure',textContent:s.secure?
      '🔒 Connessione protetta':'⚠ Connessione non protetta (http): non inserire password o dati personali.'}));
    // Blocco pubblicità
-   const a=s.adblock;
-   const status=!a.enabled?'Spento su tutti i siti.':a.state==='loading'?'Scarico le liste di blocco…':
-     a.state==='error'?'Liste non disponibili: '+a.error:
-     `${s.blocked} ${s.blocked===1?'elemento bloccato':'elementi bloccati'} in questa pagina · liste del ${new Date(a.updatedAt).toLocaleDateString('it-IT')}`;
-   list.append(section('Pubblicità e tracker',
-     checkRow('Blocca su tutti i siti',a.enabled,enabled=>act('setAdblockEnabled',{enabled})),
-     ...(a.enabled?[checkRow(`Blocca su ${s.host}`,a.siteEnabled,enabled=>act('setAdblockForSite',{host:s.host,enabled}))]:[]),
-     el('p',{className:'panel-hint',textContent:status}),
-     ...(a.enabled&&!a.siteEnabled?[el('p',{className:'panel-hint',textContent:'Su questo sito il blocco è disattivato (es. perché la pagina non funzionava).'})]:[])));
+   // Beta 0.45: contatori per tipo, modo del sito (normale, compatibile, spento) con durata, i più bloccati.
+   list.append(section('Pubblicità e tracker',...adblockSiteRows(s)));
    // Permessi
    if(s.origin){
      const rows=s.permissions.map(p=>{
@@ -832,13 +825,56 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      el('div',{className:'command-name',textContent:new URL(x.origin).host}),el('div',{className:'game-meta',textContent:x.summary}),
      projectButtons(['Dimentica',()=>act('forgetSite',{origin:x.origin})])))));
  }
+ const AB_CAT={ads:'Pubblicità',trk:'Tracker',ck:'Cookie',soc:'Social'};
+ const AB_HINT={normal:'Tutte le liste attive. Se la pagina non va, prova «Compatibile».',
+   compat:'Blocca solo le richieste di pubblicità e tracker, senza toccare la pagina (niente script né riquadri nascosti). Risolve quasi sempre i video che non partono.',
+   off:'Nessun blocco su questo sito.'};
+ function adblockModeRows(a,host){
+   const seg=el('div',{className:'ab-seg',role:'group'});
+   for(const [m,label] of [['normal','Normale'],['compat','Compatibile'],['off','Spento']]){
+     const b=el('button',{type:'button',className:a.mode===m?'on':'',textContent:label});
+     b.onclick=()=>{if(a.mode!==m)act('adblockSiteMode',{host,mode:m,duration:m==='compat'?'session':m==='off'?'1h':'always'});};
+     seg.append(b);
+   }
+   const rows=[seg,el('p',{className:'panel-hint',textContent:AB_HINT[a.mode]})];
+   if(a.mode!=='normal'){
+     const until=el('div',{className:'ab-until'},el('span',{textContent:'Per:'}));
+     for(const [k,label] of [['1h','1 ora'],['session','Questa sessione'],['always','Sempre']]){
+       const on=a.until==='session'?k==='session':a.until===null?k==='always':k==='1h';
+       const b=el('button',{type:'button',className:'ab-chip'+(on?' on':''),textContent:label});
+       b.onclick=()=>{if(!on)act('adblockSiteMode',{host,mode:a.mode,duration:k});};until.append(b);
+     }
+     rows.push(until);
+   }
+   return rows;
+ }
+ function adblockSiteRows(s){
+   const a=s.adblock;
+   const rows=[checkRow('Blocca su tutti i siti',a.enabled,enabled=>act('setAdblockEnabled',{enabled}))];
+   if(a.enabled){
+     const b=a.blocked;
+     rows.push(el('div',{className:'ab-big'},...[['ads',b.ads,'pubblicità'],['trk',b.trk,'tracker'],['oth',b.ck+b.soc,'cookie e social']]
+       .map(([c,n,label])=>el('div',{className:c},el('strong',{textContent:String(n)}),el('span',{textContent:label})))));
+     rows.push(...adblockModeRows(a,s.host));
+     rows.push(el('p',{className:'panel-hint',textContent:a.state==='loading'?'Preparo le liste di blocco…':a.state==='error'?'Liste non disponibili: '+a.error:
+       `Liste del ${new Date(a.updatedAt).toLocaleDateString('it-IT')}`}));
+     if(a.mode!=='off'&&a.domains.length){
+       rows.push(el('h5',{className:'import-sub',textContent:'Bloccati in questa pagina'}));
+       for(const d of a.domains.slice(0,12))rows.push(el('div',{className:'ab-dom'},el('span',{className:'d',textContent:d.host}),
+         el('span',{className:'ab-tag '+d.cat,textContent:AB_CAT[d.cat]||d.cat}),el('span',{className:'n',textContent:String(d.n)})));
+     }
+   }
+   rows.push(projectButtons(['Liste, eccezioni e registro',()=>act('adblockOpenSettings')]));
+   return rows;
+ }
  // Scudo accanto alla barra: numero di elementi bloccati e avviso per le pagine http.
  function renderSiteButton(){
    const button=$('siteButton'),s=state.site;
    button.hidden=!s;
    if(!s)return;
    button.classList.toggle('insecure',!s.secure);
-   button.title=(s.secure?'':'Connessione non protetta · ')+`${s.blocked} elementi bloccati · permessi del sito`;
+   button.classList.toggle('ab-compat',s.abMode==='compat');button.classList.toggle('ab-off',s.abMode==='off');
+   button.title=(s.secure?'':'Connessione non protetta · ')+(s.abMode==='off'?'blocco spento qui':s.abMode==='compat'?`modalità compatibile · ${s.blocked} bloccati`:`${s.blocked} elementi bloccati`)+' · blocco e permessi del sito';
    $('siteBlocked').textContent=s.blocked>0?(s.blocked>99?'99+':String(s.blocked)):'';
  }
 
@@ -1108,11 +1144,12 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        hint('Mai sospese: la scheda che guardi, quelle fissate, quelle che suonano e quelle con i DevTools aperti.')),
      section('Privacy e sicurezza',
        checkRow('Blocca pubblicità e tracker',s.adblock.enabled,enabled=>act('setAdblockEnabled',{enabled})),
-       hint(`${s.adblock.exceptions} ${s.adblock.exceptions===1?'sito escluso':'siti esclusi'} dal blocco · ${s.sitesWithPermissions} ${s.sitesWithPermissions===1?'sito':'siti'} con permessi salvati. Si gestiscono dallo scudo ⛉ accanto alla barra degli indirizzi.`),
+       hint(`${s.adblock.exceptionCount} ${s.adblock.exceptionCount===1?'sito con eccezione':'siti con eccezioni'} nel blocco · ${s.sitesWithPermissions} ${s.sitesWithPermissions===1?'sito':'siti'} con permessi salvati. Si gestiscono dallo scudo ⛉ accanto alla barra degli indirizzi; liste e registro in «Blocco annunci».`),
        el('div',{className:'inline-buttons'},
          confirmButton(`Cancella la cronologia (${s.historyCount})`,'Conferma: cancella la cronologia',()=>settingsAction('clearHistory','Cronologia cancellata.')),
          confirmButton('Cancella cookie e dati dei siti','Conferma: esci da tutti i siti',()=>settingsAction('clearSiteData','Cookie, dati dei siti e cache cancellati. Le pagine aperte sono state ricaricate.'))),
        hint('Cancellare i cookie ti fa uscire da tutti gli account (Google, Discord…).')),
+     ...adblockSettingsSections(s.adblock),
      section('Notifiche',
        ...Object.entries(s.toastLabels||{}).map(([category,label])=>checkRow(label,s.toasts?.[category]!==false,enabled=>act('setToastCategory',{category,enabled}))),
        hint('Le categorie spente non mostrano toast, ma le notifiche restano nel centro notifiche. Le domande (es. "Salvare la password?") compaiono sempre.')),
@@ -1132,6 +1169,61 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    ].filter(n=>n.matches('section'));
    layoutSettings();
    panel.scrollTop=scroll;$('settingsSheet').scrollTop=sheetScroll;
+ }
+ // Beta 0.45: Impostazioni → Blocco annunci: stato e aggiornamenti verificati, liste, eccezioni, registro.
+ settingsUi.adblock={log:null,filter:'all',loading:false};
+ const abRerender=()=>{renderedSettings=null;renderSettings();};
+ async function adblockLoadLog(){
+   const ui=settingsUi.adblock;ui.loading=true;abRerender();
+   const r=await act('adblockLog');ui.log=r?.result?.log||[];ui.loading=false;abRerender();
+ }
+ function adblockSettingsSections(a){
+   const ui=settingsUi.adblock,hintEl=text=>el('p',{className:'panel-hint',textContent:text});
+   const day=t=>t?new Date(t).toLocaleDateString('it-IT',{day:'numeric',month:'long'}):'—';
+   const ok=a.state==='ready',err=a.state==='error';
+   const title=!a.enabled?'Blocco spento su tutti i siti':a.updating?'Controllo le liste…':err?'Liste non disponibili':a.state==='loading'?'Preparo le liste…':`Liste del ${day(a.updatedAt)}, verificate`;
+   const sub=!a.enabled?'':a.autoUpdate?(a.nextCheck?`Prossimo controllo il ${day(a.nextCheck)} · automatico`:'Automatico ogni 7 giorni'):'Solo quando premi «Aggiorna ora»';
+   const upd=el('div',{className:'ab-upd'},el('span',{className:'ab-dot'+(err?' bad':ok?'':' wait')}),
+     el('div',{className:'t'},el('strong',{textContent:title}),el('span',{className:'panel-hint',textContent:sub})));
+   if(a.enabled){const b=el('button',{type:'button',textContent:a.updating?'Controllo…':'Aggiorna ora',disabled:!!a.updating});
+     b.onclick=()=>settingsAction('adblockUpdateNow','Liste aggiornate e verificate.');upd.append(b);}
+   const check=a.lastCheck&&!a.lastCheck.ok?[el('p',{className:'panel-error',textContent:`Ultimo aggiornamento scartato (${new Date(a.lastCheck.t).toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}): ${a.lastCheck.problems.slice(0,3).join(' · ')}. Restano in uso le liste di prima.`})]:[];
+   const out=[section('Blocco di pubblicità e tracker',
+     checkRow('Blocca pubblicità e tracker',a.enabled,enabled=>act('setAdblockEnabled',{enabled})),
+     upd,...check,
+     checkRow('Aggiorna da solo ogni 7 giorni',a.autoUpdate,enabled=>act('adblockSetAutoUpdate',{enabled})),
+     hintEl('Ogni aggiornamento viene controllato prima di usarlo: si scarica solo dagli indirizzi delle liste, ogni lista deve leggersi senza errori e nessun tipo deve perdere più di metà delle regole. Le liste di prima restano come scorta.'),
+     ...(a.canRollback?[projectButtons([`Torna alle liste del ${day(a.prevDate)}`,()=>settingsAction('adblockRollback','Tornato alle liste di prima.')])]:[]))];
+   out.push(section('Liste di blocco',
+     ...a.lists.map(l=>el('div',{className:'ab-list'},checkRow(l.label,l.on,enabled=>act('adblockSetList',{list:l.id,enabled})),
+       hintEl(l.desc+(l.rules?' · '+l.rules.toLocaleString('it-IT')+' regole':'')))),
+     hintEl('In modalità compatibile si usano solo Pubblicità e Tracker, e solo per bloccare le richieste.')));
+   const ex=a.exceptions.map(e=>el('div',{className:'ab-exc'},el('div',{},el('strong',{textContent:e.site}),
+       el('span',{className:'panel-hint',textContent:(e.mode==='off'?'Spento':'Compatibile')+' · '+e.untilText})),
+     Object.assign(el('button',{type:'button',textContent:'Togli'}),{onclick:()=>act('adblockSiteMode',{host:e.site,mode:'normal'})})));
+   const quiet=a.quiet.map(h=>el('div',{className:'ab-exc'},el('div',{},el('strong',{textContent:h}),el('span',{className:'panel-hint',textContent:'Filtri tenuti · niente avvisi'})),
+     Object.assign(el('button',{type:'button',textContent:'Riattiva gli avvisi'}),{onclick:()=>act('adblockKeepFilters',{host:h,undo:true})})));
+   out.push(section('Siti con eccezioni',...(ex.length||quiet.length?[...ex,...quiet]:[hintEl('Nessuna. Si aggiungono dallo scudo accanto all’indirizzo, o dall’avviso quando un sito sembra rotto.')])));
+   const kinds=[['all','Tutti'],['ads','Pubblicità'],['trk','Tracker'],['ck','Cookie'],['soc','Social'],['warn','Avvisi']];
+   const chips=el('div',{className:'ab-filters'},...kinds.map(([k,label])=>Object.assign(el('button',{type:'button',className:'ab-chip'+(ui.filter===k?' on':''),textContent:label}),
+     {onclick:()=>{ui.filter=k;abRerender();}})));
+   const rows=[];
+   if(ui.log){
+     const items=ui.log.filter(e=>ui.filter==='all'||(ui.filter==='warn'?['warn','mode','upd'].includes(e.cat):e.cat===ui.filter)).slice(0,200);
+     if(!items.length)rows.push(hintEl('Niente da mostrare.'));
+     for(const e of items){
+       const time=new Date(e.t).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+       const tag=AB_CAT[e.cat]?el('span',{className:'ab-tag '+e.cat,textContent:AB_CAT[e.cat]}):el('span',{className:'ab-tag warn',textContent:e.cat==='upd'?'Liste':'Avviso'});
+       rows.push(el('div',{className:'ab-log'},el('span',{className:'tm',textContent:time}),el('span',{className:'st',textContent:e.site||'—'}),
+         el('span',{className:'u',textContent:e.text||e.url,title:e.text||e.url}),tag));
+     }
+   }
+   out.push(section('Registro del blocco',
+     ...(ui.log?[chips,...rows]:[]),
+     projectButtons([ui.loading?'Carico…':ui.log?'Aggiorna':'Mostra il registro',()=>{if(!ui.loading)adblockLoadLog();}],
+       ...(ui.log?[['Svuota',async()=>{await act('adblockClearLog');ui.log=[];abRerender();}]]:[])),
+     hintEl('Ultimi 2.000 eventi, solo su questo PC (niente in incognito). Si cancellano da soli dopo 7 giorni.')));
+   return out;
  }
  // Beta 0.34: panoramica a riquadri (settings-rules.js). Ogni riquadro dice in parole com'è messa
  // la categoria; un clic la apre nel pannello a destra. Le sezioni restano quelle di sempre:
@@ -2510,7 +2602,8 @@ $('showGames').onclick=()=>act('toggleSidePanel',{panel:'games'});
 $('showProject').onclick=()=>act('toggleSidePanel',{panel:'project'});
 $('saveLayout').onclick=()=>act('saveLayout');
 $('showJarvis').onclick=()=>act('toggleSidePanel',{panel:'jarvis'});
-$('siteButton').onclick=()=>act('toggleSidePanel',{panel:'site'});
+// Beta 0.45: lo scudo apre la finestrella del blocco (sopra la pagina); «Dettagli e permessi» apre il pannello.
+$('siteButton').onclick=()=>{const r=$('siteButton').getBoundingClientRect();act('adblockSitePopup',{x:Math.round(r.left-14),y:Math.round(r.bottom+8)});};
 $('showSettings').onclick=()=>act('openSettings');
 $('showNotifications').onclick=()=>act('toggleSidePanel',{panel:'notifications'});
 $('showNotes').onclick=()=>act('toggleSidePanel',{panel:'notes'});
@@ -2521,6 +2614,7 @@ $('openProject').onclick=()=>act('toggleSidePanel',{panel:'project'});window.bro
 window.browserAPI.onUi(message=>{
  if(message?.type==='focusAddress'){closeFind(false);const a=$('address');a.focus();a.select();}
  else if(message?.type==='closeSuggestions')closeSuggestions();
+ else if(message?.type==='openSettingsCategory')openSettingsCategory(message.id);
  else if(message?.type==='openFind')openFind();
  else if(message?.type==='palette')showSuggestions(message);
  // Beta 0.42: tutorial — foto della pagina al posto della pagina (nascosta) e eventi che completano i passi.

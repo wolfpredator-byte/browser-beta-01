@@ -12,6 +12,8 @@
     {id:'navigazione',title:'Ricerca e navigazione',icon:'search',sections:['Ricerca','Scorciatoie di ricerca','Stili dei siti']},
     {id:'schede',title:'Schede',icon:'tabs',sections:['Schede']},
     {id:'privacy',title:'Privacy e sicurezza',icon:'shield',sections:['Privacy e sicurezza','Password']},
+    // Beta 0.45: liste, aggiornamenti verificati, eccezioni e registro del blocco.
+    {id:'blocco',title:'Blocco annunci',icon:'shield',sections:['Blocco di pubblicità e tracker','Liste di blocco','Siti con eccezioni','Registro del blocco']},
     {id:'telefono',title:'Telefono',icon:'external',sections:['Telefono']},
     {id:'estensioni',title:'Estensioni',icon:'commands',sections:['Estensioni']},
     {id:'sistema',title:'Sistema',icon:'settings',sections:['Guida','Aggiornamenti','Avvio e background','Notifiche','Browser e file','JARVIS','Importa da un altro browser','Dati','Informazioni']},
@@ -47,6 +49,13 @@
     out.privacy={text:[s.adblock?(s.adblock.enabled?'Blocco attivo':'Blocco spento'):'',
       p?.available?plural(p.entries?.length||0,'password','password'):'',
       s.sitesWithPermissions?plural(s.sitesWithPermissions,'sito con permessi','siti con permessi'):''].filter(Boolean).join(' · ')};
+    const ab=s.adblock;
+    if(!ab)out.blocco={text:'Liste, eccezioni e registro'};
+    else if(!ab.enabled)out.blocco={text:'Spento su tutti i siti'};
+    else if(ab.state==='error')out.blocco={text:'Liste non disponibili',error:true};
+    else{const rules=(ab.lists||[]).filter(x=>x.on&&x.id!=='fix').reduce((n,x)=>n+(x.rules||0),0);
+      out.blocco={text:[rules?rules.toLocaleString('it-IT')+' regole':'',ab.exceptionCount?plural(ab.exceptionCount,'eccezione','eccezioni'):'',
+        ab.lastCheck&&!ab.lastCheck.ok?'ultimo aggiornamento scartato':''].filter(Boolean).join(' · ')||'Blocco attivo'};}
     if(!l||!l.enabled)out.telefono={text:'Collegamento spento'};
     else if(l.error)out.telefono={text:'Il PC non riesce a mettersi in ascolto',error:true};
     else if(!l.devices?.length)out.telefono={text:'Nessun telefono collegato'};
