@@ -4,6 +4,55 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.44.0 — Screenshot: annota, organizza, manda al progetto
+
+Installer PC: `dist\VARCO Setup 0.44.0.exe` (con la firma VMP).
+
+### Cosa cambia
+- **Annotare prima di salvare:** nell'anteprima dopo lo scatto c'è una barra con:
+  - **Freccia, Riquadro, Evidenzia, Testo** (Invio per metterlo);
+  - **Ritaglia** (trascini l'area da tenere);
+  - 5 colori;
+  - Annulla e Rifai (Ctrl+Z, Ctrl+Y).
+  
+  Qualsiasi azione usa l'immagine annotata, anche negli appunti.
+- **Nome e note:** il nome proposto è il titolo della pagina e lo puoi cambiare. Le note restano nel riferimento del progetto.
+- **Azioni sempre disponibili:**
+  - **Copia** (anche Ctrl+C);
+  - **Download**: va in `Download\Screenshot VARCO\<data>\<nome>.png`;
+  - **Salva come…**;
+  - **Visualizza**: apre il visualizzatore in una scheda;
+  - **Al telefono**: manda l'indirizzo della pagina al telefono collegato. Mandare l'immagine arriverà con l'app per il telefono.
+- **Se il workspace ha un progetto o un gioco**, compare la sezione «Progetto · nome» (o «Gioco · nome»):
+  - **Salva qui**: salva nella cartella delle immagini del progetto come `2026-11-19 Nome.png`;
+  - **In una nota**: crea nella board una nota con titolo, indirizzo e note, collegata allo screenshot;
+  - **Allega** a un'attività della board: nell'elenco delle attività compare 📎 con il numero, e cliccandolo vedi le immagini;
+  - **Referenza** con una categoria (3D, Video, Game design, UI… o una tua): lo screenshot va nell'area «Referenze» della board, che VARCO crea se non c'è, con la categoria accanto.
+- **Riferimento nel progetto:** ogni salvataggio fatto in un workspace con progetto lascia una riga in `riferimenti.json`, nella cartella delle immagini. La riga contiene data, indirizzo, titolo della pagina, note, file e azione.
+
+### Test da fare
+- [ ] **T358** — Fai uno screenshot e disegna una freccia, un riquadro, un testo; Annulla e Rifai funzionano. Copia: negli appunti c'è l'immagine annotata. **📸**
+- [ ] **T359** — Ritaglia una parte, poi Download: il file è in `Download\Screenshot VARCO\<data>` con il nome che hai scritto, e si vede ritagliato.
+- [ ] **T360** — In un workspace con progetto: scrivi una nota e premi «Salva qui». Il file `<data> <nome>.png` è nella cartella delle immagini del progetto e `riferimenti.json` ha la riga con le note.
+- [ ] **T361** — «Allega» a un'attività: nella pagina del progetto l'attività mostra 📎 1, e cliccandolo vedi l'immagine. **📸**
+- [ ] **T362** — «Referenza» con la categoria «Game design»: nella board compare l'area «Referenze» con lo screenshot e la nota della categoria.
+- [ ] **T363** — «In una nota»: nella board c'è una nota collegata allo screenshot.
+- [ ] **T364** — In un workspace di un gioco la sezione si chiama «Gioco · nome» e salva nelle catture del gioco.
+- [ ] **T365** — In un workspace senza progetto la sezione progetto non compare. Download e Copia funzionano lo stesso.
+
+**Stato:**
+- 281 test superati.
+- **Provato in VARCO** con il profilo di prova:
+  - anteprima con freccia ed evidenziazione → il file salvato le contiene;
+  - «Salva qui» → `2026-11-19 Esempio dominio.png` e il riferimento con le note;
+  - allegato all'attività, area «Referenze» creata, nota collegata;
+  - Download nella cartella con la data (cartella di prova poi tolta);
+  - visualizzatore aperto;
+  - telefono non collegato → messaggio chiaro.
+- In questo ambiente la cattura della pagina non disegnava (schermo non attivo), quindi l'immagine di prova è stata messa a mano. Lo scatto vero non è cambiato rispetto alla 0.43.
+
+---
+
 ## Beta 0.43.5 — Link che mostrano la pagina e companion con pagine libere
 
 Installer PC: `dist\VARCO Setup 0.43.5.exe` (con la firma VMP).

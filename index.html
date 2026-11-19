@@ -2,7 +2,7 @@
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: crx: varco-icon:; object-src 'none'"><title>VARCO</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="command-center.css"><link rel="stylesheet" href="tour.css"><link rel="stylesheet" href="project-page.css"><script src="viewer/vendor/frame/browser-action-element.js"></script></head>
 <body data-sidebar-mode="compact">
 <!-- Barra personalizzata trascinabile: Electron lascia i pulsanti Windows nativi a destra. -->
-<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.43.5</span><span class="titlebar-incognito"><span class="i i-incognito" aria-hidden="true"></span>In incognito</span></div>
+<div class="window-titlebar" aria-label="Barra del titolo"><span id="titlebarLogo" class="i i-logo titlebar-logo" aria-hidden="true"></span><span class="wordmark-small">VARCO</span><span class="titlebar-beta">BETA 0.44.0</span><span class="titlebar-incognito"><span class="i i-incognito" aria-hidden="true"></span>In incognito</span></div>
 <header class="toolbar">
   <button id="toggleSidebarVisibility" class="tool" title="Nascondi / mostra la barra laterale" aria-label="Nascondi o mostra la barra laterale"><span class="i i-sidebar-toggle" aria-hidden="true"></span></button>
   <button id="back" class="tool" title="Indietro (Alt+←)" aria-label="Indietro"><span class="i i-back" aria-hidden="true"></span></button><button id="forward" class="tool" title="Avanti (Alt+→)" aria-label="Avanti"><span class="i i-forward" aria-hidden="true"></span></button><button id="reload" class="tool" title="Ricarica (F5)" aria-label="Ricarica"><span class="i i-reload" aria-hidden="true"></span></button>
@@ -140,10 +140,36 @@
 <div id="shotPreview" hidden role="dialog" aria-label="Anteprima dello screenshot"><div class="shot-preview-card">
  <header class="shot-preview-head"><span class="i i-check" aria-hidden="true"></span><div class="shot-preview-title"><strong id="shotPreviewTitle">Screenshot</strong><span id="shotPreviewInfo"></span></div>
   <button id="shotPreviewClose" type="button" class="tool" title="Chiudi (Esc)" aria-label="Chiudi"><span class="i i-close" aria-hidden="true"></span></button></header>
- <div class="shot-preview-frame"><img id="shotPreviewImage" alt="Screenshot"></div>
- <footer class="shot-preview-actions"><button id="shotPreviewSave" type="button" class="primary"><span class="i i-download" aria-hidden="true"></span>Salva…</button>
-  <button id="shotPreviewCopy" type="button">Copia</button><button id="shotPreviewTab" type="button"><span class="i i-tab-new" aria-hidden="true"></span>Apri in una scheda</button>
-  <button id="shotPreviewAgain" type="button">Nuovo screenshot</button></footer>
+ <div class="shot-body">
+  <div class="shot-left">
+   <div class="shot-tools" id="shotTools" role="toolbar" aria-label="Annota">
+    <button type="button" data-tool="arrow" title="Freccia">➚ Freccia</button><button type="button" data-tool="rect" title="Rettangolo">▭ Riquadro</button>
+    <button type="button" data-tool="hl" title="Evidenzia">▮ Evidenzia</button><button type="button" data-tool="text" title="Testo">T Testo</button>
+    <button type="button" data-tool="crop" title="Ritaglia: trascina l'area da tenere">⌗ Ritaglia</button>
+    <span class="shot-sep"></span><button type="button" data-color="#ff5b2e" aria-label="Arancio"></button><button type="button" data-color="#ffcc33" aria-label="Giallo"></button><button type="button" data-color="#c8f135" aria-label="Lime"></button><button type="button" data-color="#6fd3ff" aria-label="Azzurro"></button><button type="button" data-color="#ffffff" aria-label="Bianco"></button>
+    <span class="shot-sep"></span><button type="button" id="shotUndo" title="Annulla (Ctrl+Z)">↶</button><button type="button" id="shotRedo" title="Rifai (Ctrl+Y)">↷</button>
+   </div>
+   <div class="shot-preview-frame" id="shotFrame"><canvas id="shotCanvas"></canvas></div>
+  </div>
+  <aside class="shot-side">
+   <label class="shot-field"><span>Nome</span><input id="shotName" maxlength="80" spellcheck="false"></label>
+   <label class="shot-field"><span>Note (facoltative)</span><textarea id="shotNote" rows="2" placeholder="Restano nel riferimento del progetto"></textarea></label>
+   <div class="shot-acts">
+    <button type="button" id="shotCopy" class="primary">Copia</button><button type="button" id="shotDownloads" title="Download › Screenshot VARCO › cartella con la data"><span class="i i-download" aria-hidden="true"></span>Download</button>
+    <button type="button" id="shotSaveAs" title="Scegli dove salvarlo">Salva come…</button><button type="button" id="shotViewer" title="Apri nel visualizzatore, in una scheda"><span class="i i-tab-new" aria-hidden="true"></span>Visualizza</button>
+    <button type="button" id="shotPhone">Al telefono</button>
+   </div>
+   <section id="shotProject" class="shot-proj" hidden>
+    <strong id="shotProjectName"></strong>
+    <div class="shot-acts"><button type="button" id="shotToProject" title="Salva nella cartella delle immagini, con data, indirizzo e note"><span class="i i-project" aria-hidden="true"></span>Salva qui</button><button type="button" id="shotToNote" title="Nuova nota nella board, collegata allo screenshot"><span class="i i-notes" aria-hidden="true"></span>In una nota</button></div>
+    <div class="shot-row"><select id="shotTask" aria-label="Attività"></select><button type="button" id="shotTaskGo">Allega</button></div>
+    <div class="shot-row"><input id="shotRefCat" list="shotRefCats" placeholder="Referenza: 3D, video, game design…" maxlength="30"><button type="button" id="shotRefGo">Referenza</button></div>
+    <datalist id="shotRefCats"><option value="3D"><option value="Video"><option value="Game design"><option value="UI"><option value="Ispirazione"><option value="Personaggi"><option value="Ambienti"></datalist>
+   </section>
+   <p id="shotStatus" class="shot-status" role="status"></p>
+   <button type="button" id="shotPreviewAgain" class="shot-again">Nuovo screenshot</button>
+  </aside>
+ </div>
 </div></div>
 <div id="glance" hidden>
  <img id="glanceBackdrop" alt="">

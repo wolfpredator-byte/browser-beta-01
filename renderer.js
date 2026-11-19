@@ -2569,26 +2569,109 @@ $('shot').addEventListener('pointerup',()=>{
  if(r&&r.width>4&&r.height>4)act('screenshotTake',{mode:'area',x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)});
  else $('shotArea').hidden=true;
 });
-// Beta 0.37: anteprima dopo lo scatto. L'immagine è già negli appunti; da qui si salva, si ricopia o si apre in una scheda.
+// Beta 0.37: anteprima dopo lo scatto. Beta 0.44: annotazione (freccia, rettangolo, evidenzia, testo, ritaglia)
+// e azioni: copia, Download (cartella con la data), visualizzatore, telefono; nel progetto o gioco del workspace:
+// salva, nota, allega a un'attività, referenza. Prima di ogni azione l'immagine annotata sostituisce quella scattata.
+const shotEd={img:null,shapes:[],crop:null,undo:[],redo:[],tool:'arrow',color:'#ff5b2e',drag:null,dirty:false,msg:null};
+const SHOT_COLORS=['#ff5b2e','#ffcc33','#c8f135','#6fd3ff','#ffffff'];
 function showShotPreview(message){
  const box=$('shotPreview');
- if(!message.open){box.hidden=true;$('shotPreviewImage').removeAttribute('src');return;}
- $('shotPreviewImage').src=message.image;
+ if(!message.open){box.hidden=true;shotEd.img=null;return;}
+ shotEd.msg=message;Object.assign(shotEd,{shapes:[],crop:null,undo:[],redo:[],dirty:false,tool:'arrow'});
+ const img=new Image();img.onload=()=>{shotEd.img=img;shotDraw();};img.src=message.image;
  $('shotPreviewTitle').textContent=message.title||'Screenshot';
  $('shotPreviewInfo').textContent=`${message.width}×${message.height} px · copiato negli appunti`;
- // Immagine molto alta (pagina intera): si scorre dentro la cornice invece di diventare minuscola.
  $('shotPreview').classList.toggle('tall',message.height>message.width*2.2);
- $('shotPreviewCopy').textContent='Copia';
- box.hidden=false;
- $('shotPreviewSave').focus();
+ $('shotName').value=message.name||'Screenshot';$('shotNote').value='';
+ $('shotPhone').disabled=!message.phone;$('shotPhone').title=message.phone?'Manda la pagina al telefono collegato':'Collega un telefono in Impostazioni → Telefono';
+ const t=message.target;$('shotProject').hidden=!t;
+ if(t){$('shotProjectName').textContent=(t.kind==='game'?'Gioco · ':'Progetto · ')+t.name;
+   const sel=$('shotTask');sel.replaceChildren(...(t.tasks.length?t.tasks.map(x=>el('option',{value:String(x.i),textContent:(x.done?'✓ ':'')+x.t})):[el('option',{value:'',textContent:'Nessuna attività nella board'})]));
+   sel.disabled=$('shotTaskGo').disabled=!t.tasks.length;}
+ $('shotStatus').textContent='';
+ shotTools();box.hidden=false;$('shotName').focus();$('shotName').select();
+}
+function shotTools(){
+ document.querySelectorAll('#shotTools [data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===shotEd.tool));
+ document.querySelectorAll('#shotTools [data-color]').forEach(b=>b.classList.toggle('on',b.dataset.color===shotEd.color));
+ $('shotUndo').disabled=!shotEd.undo.length;$('shotRedo').disabled=!shotEd.redo.length;
+}
+/* Disegno: immagine (ritagliata) + annotazioni, in pixel veri dell'immagine */
+function shotRender(canvas,withDrag){
+ const img=shotEd.img;if(!img)return;
+ const c=shotEd.crop||{x:0,y:0,w:img.naturalWidth,h:img.naturalHeight};
+ canvas.width=c.w;canvas.height=c.h;const g=canvas.getContext('2d');
+ g.drawImage(img,c.x,c.y,c.w,c.h,0,0,c.w,c.h);
+ const lw=Math.max(3,Math.round(Math.min(img.naturalWidth,2400)/320));
+ const all=withDrag&&shotEd.drag&&shotEd.drag.shape?[...shotEd.shapes,shotEd.drag.shape]:shotEd.shapes;
+ g.save();g.translate(-c.x,-c.y);
+ for(const s of all){
+  g.strokeStyle=s.color;g.fillStyle=s.color;g.lineWidth=lw;g.lineCap='round';g.lineJoin='round';
+  if(s.type==='rect'){g.strokeRect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1));}
+  else if(s.type==='hl'){g.globalAlpha=.32;g.fillRect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1));g.globalAlpha=1;}
+  else if(s.type==='arrow'){const a=Math.atan2(s.y2-s.y1,s.x2-s.x1),h=lw*4.5;g.beginPath();g.moveTo(s.x1,s.y1);g.lineTo(s.x2,s.y2);g.stroke();
+   g.beginPath();g.moveTo(s.x2,s.y2);g.lineTo(s.x2-h*Math.cos(a-.45),s.y2-h*Math.sin(a-.45));g.lineTo(s.x2-h*Math.cos(a+.45),s.y2-h*Math.sin(a+.45));g.closePath();g.fill();}
+  else if(s.type==='text'){const fs=lw*7;g.font=`600 ${fs}px 'Segoe UI',sans-serif`;g.textBaseline='top';const m=g.measureText(s.text);
+   g.fillStyle='rgba(0,0,0,.6)';g.fillRect(s.x1-lw,s.y1-lw,m.width+lw*2,fs*1.25+lw);g.fillStyle=s.color;g.fillText(s.text,s.x1,s.y1);}
+  else if(s.type==='crop'){g.setLineDash([lw*2,lw*2]);g.strokeStyle='#fff';g.strokeRect(Math.min(s.x1,s.x2),Math.min(s.y1,s.y2),Math.abs(s.x2-s.x1),Math.abs(s.y2-s.y1));g.setLineDash([]);}
+ }
+ g.restore();
+}
+function shotDraw(){shotRender($('shotCanvas'),true);}
+function shotPoint(e){const cv=$('shotCanvas'),r=cv.getBoundingClientRect(),c=shotEd.crop||{x:0,y:0};
+ return {x:Math.round((e.clientX-r.left)*cv.width/r.width)+c.x,y:Math.round((e.clientY-r.top)*cv.height/r.height)+c.y};}
+function shotPush(){shotEd.undo.push(JSON.stringify({shapes:shotEd.shapes,crop:shotEd.crop}));shotEd.redo=[];shotEd.dirty=true;}
+$('shotCanvas').addEventListener('pointerdown',e=>{
+ if(!shotEd.img||e.button!==0)return;const p=shotPoint(e);
+ if(shotEd.tool==='text'){shotText(e,p);return;}
+ e.preventDefault();$('shotCanvas').setPointerCapture(e.pointerId);
+ shotEd.drag={shape:{type:shotEd.tool,color:shotEd.color,x1:p.x,y1:p.y,x2:p.x,y2:p.y}};
+});
+$('shotCanvas').addEventListener('pointermove',e=>{if(!shotEd.drag)return;const p=shotPoint(e);Object.assign(shotEd.drag.shape,{x2:p.x,y2:p.y});shotDraw();});
+$('shotCanvas').addEventListener('pointerup',()=>{const d=shotEd.drag;shotEd.drag=null;if(!d)return;const s=d.shape;
+ if(Math.abs(s.x2-s.x1)<4&&Math.abs(s.y2-s.y1)<4){shotDraw();return;}
+ shotPush();
+ if(s.type==='crop'){const img=shotEd.img;const x=Math.max(0,Math.min(s.x1,s.x2)),y=Math.max(0,Math.min(s.y1,s.y2));
+  shotEd.crop={x,y,w:Math.min(img.naturalWidth-x,Math.abs(s.x2-s.x1)),h:Math.min(img.naturalHeight-y,Math.abs(s.y2-s.y1))};shotEd.tool='arrow';}
+ else shotEd.shapes.push(s);
+ shotTools();shotDraw();});
+/* Testo: un campo sopra l'immagine, Invio per mettere il testo */
+function shotText(e,p){
+ const inp=el('input',{className:'shot-text-input',placeholder:'Testo… (Invio)'});
+ const r=$('shotFrame').getBoundingClientRect();inp.style.left=(e.clientX-r.left+$('shotFrame').scrollLeft)+'px';inp.style.top=(e.clientY-r.top+$('shotFrame').scrollTop)+'px';inp.style.color=shotEd.color;
+ $('shotFrame').appendChild(inp);setTimeout(()=>inp.focus(),0);
+ const done=ok=>{const v=inp.value.trim();inp.remove();if(ok&&v){shotPush();shotEd.shapes.push({type:'text',color:shotEd.color,x1:p.x,y1:p.y,text:v.slice(0,200)});shotTools();shotDraw();}};
+ inp.onkeydown=ev=>{ev.stopPropagation();if(ev.key==='Enter')done(true);if(ev.key==='Escape')done(false);};inp.onblur=()=>done(true);
+}
+document.querySelectorAll('#shotTools [data-tool]').forEach(b=>b.onclick=()=>{shotEd.tool=b.dataset.tool;shotTools();});
+document.querySelectorAll('#shotTools [data-color]').forEach(b=>{b.style.background=b.dataset.color;b.onclick=()=>{shotEd.color=b.dataset.color;shotTools();};});
+$('shotUndo').onclick=()=>{if(!shotEd.undo.length)return;shotEd.redo.push(JSON.stringify({shapes:shotEd.shapes,crop:shotEd.crop}));Object.assign(shotEd,JSON.parse(shotEd.undo.pop()));shotEd.dirty=true;shotTools();shotDraw();};
+$('shotRedo').onclick=()=>{if(!shotEd.redo.length)return;shotEd.undo.push(JSON.stringify({shapes:shotEd.shapes,crop:shotEd.crop}));Object.assign(shotEd,JSON.parse(shotEd.redo.pop()));shotEd.dirty=true;shotTools();shotDraw();};
+/* Azioni: prima l'immagine annotata, poi l'azione con nome e note */
+async function shotDo(action,extra={}){
+ if(!shotEd.img)return;
+ if(shotEd.dirty){const cv=document.createElement('canvas');shotRender(cv,false);const r=await act('screenshotUpdate',{data:cv.toDataURL('image/png')});if(r?.ok===false){$('shotStatus').textContent=r.error||'Errore';return;}shotEd.dirty=false;}
+ const r=await act('screenshotAction',{action,name:$('shotName').value.trim(),note:$('shotNote').value.trim(),...extra});
+ const res=r?.result??r;
+ $('shotStatus').textContent=res?.ok===false?(res.error||'Non riuscito'):action==='copy'?'Copiato negli appunti ✓':action==='phone'?'Mandata al telefono ✓':'';
 }
 $('shotPreviewClose').onclick=()=>act('screenshotPreviewClose');
-$('shotPreviewSave').onclick=()=>act('saveScreenshot');
-$('shotPreviewTab').onclick=()=>act('screenshotOpenTab');
+$('shotCopy').onclick=()=>shotDo('copy');
+$('shotDownloads').onclick=()=>shotDo('downloads');
+$('shotSaveAs').onclick=async()=>{if(shotEd.dirty){const cv=document.createElement('canvas');shotRender(cv,false);await act('screenshotUpdate',{data:cv.toDataURL('image/png')});shotEd.dirty=false;}act('saveScreenshot');};
+$('shotViewer').onclick=()=>shotDo('viewer');
+$('shotPhone').onclick=()=>shotDo('phone');
+$('shotToProject').onclick=()=>shotDo('project');
+$('shotToNote').onclick=()=>shotDo('note');
+$('shotTaskGo').onclick=()=>{const v=$('shotTask').value;if(v!=='')shotDo('task',{task:Number(v)});};
+$('shotRefGo').onclick=()=>shotDo('reference',{cat:$('shotRefCat').value.trim()||'Referenza'});
 $('shotPreviewAgain').onclick=async()=>{await act('screenshotPreviewClose');act('openScreenshot');};
-$('shotPreviewCopy').onclick=async()=>{const r=await act('screenshotCopy');if(r?.ok!==false)$('shotPreviewCopy').textContent='Copiato ✓';};
 $('shotPreview').addEventListener('mousedown',event=>{if(event.target===$('shotPreview'))act('screenshotPreviewClose');});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('shotPreview').hidden)act('screenshotPreviewClose');});
+document.addEventListener('keydown',event=>{if($('shotPreview').hidden)return;
+ if(event.key==='Escape'&&!event.target.closest?.('.shot-text-input'))act('screenshotPreviewClose');
+ if(event.ctrlKey&&event.key.toLowerCase()==='z'&&!event.target.closest?.('input,textarea')){event.preventDefault();$('shotUndo').click();}
+ if(event.ctrlKey&&event.key.toLowerCase()==='y'&&!event.target.closest?.('input,textarea')){event.preventDefault();$('shotRedo').click();}
+ if(event.ctrlKey&&event.key.toLowerCase()==='c'&&!event.target.closest?.('input,textarea')){event.preventDefault();shotDo('copy');}});
 $('shotVisible').onclick=()=>act('screenshotTake',{mode:'visible'});
 $('shotFull').onclick=()=>act('screenshotTake',{mode:'full'});
 $('shotCancel').onclick=()=>act('screenshotClose');

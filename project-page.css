@@ -374,3 +374,7 @@
 .pp-lthumb{flex:1;min-height:90px;border-radius:7px;border:1px solid var(--s-edge);background:var(--s-well) top center/cover no-repeat;cursor:pointer}
 .pp-lthumb:hover{border-color:var(--s-sig)}
 .pp-lthumb.empty{display:grid;place-items:center;color:var(--s-dim);font-size:12px;cursor:default;background:repeating-linear-gradient(135deg,var(--s-well) 0 10px,var(--s-row) 10px 11px)}
+
+/* Beta 0.44: screenshot allegati alle attività */
+.pp-att{padding:1px 6px!important;border-radius:4px!important;background:var(--s-row-hover);color:var(--s-muted);font:500 10.5px/15px var(--pm)}
+.pp-att:hover{color:var(--s-text)}

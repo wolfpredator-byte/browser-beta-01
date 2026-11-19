@@ -68,3 +68,9 @@ test('colori dello stile Strumento dal tema di VARCO',()=>{
     assert.ok(A.contrast(t['--s-text'],t['--s-tile'])>=7,id+' '+mode);
   }
 });
+
+test('screenshot allegati alle attività (Beta 0.44)',()=>{
+  const p=R.normalizePage({tasks:[{t:'Bug del menu',tag:'Bug',shots:['2026-11-19 menu.png','../x.exe',5]},{t:'Senza',tag:'UI',shots:[]}]});
+  assert.deepEqual(p.tasks[0].shots,['2026-11-19 menu.png']);
+  assert.equal(p.tasks[1].shots,undefined);
+});

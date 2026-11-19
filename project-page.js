@@ -665,7 +665,7 @@ function editTimer(id){const t=P.tiles[id].timer;
 const _BODY={...BODY};
 BODY.tasks=id=>{const done=P.tasks.filter(t=>t.done).length,p=P.tasks.length?Math.round(done/P.tasks.length*100):0;
   return head(id,`<span class="pp-kbd" style="color:var(--s-sig-ink)">${p}%</span><button data-tags title="Gestisci le etichette">${svg('tag',14)}</button>`)+`<div class="pp-tb"><div class="pp-prog"><i style="width:${p}%"></i></div><div class="pp-tasks">${P.tasks.map((x,i)=>`
-    <label class="pp-task${x.done?' done':''}" data-i="${i}"><input type="checkbox"${x.done?' checked':''}><div class="t"><span>${esc(x.t)}</span><div class="meta"><button class="pp-tagc" data-tagof="${i}" style="${tagStyle(x.tag)}" title="Cambia etichetta">${esc(x.tag)}</button></div></div>
+    <label class="pp-task${x.done?' done':''}" data-i="${i}"><input type="checkbox"${x.done?' checked':''}><div class="t"><span>${esc(x.t)}</span><div class="meta"><button class="pp-tagc" data-tagof="${i}" style="${tagStyle(x.tag)}" title="Cambia etichetta">${esc(x.tag)}</button>${x.shots?.length?`<button class="pp-att" data-att="${i}" title="Screenshot allegati: clic per vederli">📎 ${x.shots.length}</button>`:''}</div></div>
     <button class="del" title="Elimina">${svg('close',14)}</button></label>`).join('')||`<div class="pp-empty">${D.mode==='game'?'Nessun obiettivo. Scrivine uno qui sotto.':'Nessuna attività. Scrivine una qui sotto.'}</div>`}</div>
     <form class="pp-add">${svg('task',15)}<input placeholder="${D.mode==='game'?'Nuovo obiettivo…':'Nuova attività…'}" maxlength="300"><select>${(IX?.tags||[]).map(t=>`<option>${esc(t.n)}</option>`).join('')}</select><button class="pp-btn sm" type="submit">${svg('plus',13)}</button></form></div>`;};
 BODY.res=id=>head(id,`<button data-addlink title="Aggiungi un link">${svg('plus',14)}</button>`)+`<div class="pp-tb"><div class="pp-list">${(IX?.quick||[]).map((l,i)=>`<div class="pp-re" data-li="${i}" title="${esc(l.u)}"><span class="ic">${svg('link',15)}</span><span class="w"><b>${esc(l.n)}</b><small>${esc(hostOf(l.u))}${l.sug?' · suggerito':''}</small></span>
@@ -734,6 +734,10 @@ var extraWire=function(el,id,type){
     el.querySelectorAll('[data-tagof]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const i=+b.dataset.tagof;
       pop(b,[...IX.tags.map(t=>({t:t.n,sw:wireColor(t.c),on:t.n===P.tasks[i].tag})),{t:'Gestisci le etichette…',manage:1}],it=>{if(it.manage)return tagEditor();P.tasks[i].tag=it.t;refill('tasks');save();});}));
     const m=el.querySelector('[data-tags]');if(m)m.onclick=e=>{e.stopPropagation();tagEditor();};
+    // Beta 0.44: screenshot allegati all'attività (dall'anteprima dello screenshot)
+    el.querySelectorAll('[data-att]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const t=P.tasks[+b.dataset.att],list=(t.shots||[]).map(shotByName).filter(Boolean);
+      if(!list.length)return toast('Immagine non trovata');if(list.length===1)return lightbox(list[0].url);
+      pop(b,list.map(x=>({t:x.name,x})),it=>lightbox(it.x.url));}));
   }
   if(type==='res'){
     el.querySelectorAll('[data-li]').forEach(r=>r.onclick=e=>{if(e.target.closest('button'))return;openQuick(IX.quick[+r.dataset.li]);});
