@@ -992,6 +992,25 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
    };
    search.oninput=()=>{pwUi.query=search.value;draw();};
    draw();
+   // Beta 0.46: con Bitwarden le password di VARCO restano in sola lettura: esporta, importa, cancella.
+   if(p.mode==='bitwarden'){
+     if(!p.entries.length)return section('Password',hint('Nessuna password salvata in VARCO. Le password stanno solo in Bitwarden.'));
+     const exported=!!p.exportedAt;
+     const step=(n,done,title,text)=>el('li',{className:'bw-step'+(done?' done':'')},el('span',{className:'bw-num',textContent:done?'✓':String(n)}),
+       el('div',{},el('strong',{textContent:title}),el('span',{className:'panel-hint',textContent:text})));
+     return section('Password',
+       el('div',{className:'bw-ro'},el('b',{textContent:'Sola lettura'}),el('span',{textContent:`${p.entries.length} ${p.entries.length===1?'password salvata':'password salvate'} in VARCO. Non ne salva più di nuove e non riempie più i campi.`})),
+       el('ol',{className:'bw-steps'},
+         step(1,exported,'Esporta per Bitwarden',exported?`Esportate il ${new Date(p.exportedAt).toLocaleDateString('it-IT')}. Il file contiene le password in chiaro: cancellalo dopo l’importazione.`:'Un file CSV nel formato di Bitwarden. Contiene le password in chiaro: cancellalo dopo.'),
+         step(2,false,'Importa in Bitwarden','Vault web → Strumenti → Importa dati → «Bitwarden (csv)».'),
+         step(3,false,'Cancella le password di VARCO','Quando hai controllato che in Bitwarden ci sono tutte.')),
+       el('div',{className:'inline-buttons'},
+         Object.assign(el('button',{type:'button',className:'primary',textContent:'Esporta per Bitwarden…'}),
+           {onclick:()=>settingsAction('passwordExportBitwarden',r=>r.canceled?'':`${r.count} password esportate in ${r.file}. Importale in Bitwarden, poi cancella il file.`)}),
+         exported?confirmButton('Cancella le password di VARCO…','Conferma: cancella tutte',()=>settingsAction('passwordDeleteAll',r=>`${r.count} password cancellate da VARCO.`)):
+           el('button',{type:'button',disabled:true,textContent:'Cancella le password di VARCO…',title:'Prima esporta le password'})),
+       search,box);
+   }
    return section('Password',
      checkRow('Proponi di salvare le password dopo un accesso',p.enabled,enabled=>act('setPasswordSaving',{enabled})),
      ...(p.entries.length?[el('p',{className:'game-meta',textContent:`${p.entries.length} ${p.entries.length===1?'password salvata':'password salvate'}`}),search]:[]),
@@ -1002,6 +1021,25 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      projectButtons(['Importa da Chrome, Edge o Firefox (CSV)…',()=>settingsAction('passwordImport',
        r=>`Importate ${r.added} nuove e ${r.updated} aggiornate${r.skipped?` (${r.skipped} righe saltate)`:''}.`)]),
      hint('Cifrate con la protezione dati di Windows: solo il tuo account può leggerle. Le pagine ricevono una password solo quando scegli un account dall’elenco sotto il campo. Per esportare da Chrome: Impostazioni → Password → Esporta password.'));
+ }
+ // Beta 0.46: Bitwarden gestisce le password. VARCO fa da interfaccia: installa, apre, protegge.
+ function bitwardenSection(hint){
+   const b=state.passwords?.bitwarden;
+   if(!b)return el('span');
+   const logo=el('div',{className:'bw-logo'},el('span',{className:'i i-shield','aria-hidden':'true'}));
+   const card=el('div',{className:'bw-card'},logo,el('div',{className:'t'},
+     el('strong',{},el('span',{className:'bw-dot'+(b.installed?'':' off')}),document.createTextNode(b.installed?`Bitwarden ${b.version} installato`:'Bitwarden non è installato')),
+     el('span',{className:'panel-hint',textContent:b.installed?'L’icona è nella barra in alto · Ctrl+Shift+L apre Bitwarden sulla pagina':'Estensione ufficiale dal Chrome Web Store, gratuita'})));
+   const isolated=b.workspaces.filter(w=>w.isolated);
+   return section('Bitwarden',card,
+     projectButtons(b.installed?['Apri Bitwarden',()=>act('bitwardenOpen'),'primary']:['Installa Bitwarden',()=>settingsAction('bitwardenInstall',r=>r.canceled?'':'Bitwarden installato.'),'primary'],
+       ['Vault web ↗',()=>act('bitwardenWebVault')],[b.appInstalled?'App Bitwarden ↗':'Scarica l’app Bitwarden ↗',()=>act('bitwardenApp')]),
+     ...(b.installed&&isolated.length?[el('div',{className:'bw-ws'},...b.workspaces.map(w=>el('div',{},el('span',{className:'n',textContent:w.name+(w.isolated?' · account separati':'')}),
+       el('span',{className:'panel-hint',textContent:w.isolated?'Bitwarden a parte: puoi entrare con un altro account':'usa il Bitwarden principale'}))))]:[]),
+     el('div',{className:'bw-shield'},el('b',{textContent:'VARCO non tiene i tuoi segreti.'}),document.createTextNode(' Le password stanno in Bitwarden, cifrate. VARCO:'),
+       el('ul',{},...['non salva la master password né i dati del Vault;','apre il Vault web nel browser di sistema, così i suoi cookie non restano qui;',
+         'tiene le pagine di Bitwarden fuori da cronologia, screenshot, JARVIS e schede da riaprire.'].map(t=>el('li',{textContent:t})))),
+     ...(!b.installed?[checkRow('Proponi Bitwarden sulle pagine di accesso',b.hint,enabled=>enabled?act('bitwardenHintOn'):act('bitwardenHintOff'))]:[]));
  }
  // Estensioni Chrome (Beta 0.26): si aggiungono dal Chrome Web Store, qui si gestiscono.
  function extensionSection(hint){
@@ -1048,11 +1086,11 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      ...(status?[status]:[]),
      ...(l.enabled?[checkRow('Anche fuori casa (le schede passano da ntfy.sh, cifrate)',l.relay,enabled=>act('linkSetRelay',{enabled}))]:[]),
      ...(relayStatus?[relayStatus]:[]),
-     ...(l.enabled?[checkRow('Sincronizza le password col telefono (solo sulla rete di casa)',l.syncPasswords,enabled=>act('linkSetSyncPasswords',{enabled}))]:[]),
+     ...(l.enabled?[hint('Le password non si sincronizzano più col telefono: lì usa l’app Bitwarden, che ha già i tuoi dati.')]:[]),
      ...rows,
      ...(qr?[qr]:[]),
      ...(l.enabled&&!l.pairing?[projectButtons([l.devices.length?'Collega un altro telefono':'Collega un telefono',()=>settingsAction('linkStartPairing'),'primary'])]:[]),
-     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. Preferiti e password si sincronizzano da soli quando telefono e PC sono sulla stessa Wi-Fi. In casa passa tutto sulla rete locale. Fuori casa le schede passano da ntfy.sh, un servizio pubblico che le tiene al massimo 12 ore: sono cifrate con la chiave del QR, quindi ntfy non può leggerle. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
+     hint('Dal telefono: Menu → Manda al PC, e scegli dove aprirla (scheda nuova, finestra nuova, un workspace, oppure chiedi qui). Dal PC: tasto destro su una scheda o su una pagina → Manda a…. I preferiti si sincronizzano da soli quando telefono e PC sono sulla stessa Wi-Fi. In casa passa tutto sulla rete locale. Fuori casa le schede passano da ntfy.sh, un servizio pubblico che le tiene al massimo 12 ore: sono cifrate con la chiave del QR, quindi ntfy non può leggerle. La prima volta Windows chiede il permesso del firewall: consenti sulle reti private.'));
  }
  function updateSection(row,hint){
    const u=state.update;
@@ -1118,6 +1156,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
        hint('Per aggiungerne uno: tasto destro su una pagina → Stile per questo sito…'))]:[]),
      linkSection(hint),
      updateSection(row,hint),
+     bitwardenSection(hint),
      passwordSection(hint),
      extensionSection(hint),
      section('Browser e file',
@@ -1237,7 +1276,7 @@ function addButton(parent,label,fn,cls=''){const b=document.createElement('butto
      aspetto:[a&&['Tema chiaro',a.mode==='chiaro',v=>act('setMode',{mode:v?'chiaro':'scuro'})]],
      schede:[['Video in finestrella',s.autoPip,enabled=>act('setAutoPip',{enabled})],['Archivio automatico',s.autoArchive.enabled,enabled=>act('setAutoArchive',{enabled})]],
      privacy:[['Blocca pubblicità e tracker',s.adblock.enabled,enabled=>act('setAdblockEnabled',{enabled})],
-       p?.available&&['Proponi di salvare le password',p.enabled,enabled=>act('setPasswordSaving',{enabled})]],
+       p?.available&&p.mode!=='bitwarden'&&['Proponi di salvare le password',p.enabled,enabled=>act('setPasswordSaving',{enabled})]],
      telefono:[l&&['Collegamento in casa',l.enabled,enabled=>act('linkSetEnabled',{enabled})],l?.enabled&&['Anche fuori casa',l.relay,enabled=>act('linkSetRelay',{enabled})]],
      sistema:[['Avvia con Windows',s.openAtLogin,enabled=>act('setOpenAtLogin',{enabled})],u?.supported&&['Aggiornamenti automatici',u.auto,enabled=>act('setAutoUpdate',{enabled})]],
    }[id]||[];
@@ -2615,6 +2654,10 @@ window.browserAPI.onUi(message=>{
  if(message?.type==='focusAddress'){closeFind(false);const a=$('address');a.focus();a.select();}
  else if(message?.type==='closeSuggestions')closeSuggestions();
  else if(message?.type==='openSettingsCategory')openSettingsCategory(message.id);
+ else if(message?.type==='openExtensionAction'){
+   const node=$('extensionActions').shadowRoot?.querySelector(`[id="${message.id}"]`);
+   if(node?.activate)node.activate({type:'click'});
+ }
  else if(message?.type==='openFind')openFind();
  else if(message?.type==='palette')showSuggestions(message);
  // Beta 0.42: tutorial — foto della pagina al posto della pagina (nascosta) e eventi che completano i passi.

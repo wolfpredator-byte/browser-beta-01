@@ -4,6 +4,76 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.46.1 — Correzione: VARCO si chiudeva su YouTube con il blocco attivo
+
+Installer PC: `dist\VARCO Setup 0.46.1.exe` (con la firma VMP). Contiene anche tutta la 0.46.0 (Bitwarden), qui sotto.
+
+### Cosa cambia
+- **Su YouTube, con il blocco in Normale o Compatibile, VARCO si chiudeva da solo**, e di nuovo a ogni riapertura. Il problema era nato con la 0.45.
+  - **Causa:** per alcune richieste le liste non bloccano, ma rimandano a un file finto vuoto (un indirizzo `data:`). Se la richiesta era una chiamata in background della pagina (per esempio `googleads…/pagead/id` e `measurement/follow_on` su YouTube), quel rimando faceva andare in crash l'intero browser.
+  - **Correzione:** il rimando al file finto resta solo per script, immagini e stili, dove serve perché la pagina non si rompa. Le altre richieste vengono semplicemente bloccate.
+- Il controllo degli errori degli script nella pagina usa il modo nuovo di Electron (spariva l'avviso «console-message arguments are deprecated»).
+
+### Test da fare
+- [ ] **T383** — Apri YouTube con il blocco in Normale: VARCO resta aperto. Il video parte e le pubblicità sono bloccate.
+- [ ] **T384** — Dallo scudo passa YouTube a Compatibile, poi di nuovo a Normale: VARCO non si chiude. Chiudilo e riaprilo con YouTube aperto: parte normalmente.
+- [ ] **T385** — Se avevi messo YouTube su «Spento», rimettilo su Normale dallo scudo o da Impostazioni → Blocco annunci → Siti con eccezioni → Togli.
+
+**Stato:**
+- 289 test superati.
+- **Riprodotto e corretto** su una copia del tuo profilo, senza password né cache, cancellata dopo:
+  - prima della correzione si chiudeva dopo 6 secondi, ogni volta;
+  - dopo la correzione resta aperto, anche con 4 cambi Compatibile/Normale di fila su YouTube.
+
+---
+
+## Beta 0.46.0 — Bitwarden al posto del gestore delle password
+
+Installer PC: `dist\VARCO Setup 0.46.0.exe` (con la firma VMP).
+
+### Cosa cambia
+- **Le password le gestisce Bitwarden.** VARCO fa solo da interfaccia e da ambiente sicuro per l'estensione ufficiale (Chrome Web Store). VARCO:
+  - non salva la master password, i segreti di Bitwarden o i dati del Vault;
+  - **non apre il Vault web**: vault.bitwarden.com e .eu, da qualunque scheda, link, companion o anteprima, si aprono nel browser di sistema, così i loro cookie non restano in VARCO;
+  - tiene le pagine di Bitwarden fuori da **cronologia, schede da riaprire, screenshot e JARVIS**.
+- **Le pagine non mandano più a VARCO le password che scrivi.** Lo script della pagina chiede chi gestisce le password: con Bitwarden dice solo che c'è un campo di accesso, senza nessun valore.
+- **Impostazioni → Privacy e sicurezza → Bitwarden:**
+  - stato e versione dell'estensione;
+  - «Installa Bitwarden», con conferma;
+  - «Apri Bitwarden»;
+  - «Vault web ↗» e «App Bitwarden ↗» (o «Scarica l'app»), tutti e due nel browser di sistema;
+  - i workspace con account separati hanno il loro Bitwarden: puoi entrare con un altro account.
+- **Ctrl+Shift+L** (anche dalla palette) apre Bitwarden sulla pagina, come cliccare la sua icona nella barra.
+- **Pagine di accesso:** se Bitwarden non è installato compare un avviso con «Installa Bitwarden» e «Non chiedere più», una volta per sito. Se è installato ci pensa il suo menu sul campo.
+- **Password salvate in VARCO, in sola lettura.** Non ne salva più di nuove e non riempie più i campi. Tre passi:
+  1. **«Esporta per Bitwarden…»** crea un CSV nel formato di Bitwarden. Contiene le password in chiaro: cancellalo dopo.
+  2. Importa il CSV nel Vault web: Strumenti → Importa dati → «Bitwarden (csv)».
+  3. **«Cancella le password di VARCO…»** si attiva solo dopo l'esportazione e chiede conferma.
+- **Telefono:** le password non si sincronizzano più. Sul telefono usa l'app Bitwarden. I preferiti continuano a sincronizzarsi.
+
+### Test da fare
+- [ ] **T375** — Impostazioni → Privacy e sicurezza: c'è la sezione Bitwarden. Se manca l'estensione, «Installa Bitwarden» chiede conferma e la installa. L'icona compare nella barra. **📸**
+- [ ] **T376** — Entra nel tuo account Bitwarden dall'icona, poi apri una pagina di accesso: il menu di Bitwarden sul campo riempie nome e password.
+- [ ] **T377** — Ctrl+Shift+L su una pagina apre Bitwarden; di nuovo lo chiude.
+- [ ] **T378** — «Esporta per Bitwarden…»: scegli dove salvare il CSV. Importalo nel Vault web (Strumenti → Importa dati → Bitwarden (csv)) e controlla che ci siano tutte. Poi cancella il file.
+- [ ] **T379** — «Cancella le password di VARCO…» → conferma: la sezione dice «Nessuna password salvata in VARCO».
+- [ ] **T380** — Scrivi vault.bitwarden.com nella barra: si apre nel browser di sistema, con l'avviso. In VARCO non resta nessuna scheda.
+- [ ] **T381** — Su una pagina di Bitwarden (es. il popup aperto in una scheda) Ctrl+Shift+S dice che non si fotografa. Chiudendo e riaprendo VARCO la scheda non torna.
+- [ ] **T382** — Impostazioni → Telefono: niente più interruttore delle password, c'è la nota su Bitwarden.
+
+**Stato:**
+- 288 test superati.
+- **Provato in VARCO** con il profilo di prova:
+  - Bitwarden 2026.10.2 installato dal Web Store: icona nella barra, popup aperto con Ctrl+Shift+L;
+  - su github.com/login il menu di VARCO non compare più;
+  - 2 password finte esportate nel CSV giusto (anche con la virgola), cancellate dopo l'esportazione (prima viene rifiutato);
+  - Vault web aperto fuori da VARCO, nessuna scheda;
+  - screenshot rifiutato sulla pagina di Bitwarden, scheda esclusa da quelle da riaprire;
+  - avviso sulle pagine di accesso.
+- L'accesso al vault e il riempimento dei campi li puoi provare solo tu, con il tuo account (T376).
+
+---
+
 ## Beta 0.45.0 — Blocco annunci: avviso, finestrella dello scudo, liste separate
 
 Installer PC: `dist\VARCO Setup 0.45.0.exe` (con la firma VMP).

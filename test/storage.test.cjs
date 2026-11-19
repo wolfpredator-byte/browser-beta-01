@@ -65,7 +65,7 @@ test('migrazione da 0.5: background e rilevamento attivi, giochi rovinati scarta
     {id:1,name:'Destiny 2',exe:'destiny2.exe',workspace:'Gaming',sites:[],enabled:true},
     {id:'x',name:'Rotto'},null]});
   assert.deepEqual(data.settings,{runInBackground:true,gameWatcher:true,companionDefault:{display:null,side:'full',size:100,rel:null},backgroundNoticeShown:false,
-    jarvis:{enabled:false,readPages:true},adblock:{enabled:true,allowlist:[],compat:[],temp:{},lists:{ads:true,trk:true,ck:true,soc:false,fix:true},autoUpdate:true,quiet:[]},sleepAfterMinutes:30,searchEngine:'google',tabAnimations:true,scanFolders:[],autoUpdate:true,autoGroupTabs:false,passwordSaving:true,motion:'auto',bangs:[],autoPip:true,toasts:{download:true,sito:true,jarvis:true,sistema:true},commandCenter:{style:'board',webSuggestions:true},autoArchive:{enabled:false,days:7}});
+    jarvis:{enabled:false,readPages:true},adblock:{enabled:true,allowlist:[],compat:[],temp:{},lists:{ads:true,trk:true,ck:true,soc:false,fix:true},autoUpdate:true,quiet:[]},sleepAfterMinutes:30,searchEngine:'google',tabAnimations:true,scanFolders:[],autoUpdate:true,autoGroupTabs:false,passwordSaving:true,passwordManager:'bitwarden',passwordsExportedAt:0,bitwardenHint:true,motion:'auto',bangs:[],autoPip:true,toasts:{download:true,sito:true,jarvis:true,sistema:true},commandCenter:{style:'board',webSuggestions:true},autoArchive:{enabled:false,days:7}});
   assert.deepEqual(data.sitePermissions,{});
   assert.deepEqual(data.games.map(g=>g.id),[1]);
   assert.equal(normalize({workspaces:[{name:'A'}],settings:{runInBackground:false}}).settings.runInBackground,false);

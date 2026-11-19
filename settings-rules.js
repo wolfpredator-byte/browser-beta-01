@@ -11,7 +11,7 @@
     {id:'aspetto',title:'Aspetto',icon:'logo',sections:['Disposizione','Preset','Tema e colori','I miei preset','Sfondo','Interfaccia','Home']},
     {id:'navigazione',title:'Ricerca e navigazione',icon:'search',sections:['Ricerca','Scorciatoie di ricerca','Stili dei siti']},
     {id:'schede',title:'Schede',icon:'tabs',sections:['Schede']},
-    {id:'privacy',title:'Privacy e sicurezza',icon:'shield',sections:['Privacy e sicurezza','Password']},
+    {id:'privacy',title:'Privacy e sicurezza',icon:'shield',sections:['Privacy e sicurezza','Bitwarden','Password']},
     // Beta 0.45: liste, aggiornamenti verificati, eccezioni e registro del blocco.
     {id:'blocco',title:'Blocco annunci',icon:'shield',sections:['Blocco di pubblicità e tracker','Liste di blocco','Siti con eccezioni','Registro del blocco']},
     {id:'telefono',title:'Telefono',icon:'external',sections:['Telefono']},
@@ -47,7 +47,8 @@
     out.schede={text:[SLEEP[s.sleepAfterMinutes]||'',s.autoArchive?.enabled?`archivio dopo ${plural(s.autoArchive.days,'giorno','giorni')}`:'nessun archivio automatico']
       .filter(Boolean).join(' · ')};
     out.privacy={text:[s.adblock?(s.adblock.enabled?'Blocco attivo':'Blocco spento'):'',
-      p?.available?plural(p.entries?.length||0,'password','password'):'',
+      // Beta 0.46: le password stanno in Bitwarden
+      p?.bitwarden?(p.bitwarden.installed?'Bitwarden':'Bitwarden da installare'):p?.available?plural(p.entries?.length||0,'password','password'):'',
       s.sitesWithPermissions?plural(s.sitesWithPermissions,'sito con permessi','siti con permessi'):''].filter(Boolean).join(' · ')};
     const ab=s.adblock;
     if(!ab)out.blocco={text:'Liste, eccezioni e registro'};

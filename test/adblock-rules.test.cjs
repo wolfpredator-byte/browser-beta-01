@@ -113,3 +113,14 @@ test('registro locale e controllo degli aggiornamenti (Beta 0.45)',()=>{
   const bad=R.verifyUpdate([{url:base+'easylist/easylist.txt',text:'<html>404</html>'.repeat(30)},...files.slice(1)],null);
   assert.strictEqual(bad.ok,false);assert.ok(bad.problems.some(p=>/easylist.txt: file non valido/.test(p)));
 });
+
+test('reindirizzamenti solo per script, immagini e stili (Beta 0.46.1)',()=>{
+  const red={redirectURL:'data:text/plain;base64,'};
+  assert.deepStrictEqual(R.safeResponse(red,'xhr'),{cancel:true});
+  assert.deepStrictEqual(R.safeResponse(red,'other'),{cancel:true});
+  assert.deepStrictEqual(R.safeResponse(red,'media'),{cancel:true});
+  assert.strictEqual(R.safeResponse(red,'script'),red);
+  assert.strictEqual(R.safeResponse(red,'image'),red);
+  assert.deepStrictEqual(R.safeResponse({cancel:true},'xhr'),{cancel:true});
+  assert.deepStrictEqual(R.safeResponse({},'xhr'),{});
+});

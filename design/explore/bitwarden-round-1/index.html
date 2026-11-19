@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitwarden · esempio</title>
+<style>
+/* Esempio Beta 0.46: Impostazioni → Password e Bitwarden, avviso sulle pagine di accesso. Colori della cornice (tema arancio). */
+:root{--bg:#0d0a0a;--panel:#171212;--glass:rgba(30,22,20,.92);--line:rgba(255,150,110,.14);--line2:rgba(255,150,110,.3);
+  --acc:#ff5b2e;--acc2:#ff9a6e;--acc-rgb:255,91,46;--text:#ece6e3;--muted:#9a8f8b;--ok:#7bd88f;--warn:#ffcc33;--bad:#ff6b6b;--bw:#175ddc;
+  font:13px/19px 'Segoe UI Variable','Segoe UI',sans-serif;color:var(--text)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#000}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+#pick{position:fixed;top:0;left:0;right:0;height:44px;z-index:100;display:flex;align-items:center;gap:6px;padding:0 12px;background:#000;border-bottom:1px solid #222;font-size:12px;overflow-x:auto;white-space:nowrap}
+#pick b{color:#888;font-weight:500;margin-right:6px}
+#pick button{padding:6px 11px;border-radius:7px;border:1px solid #333;color:#bbb;flex:none}
+#pick button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#pick .sep{width:1px;height:20px;background:#333;margin:0 6px;flex:none}
+#app{position:fixed;top:44px;left:0;right:0;bottom:0;display:flex;background:radial-gradient(1200px 500px at 20% -10%,#5a2410,transparent),var(--bg)}
+.left{flex:1;padding:28px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-content:start;opacity:.55}
+.tile{height:150px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);padding:14px;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.tile.on{border-color:var(--acc);opacity:1}
+.sheet{width:min(560px,100%);flex:none;background:var(--panel);border-left:1px solid var(--line2);overflow:auto;padding:22px 26px 40px}
+.sheet h2{margin:0 0 4px;font-size:15px;letter-spacing:.3em;font-weight:500}
+.sum{color:var(--muted);margin:0 0 18px}
+section{border-top:1px solid var(--line);padding:14px 0 16px}
+h4{margin:0 0 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#cfc6c2;font-weight:600}
+.hint{margin:6px 0 0;font-size:11.5px;line-height:16px;color:var(--muted)}
+.check{display:flex;align-items:center;gap:9px;margin:6px 0}
+.check i{width:15px;height:15px;border-radius:4px;background:#ddd;display:grid;place-items:center;font-style:normal;font-size:11px;color:#111}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{padding:7px 12px;border-radius:9px;border:1px solid var(--line2);font-size:12px}
+.btn:hover{background:rgba(var(--acc-rgb),.12)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.danger{border-color:rgba(255,107,107,.5);color:#ff9b9b}
+.btn[disabled]{opacity:.4;cursor:default}
+/* Scheda Bitwarden */
+.bw{display:flex;gap:12px;align-items:center;padding:12px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.bw-logo{width:40px;height:40px;border-radius:10px;background:var(--bw);display:grid;place-items:center;flex:none}
+.bw-logo svg{width:22px;height:22px}
+.bw .t{flex:1;min-width:0}.bw strong{display:block;font-weight:600}.bw span{font-size:11.5px;color:var(--muted)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
+.dot.off{background:var(--warn)}
+.ws{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.ws div{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.ws .n{flex:1}.ws .s{color:var(--muted);font-size:11.5px}
+.shield{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(123,216,143,.06);border:1px solid rgba(123,216,143,.22);font-size:12px;line-height:17px}
+.shield b{color:var(--ok);font-weight:600}
+.shield ul{margin:6px 0 0;padding-left:18px;color:var(--muted)}
+/* Password di VARCO */
+.ro{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,204,51,.06);border:1px solid rgba(255,204,51,.25);margin-bottom:8px}
+.ro b{color:var(--warn);font-weight:600;white-space:nowrap}
+.steps{counter-reset:s;margin:10px 0 0;padding:0;list-style:none}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:12px}
+.steps li::before{content:counter(s);width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;background:rgba(var(--acc-rgb),.2);color:var(--acc2)}
+.steps li.done::before{content:'✓';background:rgba(123,216,143,.18);color:var(--ok)}
+.steps li span{color:var(--muted)}
+.rows{margin-top:8px}
+.row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.row .h{flex:1}.row .u{color:var(--muted)}.row code{color:var(--muted)}
+/* Toast */
+.toast{position:fixed;right:18px;bottom:18px;width:380px;padding:14px;border-radius:14px;background:var(--glass);border:1px solid var(--line2);box-shadow:0 16px 50px rgba(0,0,0,.6);z-index:20;display:none}
+.toast.show{display:block}
+.toast .h{display:flex;gap:10px}.toast .i{width:30px;height:30px;border-radius:9px;background:var(--bw);display:grid;place-items:center;flex:none}
+.toast b{display:block}.toast p{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:17px}
+</style>
+</head>
+<body>
+<div id="pick">
+ <b>Bitwarden 0.46</b>
+ <button data-s="none" class="on">Bitwarden non installato</button>
+ <button data-s="installed">Bitwarden installato</button>
+ <span class="sep"></span>
+ <button data-s="exported">Dopo l'esportazione</button>
+ <button data-s="deleted">Password di VARCO cancellate</button>
+ <span class="sep"></span>
+ <button id="toastBtn">Avviso su una pagina di accesso</button>
+</div>
+<div id="app">
+ <div class="left"><div class="tile">Aspetto</div><div class="tile">Ricerca</div><div class="tile">Schede</div><div class="tile on">Privacy e sicurezza</div><div class="tile">Blocco annunci</div><div class="tile">Telefono</div></div>
+ <div class="sheet" id="sheet"></div>
+</div>
+<div class="toast" id="toast"><div class="h"><div class="i"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M5 3h14v9c0 4.5-3.5 7.5-7 9-3.5-1.5-7-4.5-7-9z"/></svg></div>
+ <div><b>Pagina di accesso</b><p>Con Bitwarden riempi nome e password da qui. VARCO non salva più le password.</p></div></div>
+ <div class="btns"><button class="btn pri">Installa Bitwarden</button><button class="btn">Non chiedere più</button></div></div>
+<script>
+const $=s=>document.querySelector(s);
+let S='none';
+const logo='<div class="bw-logo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M5 3h14v9c0 4.5-3.5 7.5-7 9-3.5-1.5-7-4.5-7-9zm7 2v13.6c2.6-1.3 5-3.6 5-6.6V5z"/></svg></div>';
+function render(){
+  const inst=S!=='none';
+  const bw=inst?`<div class="bw">${logo}<div class="t"><strong><span class="dot"></span>Bitwarden 2026.10.2 installato</strong><span>L'icona è nella barra in alto · Ctrl+Shift+L apre Bitwarden sulla pagina</span></div></div>
+    <div class="btns"><button class="btn pri">Apri Bitwarden</button><button class="btn">Vault web ↗</button><button class="btn">App Bitwarden ↗</button></div>
+    <div class="ws"><div><span class="n">Personale</span><span class="s">usa il Bitwarden principale</span></div><div><span class="n">Lavoro · account separati</span><span class="s">Bitwarden a parte: puoi entrare con un altro account</span></div></div>`
+   :`<div class="bw">${logo}<div class="t"><strong><span class="dot off"></span>Bitwarden non è installato</strong><span>Estensione ufficiale dal Chrome Web Store, gratuita</span></div></div>
+    <div class="btns"><button class="btn pri" id="install">Installa Bitwarden</button><button class="btn">Vault web ↗</button><button class="btn">App Bitwarden ↗</button></div>`;
+  const ro=S==='deleted'?`<p class="hint">Nessuna password salvata in VARCO. Da adesso le password stanno solo in Bitwarden.</p>`:
+   `<div class="ro"><b>Sola lettura</b><span>14 password salvate in VARCO. Non ne salva più di nuove e non riempie più i campi.</span></div>
+    <ol class="steps">
+     <li class="${S==='exported'?'done':''}"><div>Esporta per Bitwarden<br><span>Un file CSV nel formato di Bitwarden. Contiene le password in chiaro: cancellalo dopo.</span></div></li>
+     <li><div>Importa in Bitwarden<br><span>Vault web → Strumenti → Importa dati → «Bitwarden (csv)».</span></div></li>
+     <li><div>Cancella le password di VARCO<br><span>Quando hai controllato che in Bitwarden ci sono tutte.</span></div></li>
+    </ol>
+    <div class="btns"><button class="btn pri" id="export">Esporta per Bitwarden…</button><button class="btn danger" ${S==='exported'?'':'disabled'} id="del">Cancella le password di VARCO…</button></div>
+    <div class="rows"><div class="row"><span class="h">github.com</span><span class="u">mario</span><code>••••••••</code><button class="btn">Copia</button></div><div class="row"><span class="h">mail.example.com</span><span class="u">m@e.com</span><code>••••••••</code><button class="btn">Copia</button></div></div>`;
+  $('#sheet').innerHTML=`<h2>PRIVACY E SICUREZZA</h2><p class="sum">Blocco attivo · Bitwarden ${inst?'installato':'da installare'}</p>
+   <section><h4>Bitwarden</h4>${bw}
+    <div class="shield"><b>VARCO non tiene i tuoi segreti.</b> Le password stanno in Bitwarden, cifrate. VARCO:
+     <ul><li>non salva la master password né i dati del Vault;</li><li>apre il Vault web nel browser di sistema, così i suoi cookie non restano qui;</li><li>tiene le pagine di Bitwarden fuori da cronologia, screenshot, JARVIS e schede da riaprire.</li></ul></div>
+   </section>
+   <section><h4>Password salvate in VARCO</h4>${ro}</section>
+   <section><h4>Telefono</h4><p class="hint">Le password non si sincronizzano più col telefono: lì usa l'app Bitwarden, che ha già i tuoi dati. Preferiti e schede continuano a sincronizzarsi.</p></section>`;
+  document.querySelectorAll('#pick [data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===S));
+}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.s){S=b.dataset.s;render();}
+  if(b.id==='install'){S='installed';render();}
+  if(b.id==='export'){S='exported';render();}
+  if(b.id==='del'&&!b.disabled){S='deleted';render();}
+  if(b.id==='toastBtn')$('#toast').classList.toggle('show');
+});
+render();
+</script>
+</body>
+</html>

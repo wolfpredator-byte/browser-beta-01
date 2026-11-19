@@ -106,8 +106,19 @@ if(location.protocol==='varco-view:'&&location.host==='app'){
  *   solo quando ne scegli uno con un clic vero.
  * L'elenco sta in uno shadow DOM chiuso: gli script della pagina non possono leggerlo.
  */
-if(window.top===window&&(location.protocol==='https:'||
-  (location.protocol==='http:'&&/^(localhost|127\.0\.0\.1)$|\.localhost$/.test(location.hostname)))){
+// Beta 0.46: chi gestisce le password? Con Bitwarden la pagina non manda niente a VARCO: dice solo
+// (una volta) che c'è un campo di accesso, così VARCO può proporre Bitwarden se non è installato.
+const PW_PAGE=window.top===window&&(location.protocol==='https:'||
+  (location.protocol==='http:'&&/^(localhost|127\.0\.0\.1)$|\.localhost$/.test(location.hostname)));
+const PW_MODE=PW_PAGE?(()=>{try{return ipcRenderer.sendSync('pw:mode');}catch{return 'bitwarden';}})():'none';
+if(PW_MODE==='bitwarden'){
+  let told=false;
+  document.addEventListener('focusin',event=>{
+    const t=event.target;
+    if(!told&&t instanceof HTMLInputElement&&t.type==='password'){told=true;ipcRenderer.send('pw:loginField');}
+  },true);
+}
+if(PW_MODE==='varco'){
   const USER_SELECTOR='input[autocomplete~="username"],input[autocomplete~="email"],input[type="email"],'+
     'input[name*="user" i],input[name*="mail" i],input[name*="login" i],input[id*="user" i],input[id*="mail" i],input[id*="login" i]';
   const NOT_TEXT=['password','hidden','checkbox','radio','submit','button','file','image','reset','range','color','date','number'];
