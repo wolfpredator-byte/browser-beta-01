@@ -68,3 +68,12 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .menu{position:absolute;z-index:8;top:50px;left:50px;min-width:180px;padding:4px;border-radius:9px;background:var(--s-chrome);border:1px solid var(--s-edge-2);box-shadow:0 12px 30px rgba(0,0,0,.4)}
 .menu button{display:flex;width:100%;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;text-align:left}
 .menu button:hover{background:var(--s-row-hover)}.menu small{margin-left:auto;color:var(--s-dim)}
+
+/* Beta 0.43.5: pagine del companion che si cambiano */
+.tab{padding:0 2px 0 0}.tab>button{display:flex;align-items:center;gap:5px;padding:2px 4px 2px 9px}
+.tab .x{padding:2px 4px;opacity:0;color:var(--s-dim)}.tab:hover .x{opacity:1}.tab .x:hover{color:var(--s-text)}
+.tb.sm{width:24px;height:24px}.tb:disabled{opacity:.35;cursor:default}
+.navs{margin-left:auto;display:flex;gap:2px}
+.menu .addr{padding:4px 4px 6px}.menu .addr input{width:100%;padding:6px 8px;border-radius:7px;background:var(--s-row);border:1px solid var(--s-edge-2);color:var(--s-text);outline:none;font:inherit}
+.menu .addr input:focus{border-color:var(--s-sig)}
+.menu{position:fixed}

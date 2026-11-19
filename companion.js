@@ -5,7 +5,7 @@
 const C=window.companion,$=s=>document.querySelector(s);
 const IP={timer:'M12 8v5l3 2M9 3h6M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16z',link:'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   wide:'M4 5h16v14H4zM10 5v14',strip:'M15 5h5v14h-5zM4 5h8v14H4z',pin:'M9 4h6l-1 6 4 3H6l4-3zM12 13v8',page:'M4 4h16v16H4zM14 4v16',close:'M6 6l12 12M18 6L6 18',
-  play:'M7 4l13 8-13 8z',pause:'M8 5v14M16 5v14',down:'M6 9l6 6 6-6',open:'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',window:'M3 5h18v14H3zM3 9h18'};
+  play:'M7 4l13 8-13 8z',plus:'M12 5v14M5 12h14',back:'M15 5l-7 7 7 7',fwd:'M9 5l7 7-7 7',reload:'M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5',pause:'M8 5v14M16 5v14',down:'M6 9l6 6 6-6',open:'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',window:'M3 5h18v14H3zM3 9h18'};
 const svg=(n,s=16)=>`<svg class="i" viewBox="0 0 24 24" width="${s}" height="${s}"><path d="${IP[n]}"/></svg>`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hm=ms=>{const m=Math.floor(ms/60000);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');};
@@ -37,14 +37,17 @@ function widget(k){
 function render(){
   const cfg=S.cfg,p=presetOf(),comp=$('#comp');
   comp.classList.toggle('wide',cfg.mode==='wide');
-  const pages=p.open||[];
+  const pages=[...(p.open||[]),...(S.temp||[]).map(t=>t.n)];
   comp.innerHTML=`<header class="head"><div class="logo">${esc(S.game.name.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase())}</div>
     <div class="title"><b>${esc(S.game.name)}</b><button class="preset" data-presetmenu title="Cambia preset">${esc(p.n)} ${svg('down',12)}</button></div>
     <button class="tb${cfg.mode==='wide'?' on':''}" data-mode title="${cfg.mode==='wide'?'Striscia':'Estesa'}">${svg(cfg.mode==='wide'?'strip':'wide')}</button>
     <button class="tb${cfg.top?' on':''}" data-top title="Sempre in primo piano">${svg('pin')}</button>
     <button class="tb" data-page2 title="Apri la pagina del gioco">${svg('page')}</button>
     <button class="tb" data-close title="Chiudi (riapri con Prova o al prossimo avvio)">${svg('close')}</button></header>
-  <nav class="tabs">${pages.map(n=>`<button class="tab${n===S.page?' on':''}" data-pg="${esc(n)}">${svg('link',12)}${esc(n)}</button>`).join('')||'<span class="empty">Il preset non ha pagine: sceglile in Preset → Apri</span>'}</nav>
+  <nav class="tabs">${pages.map(n=>`<span class="tab${n===S.page?' on':''}"><button data-pg="${esc(n)}">${svg('link',12)}${esc(n)}</button><button class="x" data-pgx="${esc(n)}" title="Togli questa pagina">${svg('close',11)}</button></span>`).join('')}
+    <button class="tb sm" data-pgadd title="Apri un'altra pagina: un link rapido o un indirizzo">${svg('plus',14)}</button>
+    <span class="navs"><button class="tb sm" data-nav="back"${S.nav?.back?'':' disabled'} title="Indietro">${svg('back',14)}</button><button class="tb sm" data-nav="forward"${S.nav?.fwd?'':' disabled'} title="Avanti">${svg('fwd',14)}</button>
+    <button class="tb sm" data-nav="reload" title="Ricarica">${svg('reload',14)}</button><button class="tb sm" data-opentab title="Apri in una scheda di VARCO (e vai lì)">${svg('open',14)}</button></span></nav>
   <section class="body"><div class="widgets">${cfg.widgets.map(widget).join('')||'<span class="empty">Nessun widget: sceglili nelle impostazioni del preset (pagina del gioco).</span>'}</div></section>
   <footer class="foot"><span class="mono">${cfg.mode==='wide'?'estesa':'striscia'} · ${cfg.op}%${S.through?' · attraversabile':''}</span>${cfg.mode==='strip'?pages.map(n=>`<button class="chip" data-pgw="${esc(n)}" title="Apri ${esc(n)}">${svg('link',12)}${esc(n)}</button>`).join(''):''}</footer>
   ${S.through?'<div class="badge">I clic vanno al gioco · Ctrl+Shift+G per usarlo</div>':''}`;
@@ -60,16 +63,30 @@ function wire(){
   comp.querySelector('[data-close]').onclick=()=>C.call('close');
   comp.querySelector('[data-presetmenu]').onclick=e=>{e.stopPropagation();presetMenu();};
   comp.querySelectorAll('[data-pg],[data-pgw]').forEach(b=>b.onclick=()=>C.call('page',{name:b.dataset.pg||b.dataset.pgw}).then(refresh));
+  comp.querySelectorAll('[data-pgx]').forEach(b=>b.onclick=e=>{e.stopPropagation();C.call('pageRemove',{name:b.dataset.pgx}).then(refresh);});
+  comp.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>C.call('nav',{dir:b.dataset.nav}));
+  const ot=comp.querySelector('[data-opentab]');if(ot)ot.onclick=()=>C.call('openTab');
+  const pa=comp.querySelector('[data-pgadd]');if(pa)pa.onclick=e=>{e.stopPropagation();pageMenu(pa);};
   comp.querySelectorAll('[data-link]').forEach(b=>b.onclick=()=>C.call('link',{i:+b.dataset.link}).then(refresh));
   comp.querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>C.call('openShot',{name:b.dataset.shot}));
   comp.querySelectorAll('[data-task]').forEach(i=>i.onchange=()=>{const t=S.board.tasks[+i.dataset.task];t.done=i.checked;if(t.done)t.doneAt=Date.now();else delete t.doneAt;saveBoard();render();});
   comp.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{const t=S.board.tiles[b.dataset.tt].timer;
     if(t.run){t.left=timerLeft(t);t.run=false;delete t.at;}else{if(t.left<=0)t.left=t.secs;t.run=true;t.at=Date.now();}saveBoard();render();});
 }
+/* «+»: un altro link rapido (resta nel preset) o un indirizzo qualsiasi (solo per ora) */
+function pageMenu(anchor){
+  const have=new Set([...(presetOf().open||[]),...(S.temp||[]).map(t=>t.n)]);
+  const m=document.createElement('div');m.className='menu';const r=anchor.getBoundingClientRect();m.style.top=(r.bottom+4)+'px';m.style.left=Math.max(8,Math.min(r.left,innerWidth-250))+'px';
+  m.innerHTML=`<form class="addr"><input placeholder="Indirizzo o ricerca…" spellcheck="false"></form>${S.index.quick.filter(l=>!have.has(l.n)).map(l=>`<button data-q="${esc(l.n)}">${svg('link',13)}${esc(l.n)}<small>link rapido</small></button>`).join('')}`;
+  document.body.appendChild(m);C.call('cover',{on:true});const off=e=>{if(e&&m.contains(e.target))return;m.remove();C.call('cover',{on:false});removeEventListener('mousedown',off);};setTimeout(()=>addEventListener('mousedown',off),0);
+  m.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{off();C.call('pageAdd',{name:b.dataset.q}).then(refresh);});
+  const f=m.querySelector('form');f.onsubmit=e=>{e.preventDefault();const v=f.querySelector('input').value.trim();if(!v)return;off();C.call('pageUrl',{url:v}).then(refresh);};
+  setTimeout(()=>f.querySelector('input').focus(),20);
+}
 function presetMenu(){
   const m=document.createElement('div');m.className='menu';
   m.innerHTML=Object.entries(S.index.presets).map(([k,p])=>`<button data-k="${k}">${esc(p.n)}<small>${p.k}</small></button>`).join('');
-  document.body.appendChild(m);const off=()=>{m.remove();removeEventListener('click',off);};setTimeout(()=>addEventListener('click',off),0);
+  document.body.appendChild(m);C.call('cover',{on:true});const off=()=>{m.remove();C.call('cover',{on:false});removeEventListener('click',off);};setTimeout(()=>addEventListener('click',off),0);
   m.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{off();C.call('pick',{preset:b.dataset.k}).then(refresh);});
 }
 /* «Che partita è?»: tasti 1–4, dopo 10 s resta l'ultimo preset */
@@ -86,7 +103,7 @@ function showPick(){
     const l=box.querySelector('[data-left]');if(l)l.textContent='tra '+Math.ceil((10000-(Date.now()-T0))/1000)+' s: '+(S.index.presets[last]?.n||'');if(f>=1)choose(last);},100);
 }
 let saveT=null;function saveBoard(){clearTimeout(saveT);saveT=setTimeout(()=>C.call('saveBoard',{board:JSON.stringify(S.board)}).then(r=>{if(r?.rev)lastKey=keyOf({...S,rev:r.rev});}),300);}
-const keyOf=s=>JSON.stringify([s.rev,s.cfg,s.page,s.through,s.pick,s.index.session,s.index.lastPreset,s.index.presets,s.index.quick,s.index.tags,s.vars]);
+const keyOf=s=>JSON.stringify([s.nav,s.temp,s.rev,s.cfg,s.page,s.through,s.pick,s.index.session,s.index.lastPreset,s.index.presets,s.index.quick,s.index.tags,s.vars]);
 async function refresh(){
   const s=await C.call('state');if(!s||s.missing)return;
   for(const [k,v] of Object.entries(s.vars||{}))document.documentElement.style.setProperty(k,v);

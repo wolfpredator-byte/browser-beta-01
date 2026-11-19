@@ -7,12 +7,13 @@
  * I colori sono le variabili --s-* del tema di VARCO (lib/appearance-rules.cjs → strumentoTokens). */
 (function(){
 'use strict';
-const act=(name,args={})=>window.browserAPI.action(name,args);
+// Beta 0.43.5: il bus risponde {ok,result}; qui serve il risultato del comando (rev, nomi, miniature…).
+const act=(name,args={})=>window.browserAPI.action(name,args).then(r=>r&&r.ok&&'result' in r?(r.result&&typeof r.result==='object'?r.result:{ok:true}):r);
 const SNAP=24;
 const SINGLE=['hero','tasks','shots','files','stream','notes','res'];
-const SIZES={hero:[768,576],tasks:[336,504],shots:[624,408],files:[432,360],stream:[336,312],notes:[432,288],res:[336,384],note:[312,216],shot:[456,312],link:[312,120],file:[312,144],timer:[336,192]};
+const SIZES={hero:[768,576],tasks:[336,504],shots:[624,408],files:[432,360],stream:[336,312],notes:[432,288],res:[336,384],note:[312,216],shot:[456,312],link:[336,240],file:[312,144],timer:[336,192]};
 const SIZE_CHOICES={hero:[[768,576],[624,520],[960,600]],tasks:[[336,504],[432,504],[336,624]],shots:[[624,408],[456,408],[816,480]],files:[[432,360],[624,360]],
-  stream:[[336,312],[432,360]],notes:[[432,288],[624,360]],res:[[336,384],[432,384]],note:[[312,216],[264,168],[432,288]],shot:[[456,312],[336,232],[624,408]],link:[[312,120],[408,120]],file:[[312,144],[408,144]],timer:[[336,192],[288,168],[432,216]]};
+  stream:[[336,312],[432,360]],notes:[[432,288],[624,360]],res:[[336,384],[432,384]],note:[[312,216],[264,168],[432,288]],shot:[[456,312],[336,232],[624,408]],link:[[336,240],[456,312],[312,120]],file:[[312,144],[408,144]],timer:[[336,192],[288,168],[432,216]]};
 const GROUP={hero:'lavoro',tasks:'lavoro',files:'lavoro',stream:'lavoro',notes:'lavoro',note:'lavoro',file:'lavoro',shots:'media',shot:'media',res:'link',link:'link',timer:'lavoro'};
 const LABELS={project:{hero:'Stato del progetto',tasks:'Attività',shots:'Screenshot',files:'File recenti',stream:'Cronologia',notes:'Note del progetto',res:'Link rapidi',note:'Nota',shot:'Screenshot',link:'Link',file:'File',timer:'Timer'},
   game:{hero:'Scheda del gioco',tasks:'Obiettivi',shots:'Catture',files:'Configurazione',stream:'Storico partite',notes:'Note tattiche',res:'Link rapidi',note:'Nota',shot:'Cattura',link:'Link',file:'File',timer:'Timer'}};
@@ -625,8 +626,8 @@ function tagStyle(n){const t=(IX?.tags||[]).find(t=>t.n===n);if(!t)return '';con
 function openQuick(l){
   if(!/^https?:\/\//i.test(l.u||''))return;
   if(l.w==='pannello')act('webPanelAdd',{url:l.u,title:l.n});
-  else if(D.mode==='game')act('gameOpenLink',{id:+D.gk,url:l.u});
-  else act('resource',{url:l.u});
+  else if(l.w==='companion'&&D.mode==='game')act('gameOpenLink',{id:+D.gk,url:l.u});
+  else act('boardOpenTab',{url:l.u});   // Beta 0.43.5: apre la scheda E ci porta
 }
 
 /* ── Timer: conto alla rovescia o «fino a» un giorno e un'ora ── */
@@ -728,7 +729,7 @@ function sigOf(id){
 }
 
 /* ── Collegamenti dei riquadri nuovi ── */
-function extraWire(el,id,type){
+var extraWire=function(el,id,type){
   if(type==='tasks'){
     el.querySelectorAll('[data-tagof]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const i=+b.dataset.tagof;
       pop(b,[...IX.tags.map(t=>({t:t.n,sw:wireColor(t.c),on:t.n===P.tasks[i].tag})),{t:'Gestisci le etichette…',manage:1}],it=>{if(it.manage)return tagEditor();P.tasks[i].tag=it.t;refill('tasks');save();});}));
@@ -757,7 +758,7 @@ function extraWire(el,id,type){
   }
   if(type==='shots')el.querySelectorAll('.pp-thumb.clip[data-n]').forEach(t=>t.ondblclick=()=>act('boardOpenShot',{...kk(),name:t.dataset.n}));
 }
-function extraAction(what,id,btn){
+var extraAction=function(what,id,btn){
   if(what==='gstart'){act('gameSessionStart',{id:+D.gk});return true;}
   if(what==='gstop'){flushSave().then(()=>act('gameSessionStop',{id:+D.gk}));return true;}
   if(what==='gpreset'){presetMenu(btn);return true;}
@@ -950,6 +951,37 @@ function chromeGame(){
   if(qSig!==sigs.quick){sigs.quick=qSig;E.quick.innerHTML=quick.map(([c,a,i,l],n)=>`<button data-q="${n}" title="${esc(l)}">${svg(i)}<span class="lbl">${esc(l)}</span></button>`).join('');
     E.quick.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const q=quick[+b.dataset.q];if(q[0]==='@link')openQuick(q[1]);else act(q[0],q[1]);});}
 }
+
+
+/* ── Beta 0.43.5: i link mostrano la pagina vera ── */
+const THUMB={};   // indirizzo → {url} | 'wait' | 'err'
+function linkThumb(u,force){
+  if(!/^https?:\/\//i.test(u||''))return null;
+  const t=THUMB[u];if(t&&!force)return t;
+  THUMB[u]='wait';
+  act('boardLinkThumb',{kind:D.mode,key:String(D.gk),url:u,force:!!force}).then(r=>{THUMB[u]=r?.ok?{url:r.url}:'err';
+    for(const [id,tl] of Object.entries(P.tiles))if(typeOf(id)==='link'&&tl.url===u)refill(id);}).catch(()=>{THUMB[u]='err';});
+  return 'wait';
+}
+BODY.link=id=>{const l=P.tiles[id],t=linkThumb(l.url),big=l.h>=180;
+  const pic=!/^https?:\/\//i.test(l.url||'')?'<div class="pp-lthumb empty">Scrivi un indirizzo qui sotto</div>':t==='wait'?'<div class="pp-lthumb empty">Carico la pagina…</div>':t==='err'?'<div class="pp-lthumb empty">Pagina non raggiungibile</div>':`<div class="pp-lthumb" style="background-image:url('${t.url}')" data-do="openlink" title="Apri in una scheda"></div>`;
+  return head(id,`<button data-do="relink" title="Rifai la foto della pagina">${svg('reset',14)}</button>`,'')+`<div class="pp-tb pp-lbody">${big?pic:''}<div class="pp-ln"><span class="ic">${svg('link',15)}</span><div style="flex:1;min-width:0"><b><input class="pp-field" data-own="title" value="${esc(l.title)}" maxlength="80"></b><small><input class="pp-field" data-own="url" value="${esc(l.url)}" placeholder="https://…" spellcheck="false"></small></div>
+    <button class="pp-btn sm" data-do="openlink" title="Apri in una scheda (e vai lì)">${svg('open',13)}</button></div></div>`;};
+const _extraAction=extraAction;
+extraAction=function(what,id,btn){
+  if(what==='relink'){const u=P.tiles[id].url;if(u){linkThumb(u,true);refill(id);}return true;}
+  return _extraAction(what,id,btn);
+};
+/* Anteprima della pagina vera passando sopra un link rapido (come nella Home) */
+let pvT=null,pvOn=false;
+function previewOn(el,u){clearTimeout(pvT);pvT=setTimeout(()=>{const r=el.getBoundingClientRect();pvOn=true;act('sitePreview',{url:u,x:Math.round(r.left+r.width/2),y:Math.round(r.bottom+6)});},450);}
+function previewOff(){clearTimeout(pvT);if(pvOn){pvOn=false;act('sitePreviewHide');}}
+const _extraWire=extraWire;
+extraWire=function(el,id,type){
+  _extraWire(el,id,type);
+  if(type==='res')el.querySelectorAll('[data-li]').forEach(r=>{const l=IX.quick[+r.dataset.li];r.onmouseenter=()=>previewOn(r,l.u);r.onmouseleave=previewOff;r.addEventListener('click',previewOff);});
+  if(type==='link'){const u=el.querySelector('[data-own=url]');if(u)u.addEventListener('change',()=>{let v=u.value.trim();if(v&&!/^https?:\/\//i.test(v)){v='https://'+v;P.tiles[id].url=v;save();}previewOff();refill(id);});}
+};
 
 window.ProjectPage={render(state){render(state);themeChanged();},hide(){if(root){root.querySelectorAll('.pp-menu,.pp-cmenu').forEach(m=>m.classList.remove('on'));}}};
 })();

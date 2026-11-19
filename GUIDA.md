@@ -4,6 +4,44 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.43.5 — Link che mostrano la pagina e companion con pagine libere
+
+Installer PC: `dist\VARCO Setup 0.43.5.exe` (con la firma VMP).
+
+### Cosa cambia
+- **Nel companion la pagina si cambia:**
+  - **«+»** apre un altro link rapido (resta nel preset per la prossima volta) oppure un indirizzo o una ricerca qualsiasi (solo per ora);
+  - **×** su una scheda la toglie;
+  - **indietro, avanti, ricarica**;
+  - **«apri in VARCO»** porta la pagina in una scheda e ci va;
+  - navigando dentro una pagina resti dove sei: non torna più all'indirizzo di partenza.
+- **I riquadri «Link» mostrano la pagina vera:** una foto della pagina, fatta con i tuoi accessi del workspace e rifatta ogni giorno (↻ per rifarla subito). Cliccandola si apre la pagina.
+  - Puoi scrivere solo «sito.com»: diventa https://sito.com.
+  - Le foto stanno in `miniature/`, nella cartella delle board.
+- **Link rapidi:** passando sopra un link compare l'anteprima della pagina vera, come nella Home.
+- **«Apri in una scheda» ti porta lì**, dalla pagina del progetto, dalla pagina del gioco e dal companion. Prima nella pagina del gioco la scheda si apriva nel workspace del gioco senza mostrarla.
+- **Correzione:** mentre scrivevi nelle note o in un riquadro, dopo ogni salvataggio la tela si ricaricava da sola e poteva farti perdere il punto in cui scrivevi. Ora non succede più.
+
+### Test da fare
+- [ ] **T351** — Companion esteso → «+» → scrivi un indirizzo: si apre come scheda del companion; × la toglie. **📸**
+- [ ] **T352** — Companion → «+» → un link rapido: compare tra le schede e resta la prossima volta che usi quel preset.
+- [ ] **T353** — Nel companion clicca un link dentro la pagina, poi «indietro»: torni alla pagina di prima; «apri in VARCO» apre la scheda e ti porta lì.
+- [ ] **T354** — Pagina del progetto → Aggiungi → Link → scrivi un sito: dopo qualche secondo il riquadro mostra la foto della pagina. **📸**
+- [ ] **T355** — «Apri in una scheda» dal riquadro Link e da un link rapido: la scheda si apre ed è quella in vista.
+- [ ] **T356** — Passa sopra un link rapido: compare l'anteprima della pagina.
+- [ ] **T357** — Scrivi a lungo nelle note della pagina del progetto: il cursore resta dove scrivi.
+
+**Stato:**
+- 280 test superati.
+- **Provato in VARCO** con il profilo di prova:
+  - riquadro Link con «example.com» → foto della pagina vera;
+  - «Apri in una scheda» → si apre ed è la scheda attiva;
+  - companion: indirizzo aperto come pagina, poi tolto;
+  - il fuoco nelle note resta dopo il salvataggio.
+- **Non provati:** l'anteprima al passaggio del mouse sui link rapidi, avanti e indietro dentro il companion, l'installer.
+
+---
+
 ## Beta 0.43.4 — Companion compatto (0.43, fase D)
 
 Installer PC: `dist\VARCO Setup 0.43.4.exe` (con la firma VMP). Chiude la 0.43 «workbench».
