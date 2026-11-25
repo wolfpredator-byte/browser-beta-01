@@ -4,6 +4,42 @@ Un solo documento per tutte le versioni: la più recente è in cima. Le guide fi
 
 ---
 
+## Beta 0.46.2 — Correzioni: salvataggio con Bitwarden e ritorno al launcher dopo un accesso
+
+Installer PC: `dist\VARCO Setup 0.46.2.exe` (con la firma VMP).
+
+### Cosa cambia
+- **Salvare una password con Bitwarden chiudeva VARCO e non salvava niente.**
+  - Per salvare, Bitwarden apre il suo modulo in una finestra sua. VARCO la trasformava in una scheda e diceva a Bitwarden che la sua finestra era quella di VARCO.
+  - Così «Salva», «Salva e inserisci» o «Chiudi» chiudevano la finestra di VARCO, prima ancora che Bitwarden avesse salvato.
+  - **Ora** il modulo di Bitwarden si apre in una finestrella separata e si chiude da sola dopo il salvataggio. Un'estensione non può più chiudere una finestra di VARCO: al massimo chiude le schede che ha aperto lei.
+- **Installare Bitwarden poteva far chiudere VARCO.** Appena installata, VARCO le dà l'accesso ai siti e la ricarica, ma lo faceva mentre il suo processo in background stava ancora partendo, e Chromium si fermava. Ora aspetta che sia partito.
+- **Dopo un accesso il sito non riportava al launcher del gioco** (Steam, Epic, Discord e altri servizi).
+  - Il sito rimanda al launcher con un link speciale, per esempio `steam://…` o `nomegioco://login?token=…`, e VARCO li bloccava tutti.
+  - **Ora**, come Chrome, VARCO chiede «Aprire «Steam»?» con «Apri» e «Annulla». C'è anche «Consenti sempre a questo sito di aprire i link steam:», così la volta dopo non chiede più.
+  - Vale per i link nella pagina, per quelli che aprono una finestra nuova e per i rimandi del server.
+  - Restano sempre bloccati i tipi di link pericolosi (quelli che avviano programmi o file, come `ms-msdt:` e `search-ms:`).
+  - Se nessuna app del PC apre quel tipo di link, compare un avviso.
+
+### Test da fare
+- [ ] **T386** — Su un sito accedi a un account nuovo: Bitwarden propone di salvarlo. Apri il modulo e premi «Salva»: si apre in una finestrella a parte, si chiude da sola, VARCO resta aperto e in Bitwarden la password c'è. **📸**
+- [ ] **T387** — Apri di nuovo il modulo di Bitwarden e premi «Chiudi»: si chiude solo la finestrella.
+- [ ] **T388** — Il launcher di un gioco con accesso via Steam: dopo il login su Steam compare «Aprire «Nome app»?». Con «Apri» si torna al launcher, già collegato. **📸**
+- [ ] **T389** — Rifai lo stesso accesso con «Consenti sempre…» spuntato: la volta dopo il launcher si apre senza domanda.
+- [ ] **T390** — (Facoltativo) Togli e reinstalla Bitwarden da Impostazioni: VARCO resta aperto.
+
+**Stato:**
+- 291 test superati.
+- **Provato in VARCO** con il profilo di prova:
+  - chrome.windows.create di Bitwarden apre finestrelle separate; chrome.windows.remove le chiude;
+  - la richiesta di chiudere la finestra di VARCO viene ignorata;
+  - reinstallazione di Bitwarden (2026.11.0) senza chiusure (prima: codice 132);
+  - `steam://` dalla pagina e da un riquadro → domanda «Aprire «Steam»?»; «Annulla» non apre niente; «Consenti sempre» viene ricordato;
+  - un link verso un'app inesistente → avviso.
+- Il salvataggio vero nel tuo vault e il login con il tuo launcher li puoi provare solo tu (T386, T388).
+
+---
+
 ## Beta 0.46.1 — Correzione: VARCO si chiudeva su YouTube con il blocco attivo
 
 Installer PC: `dist\VARCO Setup 0.46.1.exe` (con la firma VMP). Contiene anche tutta la 0.46.0 (Bitwarden), qui sotto.
